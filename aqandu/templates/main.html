@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+{% block body %}
+<header>
+  <div id="carouselExampleIndicators" class="carousel slide" data-ride="carousel">
+    <ol class="carousel-indicators">
+      <li data-target="#carouselExampleIndicators" data-slide-to="0" class="active"></li>
+      <li data-target="#carouselExampleIndicators" data-slide-to="1"></li>
+      <li data-target="#carouselExampleIndicators" data-slide-to="2"></li>
+    </ol>
+    <div class="carousel-inner" role="listbox">
+      <!-- Slide One -->
+      <div class="carousel-item active" style="background-image: url('./static/img/bad_air_1610.jpg')">
+          <div class="carousel-caption">
+              <div class="col-md-15">
+                  <img src="./static/img/aqu-3.png" height="217" width="700">
+                  <h2> <strong>Exploring Salt Lake City's Air Quality.</strong> </h2>
+                  <br />
+              </div>
+          </div>
+      </div>
+      <!-- Slide Two -->
+      <div class="carousel-item" style="background-image: url('./static/img/sensor_image_1610.jpg')">
+          <div class="carousel-caption">
+              <div class="col-md-15">
+                  <img src="./static/img/aqu-3.png" height="217" width="700">
+                  <h2> <strong>Exploring Salt Lake City's Air Quality.</strong> </h2>
+                  <br />
+              </div>
+        </div>
+      </div>
+      <!-- Slide Three - Set the background image for this slide in the line below -->
+      <div class="carousel-item" style="background-image: url('./static/img/Wasatch-Front-1610.jpg')">
+          <div class="carousel-caption">
+              <div class="col-md-15">
+                <img src="./static/img/aqu-3.png" height="217" width="700">
+                <h2> <strong>Exploring Salt Lake City's Air Quality.</strong> </h2>
+                <br />
+            </div>
+        </div>
+      </div>
+    </div>
+    <a class="carousel-control-prev" href="#carouselExampleIndicators" role="button" data-slide="prev">
+      <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+      <span class="sr-only">Previous</span>
+    </a>
+    <a class="carousel-control-next" href="#carouselExampleIndicators" role="button" data-slide="next">
+      <span class="carousel-control-next-icon" aria-hidden="true"></span>
+      <span class="sr-only">Next</span>
+    </a>
+  </div>
+</header>
+
+<!-- Page Content -->
+<section class="py-5" id="about">
+  <div class="container">
+    <h1>Project</h1>
+    <br />
+    <p class='description'>
+        Over the last few years, low-cost commodity sensors have hit the markets allowing — for the first time — the ability to measure hyperlocal air quality conditions, both inside and outside of our homes. At the University of Utah, we are building infrastructure that utilizes these new sensors to create accurate measurements of air quality microclimates. We have three synergistic projects:
+        <br /><br />
+        <strong>One that leverages existing government and community-based air quality efforts to build a dense network of sensors across Salt Lake City; <br /><br />
+        One that engages kids in Salt Lake schools through learning about air quality with a Lego Maker kit and hosting of a commodity sensors in classrooms;
+        <br /><br />
+        And one that is placing multiple sensors in the homes of asthmatic families. </strong>
+        <br /><br />
+
+        Each of these projects utilizes our research in sensor design, air quality science, computational modeling, and communication of data; furthermore, they rely on citizens to engage, promote, and facilitate science.
+
+        We are currently looking for Salt Lake City residents to be part of building our outdoor network by hosting sensors at their homes. Want to get involved? See our sign-up below.
+
+        <br /><br />
+
+        This work is generously funded by grants from the National Science Foundation and the National Institutes of Health.
+    </p>
+</section>
+
+<section class="py-5" id="request-sensor">
+    <div class="container">
+        <h1>Sensors</h1>
+        <br />
+        <p class='description'> Interested in hosting a sensor? Sign up <a href="{{ url_for('request_sensor') }}">here.</a><p>
+        <!-- <p class='description'>  For more information on hosting a sensor, click <a href="https://airu.coe.utah.edu/">here</a>. -->
+        <p class='description'>Frequently asked questions are available <a href="https://airu.coe.utah.edu/about/frequently-asked-questions/">here</a>.</p>
+    </div>
+</section>
+
+
+<section class="py-5" id="mailinglist">
+    <div class="container">
+        <h1>Mailing List</h1>
+        <br />
+        <p class='description'> Interested in learning more about what we are doing? Sign up for our mailing list. Your information will only be used for AQ & U. </p>
+        <iframe src="https://docs.google.com/forms/d/e/1FAIpQLScfAjQPhlx6KkAB7mG8VoA-WDWBANna7QBVgr0zpgqypVEk9A/viewform?embedded=true" width="100%" height="500px" frameborder="0" marginheight="0" marginwidth="0">Loading...</iframe>
+    </div>
+</section>
+
+
+<section class="py-5" id="contact">
+    <div class="container">
+        <h1>Contact us</h1>
+        <br />
+        <p>If you have a question, have a comment you can contact us under:</p>
+        <p>Our email address is: <a href="mailto:contact-aqandu@sci.utah.edu">contact-aqandu@sci.utah.edu</a></p>
+    </div>
+</section>
+
+
+<section class="py-5" id="affiliations">
+    <div class="container">
+        <h1>Affiliations</h1>
+        <div class="flex-container">
+            <div class="affiliations">
+                <img src="./static/img/ulogo.png">
+                <img src="./static/img/scilogo.png">
+                <img src="./static/img/vdl.png" width="400" height="130">
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
