@@ -19,23 +19,40 @@ h1 {
     text-align: center;
     color: #f44336;
 }
+
+
 .bg-dark {
     background-color: #cc0000 !important;
 }
+
 
 p {
     color: #999999;
     text-align: center;
 }
 
-.flex-container {
+
+.affiliations {
     display: -webkit-flex;
     display: flex;
     align-items: center;
-
+    -webkit-flex-flow: row wrap;
+    justify-content: space-around;
 }
+
+
+.affiliations > * {
+  margin: 1em 0;
+}
+
 
 .description {
     font-size: 16px;
     text-align: justify;
+}
+
+
+.logo {
+    height: 120px;
+    /*width: 400px;*/
 }
