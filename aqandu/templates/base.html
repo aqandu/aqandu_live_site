@@ -37,21 +37,22 @@
               <span class="navbar-toggler-icon"></span>
             </button>
             <div class="collapse navbar-collapse" id="navbarResponsive">
+
               <ul class="navbar-nav ml-auto">
-                <li class="nav-item active">
+                <li class="nav-item {% block index %}{% endblock %}">
                   <a class= "nav-link" href="{{ url_for('index') }}">Home<span class="sr-only">(current)</span>
                   </a>
                 </li>
-                <li class="nav-item">
+                <li class="nav-item {% block project %}{% endblock %}">
                   <a class= "nav-link" href="{{ url_for('project') }}">Project</a>
                 </li>
-                <li class="nav-item">
+                <li class="nav-item {% block team %}{% endblock %}">
                   <a class= "nav-link" href="{{ url_for('team') }}">Team</a>
                 </li>
-                <li class="nav-item">
+                <li class="nav-item {% block request_sensor %}{% endblock %}">
                   <a class= "nav-link" href="{{ url_for('request_sensor') }}">Request a Sensor</a>
                 </li>
-                <li class="nav-item">
+                <li class="nav-item {% block newsroom %}{% endblock %}">
                   <a class= "nav-link" href="{{ url_for('newsroom') }}">Newsroom</a>
                 </li>
               </ul>
