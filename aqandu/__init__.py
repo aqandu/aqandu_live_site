@@ -51,6 +51,21 @@ def create_app(config, debug=False, testing=False, config_overrides=None):
 
         return render_template('request_sensor.html')
 
+    @app.route("/project")
+    def project():
+
+        return render_template('project.html')
+
+    @app.route("/team")
+    def team():
+
+        return render_template('team.html')
+
+    @app.route("/newsroom")
+    def newsroom():
+
+        return render_template('newsroom.html')
+
     # Add an error handler. This is useful for debugging the live application,
     # however, you should disable the output of the exception for production
     # applications.
