@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block body %}
+<section class="py-5" id="request-sensor">
+    <div class="container">
+        <div id="map">
+            <script src="static/js/map_reconfigure.js"></script>
+        </div>
+        <div class= "timeline">
+            <svg>
+                <g id="lines"></g>
+                <g id= "legend"></g>
+            </svg>
+        </div>
+    </div>
+</section>
+{% endblock %}
