@@ -1,0 +1,49 @@
+#map {
+  height: 450px;
+  width: 100%;
+  margin-top: 20px;
+}
+
+.timeline {
+  margin-top: 10px;
+  margin-left: 120px;
+}
+
+/*#graphcontainers{
+  background-color: white;
+  position: relative;
+  min-height: 150px;
+  border-radius: 15px;
+}*/
+
+
+.txt {
+  font-size: 14px;
+  line-height: 1.45;
+}
+.line-style {
+  fill: none;
+  stroke-width: 1.5;
+  shape-rendering: crispEdges;
+}
+@media(min-width: 992px) {
+  .col-md-6 {
+    width: 30%;
+    margin-bottom: 120px:
+  }
+}
+
+.logoRow {
+  text-align: center;
+}
+
+.navbar{
+  margin-bottom: 0px;
+}
+
+.main-raised{
+  margin-top: -140px;
+}
+.carousel-indicators{
+  margin-bottom: 660px;
+}

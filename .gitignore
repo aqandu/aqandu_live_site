@@ -1,0 +1,7 @@
+aqandu/crud.py
+aqandu/model_datastore.py
+config.py
+aqandu/templates/base old.html
+aqandu/templates/form.html
+aqandu/templates/index new.html
+aqandu/templates/list.html
