@@ -56,3 +56,14 @@ p {
     height: 120px;
     /*width: 400px;*/
 }
+
+
+.changeColor {
+    color: white;
+}
+
+
+.centerBlock {
+    display: table;
+    margin: auto;
+}
