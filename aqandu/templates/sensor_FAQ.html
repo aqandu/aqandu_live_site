@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% block body %}
+<div class="main main-raised">
+<section class="py-5" id="sensorFAQ">
+    <div class="container pushContainerDown">
+        <div class="col-md-12">
+            <h2 class="title inTheCenter">FAQ</h2>
+            <p class="faq question">What is AirU?</p>
+
+            <p class="faq">We are studying low-cost, air quality sensors to understand how to build a successful citizens’ monitoring network. In partnership with teachers, environmental advocates and citizen-scientists, we are working to help understand and address the region’s air quality challenges as well as to evaluate the performance of these low-cost sensors. Citizens, schools, and organizations will host sensors and classrooms will become fellow researchers. The project currently focuses on the Salt Lake Valley, which experiences periodic episodes of poor air quality and does not meet national ambient air quality standards.</p>
+
+            <p class="faq question">What does it mean to become an AirU host?</p>
+
+            <p class="faq">You can host a sensor in one of two ways:</p>
+
+            <ul class="faq">
+                <li>You can locate a sensor somewhere outside of your home or place of work, and your sensor will push data to an online database where you can view your air quality.</li>
+                <li>You can also adopt a sensor that is located nearby or another location of interest.</li>
+                <li>You will watch the data and look for air quality trends.  If your sensor’s readings appear outside of the expected range, we will send you a message requesting that you investigate whether the sensor is malfunctioning.</li>
+            </ul>
+
+            <p class="faq question">How big is the AirU sensor?</p>
+
+            <p class="faq">The sensor is about 4”x 4”x 4” and weighs ¼ lb with the housing.</p>
+
+            <p class="faq question">How is the AirU mounted?</p>
+
+            <p class="faq">The AirU can hang from a hook under an overhang (like a plant), or mounted on a wall, like a smoke detector. </p>
+
+            <p class="faq question">Where should the AirU be placed?</p>
+
+            <p class="faq">The sensor needs to connect to power and to have wifi access.  Ideally, the sensor should be mounted in a somewhat protected spot outdoors on school grounds. Its protective housing will keep it safe from wind and moisture. It should be roughly breathing level (5 ft high or higher).  Avoid placing it near kitchen exhaust or dryer vents or less than 4 ft above the ground.  </p>
+
+            <p class="faq question">How can I get to the data?</p>
+
+            <p class="faq">The AirU can push your air-quality data to an online database (add link when available). If your AirU is registered and your internet goes offline, the sensor will push the missing data to the database once a connect is reestablished.  The AirU data is also backed up to an onboard uSD card. </p>
+
+            <p class="faq question">How do I read data from the AirU’s SD card?</p>
+
+            <p class="faq">Disconnect the AirU from power. The micro SD card may then be ejected by pushing the card in  and letting it pop out. <img class="sensorparts" src="./static/img/sensorpartpic.jpg"> You may need a micro SD card reader to open it on your computer. Each folder on the card should be named uniquely with a date and time and once the device retains power it will start a new folder. Files can be open in a program like MS Excel for analysis.</p>
+
+            <p class="faq question">How do I register my AirU?</p>
+
+            <p class="faq">Coming soon.</p>
+
+            <p class="faq question">If the AirU is using my wifi, how much data will be transferred, and will it affect my internet speed?</p>
+
+            <p class="faq">Less than 200 bytes are transferred every 5 minutes.  To put this into perspective, having an AirU on your network is like loading one web page once an hour; it won’t be noticeable.</p>
+
+            <p class="faq question">What will the readings look like? What do the numbers mean?</p>
+
+            <p class="faq">Part of this research is to understand the performance of the sensors. They measure PM concentrations, in micrograms per cubic meter of air, and provide good relative indicators of air quality. This means that if the sensor readings increase, the PM levels are higher.  </p>
+
+            <p class="faq">However, the number reading of your sensor shouldn’t be taken at face value, yet. The sensor needs to be calibrated, and, although we are calibrating the sensors before they are deployed, we are still learning how they will behave over time.  So, you cannot directly compare the PM concentrations from the AirU to those from high-quality measures, like those reported by the State of Utah. The official $30,000 monitors give readings like this from the Utah DAQ website. By the end of the study we should know how to best interpret the data from your sensor network!</p>
+
+            <p class="faq">We are still working to understand the performance of the CO and NO2 sensors.  </p>
+
+            <p class="faq question">Could our readings reflect badly on my neighborhood?</p>
+
+            <p class="faq">You are an important link in our chain of citizen researchers. The data you provide helps show whether sensors are reliable, in addition to showing possible air quality trends in the region. Since we are in the experimental stage, their data should not be taken at face value. The sensors do well measuring relative levels of pollution, but readings from your sensor cannot be compared to the state division of air quality or EPA’s health standards. Consequently, they cannot be used to make conclusions about pollution levels in your immediate area. If the pollution levels appear higher than expected, the sensor may have a problem, or the levels may require further investigation. For example, a bug may have crawled into the sensor causing the inaccurate readings. If your sensor appears to be working properly but is providing higher than expected readings, this may suggest that further study would be a good idea. We can help you in either case if you wish.  Furthermore, we will work to maintain your trust. If you have concerns about how the data will be used, the sensor readings can be made anonymous.</p>
+
+            <p class="faq question">Does the AirU connect securely?</p>
+
+            <p class="faq">Yes. Our devices are WiFi certified following IPv4 standards.  They connect to WPA2 networks with a secure password. When the device is configured from a web interface, the password is not visible, and it is encrypted.  The web interface is also encrypted.  Note that your district IT may have to enable each MAC address before the device is allowed to communicate on the network.  We are happy to work with IT people to ensure that we meet their security requirements.</p>
+
+            <p class="faq question">How long can I keep my AirU?</p>
+
+            <p class="faq">If you are receiving a free AirU, we may also need to pick up your sensor for maintenance, repair, and troubleshooting.</p>
+
+            <p class="faq question">How will I know if my AirU is malfunctioning?</p>
+
+            <p class="faq">Coming soon.</p>
+        </div>
+    </div>
+</section>
+</div>
+{% endblock %}

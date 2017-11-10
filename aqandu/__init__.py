@@ -61,6 +61,11 @@ def create_app(config, debug=False, testing=False, config_overrides=None):
 
         return render_template('mailinglist.html')
 
+    @app.route("/sensor_FAQ")
+    def sensor_FAQ():
+
+        return render_template('sensor_FAQ.html')
+
     # Add an error handler. This is useful for debugging the live application,
     # however, you should disable the output of the exception for production
     # applications.

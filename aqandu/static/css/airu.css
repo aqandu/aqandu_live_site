@@ -20,6 +20,10 @@ h1 {
     color: #f44336;
 }
 
+.captionAQ {
+    font-size: 2.6em;
+}
+
 
 .bg-dark {
     background-color: #cc0000 !important;
@@ -28,7 +32,7 @@ h1 {
 
 p {
     color: #999999;
-    text-align: center;
+    font-size: 18px;
 }
 
 
@@ -46,24 +50,151 @@ p {
 }
 
 
-.description {
-    font-size: 16px;
+p.description {
     text-align: justify;
 }
 
 
+p.description-centered {
+    text-align: center;
+}
+
+
+p.description-centered.boxed {
+    text-align: center;
+    color: #FFFFFF;
+    font-size: 24px;
+}
+
+
+.description.smaller {
+    font-size: 12px;
+    text-align: justify;
+}
+
+
+.function {
+    font-size: 16px;
+    color: #999999;
+}
+
+
+.faq {
+    font-size: 16px;
+    /*text-align: justify;*/
+    text-align: left;
+    color: #000000;
+}
+
+.faq.question {
+    font-weight: bold;
+}
+
+
 .logo {
-    height: 120px;
+    height: 60px;
     /*width: 400px;*/
 }
 
 
-.changeColor {
+.sensorparts {
+    height: 200px;
+    display: inline;
+    float: right;
+}
+
+
+.changeColor a {
     color: white;
+}
+
+
+.changeColor a:hover {
+    color: white;
+    background-color: rgba(255, 255, 255, 0.1);
+    text-decoration: none;
 }
 
 
 .centerBlock {
     display: table;
     margin: auto;
+}
+
+
+.portrait {
+    padding: 25px 0px;
+}
+
+
+.twitterWiki {
+    padding: 5px 5px;
+}
+
+
+.pushContainerDown {
+    margin-top: 90px;
+}
+
+
+.overFooter {
+    bottom-bottom: 40px;
+}
+
+
+.inTheCenter {
+    text-align: center;
+}
+
+.portrait a.name {
+    border-bottom: dotted 1px #E64C3C;
+}
+
+.description a {
+    border-bottom: dotted 1px #E64C3C;
+    text-decoration: none;
+    color: #999999;
+}
+
+
+p.description-centered.boxed a {
+    color: #FFFFFF;
+    border-bottom: dotted 2px #FFFFFF;
+    text-decoration: none;
+}
+
+.newsroom_image {
+    margin: 20px 0px;
+}
+
+.newsroom_big {
+    width: 500px;
+    margin-left: auto;
+	margin-right: auto;
+	display: block;
+}
+
+h2.title {
+    color: #f44336;
+    font-weight: 500;
+}
+
+
+h2.title.boxed {
+    color: #ffffff;
+    font-weight: 500;
+}
+
+
+.projectDescription {
+    color: #f44336;
+    font-size: 20px
+}
+
+
+.container.box {
+    background-color: #f44336;
+    padding: 10px 0px;
+    /*color: #000000;*/
+
 }

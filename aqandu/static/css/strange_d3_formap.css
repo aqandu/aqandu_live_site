@@ -1,20 +1,45 @@
 #map {
-  height: 450px;
+  height: 500px;
   width: 100%;
   margin-top: 20px;
 }
 
-.timeline {
-  margin-top: 10px;
-  margin-left: 120px;
+.dot {
+  border-radius: 20px;
+  border: 1px solid #FFFFFF;
+}
+.dot.green {
+  background-color: rgb(30,228,5);
+}
+.dot.yellow {
+  background-color: rgb(255,255,11);
+}
+.dot.orange {
+  background-color: rgb(252,104,8);
+}
+.dot.red {
+  background-color: rgb(251,0,7);
+}
+.dot.green.unhovered {
+  background-color: rgba(30,228,5,0.25);
+}
+.dot.yellow.unhovered {
+  background-color: rgba(255,255,11,0.25);
+}
+.dot.orange.unhovered {
+  background-color: rgba(252,104,8,0.25);
+}
+.dot.red.unhovered {
+  background-color: rgba(251,0,7,0.25);
 }
 
-/*#graphcontainers{
-  background-color: white;
-  position: relative;
-  min-height: 150px;
-  border-radius: 15px;
-}*/
+.timeline {
+  margin-top: 10px;
+}
+
+.legend {
+  width: 100px; height: 100px; float: left; margin-right: 8px; opacity: 0.7; padding: 6px 8px; font: 14px/16px Arial, Helvetica, sans-serif; background: white;
+}
 
 
 .txt {

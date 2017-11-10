@@ -1,15 +1,21 @@
 {% extends "base.html" %}
 {% block body %}
 {% block newsroom %}active{% endblock %}
-<div class="container">
+<div class="main main-raised">
+	<section class="py-5" id="newsroom">
+		<div class="container pushContainerDown">
+	<!-- <div class="container pushContainerDown"> -->
 	<!-- <div class="row"> -->
-		<div class="col-md-8 col-md-offset-2">
-			<h1 class="title">In the Media</h1>
-			<h2 class="title" style="font-size:20">November 2nd, 2017</h2>
-			<h3 class="description" style="font-size: 20"> On November 2nd, <a href="{{ url_for('team') }}">Kerry</a> and <a href="{{ url_for('team') }}">Miriah</a> went on the air with KRCL to talk about AQ and U, indoor air quality, and just what our project means for the public. Listen here (starting at 32 minutes in):
-			</h3>
+		<!-- <div class="col-md-8 col-md-offset-2"> -->
+		<div class="col-md-12 col-md-offset-2">
+			<h2 class="title inTheCenter">In the Media</h2>
+			<h3 class="title inTheCenter">November 2nd, 2017</h2>
+			<p class="description-centered" style="font-size: 20"> On November 2nd, <a href="{{ url_for('team') }}">Kerry</a> and <a href="{{ url_for('team') }}">Miriah</a> went on the air with KRCL to talk about AQ and U, indoor air quality, and just what our project means for the public. Listen here (starting at 32 minutes in):
+			</p>
 
-            <br/>
+			<div class='newsroom_image'>
+		        <img class="newsroom_big" src="./static/img/miriah-kerry-radio.jpg">
+			</div>
 
             <iframe width="100%" height="166" scrolling="no" frameborder="no" src="https://w.soundcloud.com/player/?url=https%3A//api.soundcloud.com/tracks/350429788&amp;color=ff5500"></iframe>
 
@@ -17,13 +23,16 @@
 			<br />
 			<br />
 
-            <h3 class="title">Why We're All a-Twitter <a href="https://twitter.com/AirQualityAndU" class="btn btn-simple btn-just-icon"><i class="fa fa-twitter"></i></a></h3>
+            <h3 class="title inTheCenter">Why We're All a-Twitter <a href="https://twitter.com/AirQualityAndU" class="btn btn-simple btn-just-icon"><i class="fa fa-twitter"></i></a></h3>
 
             <a class="twitter-timeline" href="https://twitter.com/AirQualityAndU?ref_src=twsrc%5Etfw">Tweets by AirQualityAndU</a> <script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script>
 
-			<h3 class="description" style="font-size: 20"> Add any other articles, embedded files, etc. here. You can follow the format above. Any questions? Email Aspen at akh0901@westminstercollege.edu</h3>
+			<!-- <h3 class="description" style="font-size: 20"> Add any other articles, embedded files, etc. here. You can follow the format above. Any questions? Email Aspen at akh0901@westminstercollege.edu</h3> -->
 
 		</div>
+	</div>
 	<!-- </div> -->
+		<!-- </div> -->
+	</section>
 </div>
 {% endblock %}
