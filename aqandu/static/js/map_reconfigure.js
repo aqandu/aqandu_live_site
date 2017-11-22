@@ -12,37 +12,28 @@ var sensLayer = L.layerGroup();
 var heat = L.heatLayer();
 
 var dbEndpoint = "/dbapi/api";
+var liveSensorURL = generateURL(dbEndpoint, '/liveSensors', null);
 
 
-//this is the call for the information for the sensor layer
-$.ajax({
-  url: 'https://air.eng.utah.edu:8086/query',
-  data: {
-    db: 'defaultdb',
-    u: 'aspen',
-    p: 'skitree',
-    q: "SELECT \"Sensor Model\", LAST(\"pm2.5 (ug/m^3)\") AS pm from airQuality where time >='"+ yesterday +"' group by ID, Latitude, Longitude, \"Sensor Source\" limit 400"
-  },
-  success: function (response){
-    response = response.results[0].series.map(function (d) {
-      var sensorReading = d.tags;
-      sensorReading.model = d.values[0][1];
-      if (d.tags["Sensor Source"] === "Purple Air"){
-        //console.log(d.values[0][2]+ " a");
-        sensorReading.pm25 = conversionPM(d.values[0][2]);
-        //console.log(sensorReading.pm25 + " b")
-      }
-      else{
-        sensorReading.pm25 = d.values[0][2];
-      }
-      return sensorReading; //pulls out tag to clean up data for distance finding
+getDataFromDB(liveSensorURL).then(data => {
+
+    response = data.map(function(d) {
+
+        if (d["Sensor Source"] === "Purple Air") {
+            d['pm25'] = conversionPM(d['pm25'], d['Sensor Model']);
+        }
+
+        return d
     });
+
     sensorLayer(response);
-  },
-  error: function () {
-    console.warn(arguments);
-  }
+
+}).catch(function(err){
+
+    alert("error, request failed!");
+    console.log("Error: ", err)
 });
+
 
 var margin = {
   top: 20,
@@ -162,52 +153,78 @@ function findCorners(ltlg) {
   return cornerarray;
 }
 
-function findNearestSensor(cornerarray, mark, callback){
-  $.ajax({
-    url: 'https://air.eng.utah.edu:8086/query',
-    data: {
-      db: 'defaultdb',
-      u: 'aspen',
-      p: 'skitree',
-      q: "SELECT MEAN(\"pm2.5 (ug/m^3)\") from airQuality where time >='"+ yesterday +"' group by ID, Latitude, Longitude limit 100"
-    },
-    success: function (response){
-      response = response.results[0].series.map(function (d) {
-        return d.tags; //pulls out tag to clean up data for distance finding
-      });
-      var closest = findDistance(response, mark); //returns closest sensor using distance equation
-      callback(closest);
-    },
-    error: function () {
-      console.warn(arguments);
-    }
-  });//closes ajax
-}//closes findNearestSensor
+function findNearestSensor(cornerarray, mark, callback) {
+
+    getDataFromDB(liveSensorURL).then(data => {
+
+        response = data.map(function(d) {
+
+            // return only location and ID
+            var newD = {};
+            newD['ID'] = d['ID'];
+            newD['Latitude'] = d['Latitude'];
+            newD['Longitude'] = d['Longitude'];
+
+            return newD;
+        });
+
+        var closest = findDistance(response, mark); // returns closest sensor using distance equation
+        callback(closest);
+
+    }).catch(function(err){
+
+        alert("error, request failed!");
+        console.log("Error: ", err);
+        console.warn(arguments);
+    });
+}
 
 
-function addData (sensorData){
-  sensorData = sensorData.results[0].series[0];
-  var chartLabel = sensorData.values[0][sensorData.columns.indexOf('ID')];
-  var markrname = sensorData.values[0][sensorData.columns.indexOf('ID')]; //what shows up in the marker on click (name of sensor)
-  var timeColumn = sensorData.columns.indexOf('time');
-  var pm25Column = sensorData.columns.indexOf('pm2.5 (ug/m^3)');
+// function addData (sensorData){
+//   sensorData = sensorData.results[0].series[0];
+//   var chartLabel = sensorData.values[0][sensorData.columns.indexOf('ID')];
+//   var markrname = sensorData.values[0][sensorData.columns.indexOf('ID')]; //what shows up in the marker on click (name of sensor)
+//   var timeColumn = sensorData.columns.indexOf('time');
+//   var pm25Column = sensorData.columns.indexOf('pm2.5 (ug/m^3)');
+//
+//   sensorData = sensorData.values.map(function (d) {
+//     return {
+//       id: markrname,
+//       time: new Date(d[timeColumn]),
+//       pm25: d[pm25Column]
+//     };
+//   }).filter(function (d) {
+//     return d.pm25 === 0 || !!d.pm25;  // forces NaN, null, undefined to be false, all other values to be true
+//   });
+//
+//   lineArray.push({
+//     id: markrname,
+//     sensorData: sensorData
+//   }); //pushes data for this specific line to an array so that there can be multiple lines updated dynamically on Click
+//   drawChart();
+// }
 
-  sensorData = sensorData.values.map(function (d) {
+
+function preprocessDBData(id, sensorData) {
+
+  sensorData = sensorData.map(function (d) {
     return {
-      id: markrname,
-      time: new Date(d[timeColumn]),
-      pm25: d[pm25Column]
+      id: id,
+      time: new Date(d['time']),
+      pm25: d['pm2.5 (ug/m^3)']
     };
   }).filter(function (d) {
     return d.pm25 === 0 || !!d.pm25;  // forces NaN, null, undefined to be false, all other values to be true
   });
 
   lineArray.push({
-    id: markrname,
+    id: id,
     sensorData: sensorData
   }); //pushes data for this specific line to an array so that there can be multiple lines updated dynamically on Click
+
   drawChart();
 }
+
 
 function drawChart (){
   var svg = d3.select("div svg"); // TODO: this isn't specific enough...
@@ -291,44 +308,27 @@ function drawChart (){
   //  .attr("text-anchor", "middle")
   //  .attr("font-family", "verdana")
   //  .text(d => d.id);
-
-
-
 }
+
 
 function makeGraph(mark){
   findNearestSensor(findCorners(mark.getLatLng()), mark, function (sensor) {
     mark = mark.bindPopup('<p>'+ sensor["ID"] +'</p>').openPopup();
 
-    // var theRoute = '/rawDataFrom?';
-    // var parameters = {'id': sensor["ID"], 'start': yesterday, 'end': today};
-    //
-    // var url = generateURL(dbEndpoint, theRoute, parameters);
-    //
-    // getDataFromDB(url).then(data => {
-    //
-    //     console.log(data)
-    //     addData(sensor["ID"], data)
-    //
-    // }).catch(function(err){
-    //
-    //     alert("error, request failed!");
-    //     console.log("Error: ", err)
-    // });
+    var theRoute = '/rawDataFrom?';
+    var parameters = {'id': sensor["ID"], 'start': yesterday, 'end': today, 'show': 'pm2.5'};
 
+    var url = generateURL(dbEndpoint, theRoute, parameters);
 
-    $.ajax({
-      url: 'https://air.eng.utah.edu:8086/query',
-      data: {
-        db: 'defaultdb',
-        u: 'aspen',
-        p: 'skitree',
-        q: "SELECT * FROM airQuality WHERE ID = '"+ sensor["ID"]+ "' AND time <='"+ today +"' AND time >= '"+ yesterday +"'"
-      },
-      success: addData,
-      error: function () {
-        console.warn(arguments);
-      }
+    getDataFromDB(url).then(data => {
+
+        // console.log(data)
+        preprocessDBData(sensor["ID"], data)
+
+    }).catch(function(err){
+
+        alert("error, request failed!");
+        console.log("Error: ", err)
     });
   });
 }
@@ -341,6 +341,7 @@ function onMapClick(e) {
 
   makeGraph(markr);
 }
+
 
 function setUp(){
   var div = d3.select(".timeline");
@@ -496,6 +497,8 @@ function clearData(){
   d3.selectAll("#lines").html('');  // in theory, we should just call drawChart again
   d3.selectAll(".voronoi").html('');
 }
+
+
 /* converts pm2.5 purpleAir to pm2.5 to federal reference method in microgram/m^3 so that the data is "consistent"
 only used when data is from purpleAir sensors. There are two different kinds of sensors, thus two different conversions
 for sensors pms1003:
@@ -503,8 +506,23 @@ PM2.5,TEOM =−54.22405ln(0.98138−0.00772PM2.5,PMS1003)
 for sensors pms5003:
 PM2.5,TEOM =−64.48285ln(0.97176−0.01008PM2.5,PMS5003)
 */
-function conversionPM(pm){
-  //for now, because some sensors are missing model title in the database, just using pms5004
-  var pmv = (-1) * 64.48285 * Math.log(0.97176-(0.01008*pm));
+function conversionPM(pm, sensorModel) {
+
+  if (sensorModel != null) {
+      var model = sensorModel.split('+')[0];
+
+      var pmv = 0;
+      if (model === 'PMS5003') {
+          // console.log('PMS5003')
+          pmv = (-1) * 64.48285 * Math.log(0.97176 - (0.01008 * pm));
+      } else if (model === 'PMS1003') {
+          // console.log('PMS1003')
+          pmv = (-1) * 54.22405 * Math.log(0.98138 - (0.00772 * pm));
+      }
+  } else {
+      // console.log(sensorModel + ' no model?');
+      pmv = pm;
+  }
+
   return pmv;
 }
