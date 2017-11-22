@@ -4,6 +4,11 @@
  * Licensed under MIT (https://github.com/BlackrockDigital/startbootstrap-half-slider/blob/master/LICENSE)
  */
 
+body {
+    -webkit-font-smoothing: subpixel-antialiased;
+}
+
+
 .carousel-item {
   height: 65vh;
   min-height: 300px;
@@ -92,7 +97,19 @@ p.description-centered.boxed {
 
 
 .logo {
-    height: 60px;
+    height: 50px;
+    /*width: 400px;*/
+}
+
+
+.logo2 {
+    height: 45px;
+    /*width: 400px;*/
+}
+
+
+.logo3 {
+    height: 55px;
     /*width: 400px;*/
 }
 

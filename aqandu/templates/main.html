@@ -77,19 +77,28 @@
     </p>
 </section>
 
-<!-- <section class="py-5" id="sensorMap">
+<section class="py-5" id="sensorMap">
     <div class="container">
         <div id="map">
             <script src="static/js/map_reconfigure.js"></script>
         </div>
         <div class= "timeline">
-            <svg>
+            <svg width="100%">
                 <g id="lines"></g>
-                <g id= "legend"></g>
+                <g class="x axis"></g>
+                <text class="x label"></text>
+                <g class="y axis"></g>
+                <text class="y label"></text>
+                <g class="focus" transform="translate(-100,-100)">
+                    <circle r="3.5"></circle>
+                    <text y="-10"></text>
+                </g>
+                <g class = "voronoi">
             </svg>
+            <button onclick="clearData()">Clear Data</button>
         </div>
     </div>
-</section> -->
+</section>
 
 <section class="py-5" id="request-sensor">
     <div class="container box">
@@ -124,7 +133,8 @@
         <h2 class="title inTheCenter">Partners</h2>
         <div class="affiliations">
             <a href="http://www.utah.edu" target="_blank"><img class="logo" src="./static/img/ulogo2.png"></a>
-            <a href="https://www.ece.utah.edu" target="_blank"><img class="logo" src="./static/img/ece_logo-01.png"></a>
+            <a href="https://www.ece.utah.edu" target="_blank"><img class="logo2" src="./static/img/ece_logo-01.png"></a>
+            <a href="https://www.che.utah.edu" target="_blank"><img class="logo3" src="./static/img/ChemE_logo.png"></a>
             <a href="http://www.sci.utah.edu" target="_blank"><img class="logo" src="./static/img/scilogo.png"></a>
             <a href="http://vdl.sci.utah.edu" target="_blank"><img class="logo" src="./static/img/vdl.png"></a>
             <a href="https://sites.google.com/site/pegaillardon/" target="_blank"><img class="logo" src="./static/img/lnis-logo.png"></a>

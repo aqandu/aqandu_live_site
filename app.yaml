@@ -32,3 +32,9 @@ beta_settings:
     #
     # cloud_sql_instances: "your-cloudsql-connection-name"
 #[END cloudsql_settings]
+
+
+# [START handlers]
+handlers:
+- url: /static
+  static_dir: aqandu/static

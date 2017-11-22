@@ -21,16 +21,16 @@
   background-color: rgb(251,0,7);
 }
 .dot.green.unhovered {
-  background-color: rgba(30,228,5,0.25);
+  background-color: rgba(30,228,5,0.2);
 }
 .dot.yellow.unhovered {
-  background-color: rgba(255,255,11,0.25);
+  background-color: rgba(255,255,11,0.2);
 }
 .dot.orange.unhovered {
-  background-color: rgba(252,104,8,0.25);
+  background-color: rgba(252,104,8,0.2);
 }
 .dot.red.unhovered {
-  background-color: rgba(251,0,7,0.25);
+  background-color: rgba(251,0,7,0.2);
 }
 
 .timeline {
@@ -38,17 +38,18 @@
 }
 
 .legend {
-  width: 100px; height: 100px; float: left; margin-right: 8px; opacity: 0.7; padding: 6px 8px; font: 14px/16px Arial, Helvetica, sans-serif; background: white;
+  width: 100px; height: 80px; float: left; margin-right: 8px; opacity: 0.7; padding: 6px 8px; font: 14px/16px Arial, Helvetica, sans-serif; background: white;
 }
-
-
 .txt {
   font-size: 14px;
   line-height: 1.45;
 }
 .line-style {
   fill: none;
-  stroke-width: 1.5;
+  stroke: #aaa;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+  stroke-width: 1.5px;
   shape-rendering: crispEdges;
 }
 @media(min-width: 992px) {
@@ -71,4 +72,29 @@
 }
 .carousel-indicators{
   margin-bottom: 660px;
+}
+/* The start of the css for multi-line voronoi from mike bostock's example */
+.axis--y path {
+  display: none;
+}
+
+.hover {
+  stroke: #000;
+}
+
+.focus text {
+  text-anchor: middle;
+  text-shadow: 0 1px 0 #fff, 1px 0 0 #fff, 0 -1px 0 #fff, -1px 0 0 #fff;
+}
+
+.voronoi path {
+  fill: none;
+  pointer-events: all;
+  /*stroke: #bada55;*/
+}
+
+#form {
+  position: absolute;
+  top: 20px;
+  right: 30px;
 }
