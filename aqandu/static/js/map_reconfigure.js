@@ -1,49 +1,50 @@
-//setting dates for timeline and for ajax calls
-var today = new Date().toISOString().substr(0, 19) +"Z";
-var date = new Date();
-date.setDate(date.getDate()-1);
-yesterday = date.toISOString().substr(0, 19) +"Z";
+/* global d3 L:true */
+/* eslint no-undef: "error" */
+/* eslint no-mixed-operators: ["error", {"allowSamePrecedence": true}] */
 
-var x = d3.scaleTime().domain([new Date (yesterday), new Date (today)]);
-var lineColor = d3.scaleOrdinal(d3.schemeCategory10);
-var y = d3.scaleLinear().domain([0.0, 120.0]);
+// setting dates for timeline and for ajax calls
+const today = new Date().toISOString().substr(0, 19) + 'Z';
+const date = new Date();
+date.setDate(date.getDate() - 1);
+const yesterday = date.toISOString().substr(0, 19) + 'Z';
 
-var sensLayer = L.layerGroup();
-var heat = L.heatLayer();
+const x = d3.scaleTime().domain([new Date(yesterday), new Date(today)]);
+const lineColor = d3.scaleOrdinal(d3.schemeCategory10);
+const y = d3.scaleLinear().domain([0.0, 120.0]);
 
-var dbEndpoint = "/dbapi/api";
-var liveSensorURL = generateURL(dbEndpoint, '/liveSensors', null);
-
-
-getDataFromDB(liveSensorURL).then(data => {
-
-    response = data.map(function(d) {
-
-        if (d["Sensor Source"] === "Purple Air") {
-            d['pm25'] = conversionPM(d['pm25'], d['Sensor Model']);
-        }
-
-        return d
-    });
-
-    sensorLayer(response);
-
-}).catch(function(err){
-
-    alert("error, request failed!");
-    console.log("Error: ", err)
-});
+const sensLayer = L.layerGroup();
+// const heat = L.heatLayer();
 
 
-var margin = {
+const margin = {
   top: 20,
   right: 30,
   bottom: 30,
-  left: 40
+  left: 40,
 };
 
-function setupMap () {
-  var map = L.map('map', {
+
+const dbEndpoint = '/dbapi/api';
+const liveSensorURL = generateURL(dbEndpoint, '/liveSensors', null);
+
+
+getDataFromDB(liveSensorURL).then((data) => {
+  const response = data.map((d) => {
+    if (d['Sensor Source'] === 'Purple Air') {
+      d.pm25 = conversionPM(d.pm25, d['Sensor Model']);
+    }
+
+    return d
+  });
+    sensorLayer(response);
+  }).catch((err) => {
+    alert('error, request failed!');
+    console.log('Error: ', err)
+});
+
+
+function setupMap() {
+  const map = L.map('SLC-map', {
     center: [40.7608, -111.8910],
     zoom: 13
   });
@@ -54,7 +55,7 @@ function setupMap () {
     accessToken: 'pk.eyJ1Ijoic2tpdHJlZSIsImEiOiJjajUydDkwZjUwaHp1MzJxZHhkYnl3eTd4In0.TdQB-1U_ID-37stKON_osw'
   }).addTo(map);
 
-  var legend = L.control({position: 'bottomright'});
+  const legend = L.control({position: 'bottomright'});
 
   legend.onAdd = function (map) {
     this._div = L.DomUtil.create('div', 'legend');
@@ -90,7 +91,7 @@ function setupMap () {
 }
 
 var map = setupMap();
-var lineArray = [];
+let lineArray = [];
 
 window.onload = window.onresize = function () {
   setUp();
@@ -102,11 +103,11 @@ window.onload = window.onresize = function () {
 }
 
 function distance(lat1, lon1, lat2, lon2) {
-  var p = 0.017453292519943295;    // Math.PI / 180
-  var c = Math.cos;
-  var a = 0.5 - c((lat2 - lat1) * p)/2 +
+  const p = 0.017453292519943295; // Math.PI / 180
+  const c = Math.cos;
+  const a = 0.5 - c((lat2 - lat1) * p) / 2 +
   c(lat1 * p) * c(lat2 * p) *
-  (1 - c((lon2 - lon1) * p))/2;
+  (1 - c((lon2 - lon1) * p)) / 2;
 
   return 12742 * Math.asin(Math.sqrt(a)); // 2 * R; R = 6371 km
 }
@@ -155,28 +156,25 @@ function findCorners(ltlg) {
 
 function findNearestSensor(cornerarray, mark, callback) {
 
-    getDataFromDB(liveSensorURL).then(data => {
+  getDataFromDB(liveSensorURL).then((data) => {
 
-        response = data.map(function(d) {
+    response = data.map((d) => {
+      // return only location and ID
+      const newD = {};
+      newD.ID = d.ID;
+      newD.Latitude = d.Latitude;
+      newD.Longitude = d.Longitude;
 
-            // return only location and ID
-            var newD = {};
-            newD['ID'] = d['ID'];
-            newD['Latitude'] = d['Latitude'];
-            newD['Longitude'] = d['Longitude'];
-
-            return newD;
-        });
-
-        var closest = findDistance(response, mark); // returns closest sensor using distance equation
-        callback(closest);
-
-    }).catch(function(err){
-
-        alert("error, request failed!");
-        console.log("Error: ", err);
-        console.warn(arguments);
+      return newD;
     });
+
+    var closest = findDistance(response, mark); // returns closest sensor using distance equation
+    callback(closest);
+  }).catch((err) => {
+    alert("error, request failed!");
+    console.log("Error: ", err);
+    console.warn(arguments);
+  });
 }
 
 
@@ -206,21 +204,20 @@ function findNearestSensor(cornerarray, mark, callback) {
 
 
 function preprocessDBData(id, sensorData) {
-
-  sensorData = sensorData.map(function (d) {
+  const processedSensorData = sensorData.map((d) => {
     return {
       id: id,
-      time: new Date(d['time']),
+      time: new Date(d.time),
       pm25: d['pm2.5 (ug/m^3)']
     };
-  }).filter(function (d) {
-    return d.pm25 === 0 || !!d.pm25;  // forces NaN, null, undefined to be false, all other values to be true
+  }).filter((d) => {
+    return d.pm25 === 0 || !!d.pm25; // forces NaN, null, undefined to be false, all other values to be true
   });
 
   lineArray.push({
     id: id,
-    sensorData: sensorData
-  }); //pushes data for this specific line to an array so that there can be multiple lines updated dynamically on Click
+    sensorData: processedSensorData
+  }); // pushes data for this specific line to an array so that there can be multiple lines updated dynamically on Click
 
   drawChart();
 }

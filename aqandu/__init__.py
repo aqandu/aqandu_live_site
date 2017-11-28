@@ -16,6 +16,8 @@ import logging
 
 from flask import Flask, render_template
 
+import assets
+
 
 def create_app(config, debug=False, testing=False, config_overrides=None):
     app = Flask(__name__)
@@ -23,6 +25,8 @@ def create_app(config, debug=False, testing=False, config_overrides=None):
 
     app.debug = debug
     app.testing = testing
+
+    assets.init(app)
 
     if config_overrides:
         app.config.update(config_overrides)

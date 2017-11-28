@@ -1,45 +1,45 @@
+/* global XMLHttpRequest:true */
+/* eslint no-undef: "error" */
+
+
 // TODO move from http to https
 
 var baseURL = 'http://air.eng.utah.edu';
 
 
-function generateURL(anEndpoint, route, parameters) {
+function generateURL(anEndpoint, route, parameters) { // eslint-disable-line no-unused-vars
+  let url = '';
+  if (route === '/rawDataFrom?') {
+    url = `${baseURL}${anEndpoint}${route}id=${parameters.id}&start=${parameters.start}&end=${parameters.end}&show=${parameters.show}`;
+  } else if (route === '/liveSensors') {
+    url = `${baseURL}${anEndpoint}${route}`;
+  }
 
-    url = '';
-    if (route === '/rawDataFrom?') {
-        url = baseURL + anEndpoint + route + 'id=' + parameters['id'] + '&start=' + parameters['start'] + '&end=' + parameters['end'] + '&show=' + parameters['show'];
-    } else if (route === '/liveSensors') {
-        url = baseURL + anEndpoint + route;
-    }
-
-    return url;
+  return url;
 }
 
-function getDataFromDB(anURL) {
+function getDataFromDB(anURL) { // eslint-disable-line no-unused-vars
+  return new Promise((resolve, reject) => {
+    const method = 'GET';
+    const async = true;
+    const request = new XMLHttpRequest();
 
-    return new Promise((resolve, reject) => {
+    request.open(method, anURL, async); // true => request is async
 
-        let method = "GET";
-        let async = true;
-        let request = new XMLHttpRequest();
+    // If the request returns succesfully, then resolve the promise
+    request.onreadystatechange = function processingResponse() {
+      if (request.readyState === 4 && request.status === 200) {
+        const response = JSON.parse(request.responseText);
+        resolve(response);
+      }
 
-        request.open(method, anURL, async); // true => request is async
+      // If request has an error, then reject the promise
+      request.onerror = function showWarning(e) {
+        console.log('Something went wrong....');
+        reject(e);
+      };
+    };
 
-        // If the request returns succesfully, then resolve the promise
-        request.onreadystatechange = function() {
-            if (request.readyState == 4 && request.status == 200) {
-                let response = JSON.parse(request.responseText);
-                resolve(response);
-            }
-
-            // If request has an error, then reject the promise
-            request.onerror = function(e, i) {
-
-                console.log("Something went wrong....");
-                reject(e);
-            };
-        };
-
-        request.send();
-    });
+    request.send();
+  });
 }
