@@ -72,9 +72,20 @@ p.description-centered.boxed {
 }
 
 
+p.description-centered.boxed.spaced {
+    line-height: 1.3em;
+}
+
+
 .description.smaller {
     font-size: 12px;
     text-align: justify;
+}
+
+
+.schoolEmphasis {
+    font-weight: 900;
+    text-decoration: underline;
 }
 
 

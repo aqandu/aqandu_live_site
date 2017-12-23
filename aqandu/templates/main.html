@@ -1,7 +1,33 @@
 {% extends "base.html" %}
+{% block head %}
+  {{ super() }}
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.1.0/dist/leaflet.css" integrity="sha512-wcw6ts8Anuw10Mzh9Ytw4pylW8+NAD4ch3lqm9lzAsTxg0GFeJgoAtxuCLREZSC5lUXdVyo/7yfsqFjQ4S+aKw==" crossorigin=""/>
+
+  <!-- Make sure you put this AFTER Leaflet's CSS -->
+  <script src="https://unpkg.com/leaflet@1.1.0/dist/leaflet.js" integrity="sha512-mNqn2Wg7tSToJhvHcqfzLMU6J4mkOImSPTxVZAdo+lcPlk+GhZmYgACEe0x35K7YzW1zJ7XyJV/TT1MrdXvMcA==" crossorigin=""></script>
+
+  <script src= "https://ajax.aspnetcdn.com/ajax/jQuery/jquery-3.1.1.min.js"></script>
+
+  <script src="https://d3js.org/d3.v4.js"></script>
+
+  <script src="static/js/leaflet-heat.js"></script>
+  <script src="static/js/simpleheat.js"></script>
+{% endblock %}
 {% block body %}
 {% block index %}active{% endblock %}
+<!-- <head>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.1.0/dist/leaflet.css" integrity="sha512-wcw6ts8Anuw10Mzh9Ytw4pylW8+NAD4ch3lqm9lzAsTxg0GFeJgoAtxuCLREZSC5lUXdVyo/7yfsqFjQ4S+aKw==" crossorigin=""/> -->
 
+  <!-- Make sure you put this AFTER Leaflet's CSS -->
+  <!-- <script src="https://unpkg.com/leaflet@1.1.0/dist/leaflet.js" integrity="sha512-mNqn2Wg7tSToJhvHcqfzLMU6J4mkOImSPTxVZAdo+lcPlk+GhZmYgACEe0x35K7YzW1zJ7XyJV/TT1MrdXvMcA==" crossorigin=""></script>
+
+  <script src= "https://ajax.aspnetcdn.com/ajax/jQuery/jquery-3.1.1.min.js"></script>
+
+  <script src="https://d3js.org/d3.v4.js"></script>
+
+  <script src="static/js/leaflet-heat.js"></script>
+  <script src="static/js/simpleheat.js"></script>
+</head> -->
 <header>
   <div id="carouselExampleIndicators" class="carousel slide" data-ride="carousel">
     <ol class="carousel-indicators">
@@ -77,11 +103,11 @@
     </p>
 </section>
 
-<!-- <section class="py-5" id="sensorMap">
+<section class="py-5" id="sensorMap">
     <div class="container">
-        <div id="SLC-map"> -->
+        <div id="SLC-map">
             <!-- <script src="static/js/map_reconfigure.js"></script> -->
-        <!-- </div>
+        </div>
         <div class= "timeline">
             <svg width="100%">
                 <g id="lines"></g>
@@ -98,14 +124,15 @@
             <button onclick="clearData()">Clear Data</button>
         </div>
     </div>
-</section> -->
+</section>
 
 <section class="py-5" id="request-sensor">
     <div class="container box">
         <h2 class="title inTheCenter boxed">Sensor Sign Up</h1>
-        <p class='description-centered boxed'> Interested in hosting a sensor? Sign up <a href="{{ url_for('request_sensor') }}">here.</a><p>
-        <!-- <p class='description'>  For more information on hosting a sensor, click <a href="https://airu.coe.utah.edu/">here</a>. -->
+        <p class='description-centered boxed'>Interested in hosting a sensor (schools see below)? Sign up <a href="{{ url_for('request_sensor') }}">here.</a><p>
         <p class='description-centered boxed'>Frequently asked questions are available <a href="{{ url_for('sensor_FAQ') }}">here</a>.</p>
+        </br>
+        <p class='description-centered boxed spaced'>Are you a <span class='schoolEmphasis'>school</span      > and interested in hosting a sensor?</br>There is more information and the people to contact <a href="https://airu.coe.utah.edu">here.</a><p>
     </div>
 </section>
 
@@ -142,4 +169,9 @@
     </div>
 </section>
 </div>
+{% endblock %}
+
+{% block scriptFooter %}
+  <script src="static/js/db_data.js"></script>
+  <script src="static/js/map_reconfigure.js"></script>
 {% endblock %}

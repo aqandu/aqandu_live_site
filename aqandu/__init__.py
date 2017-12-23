@@ -40,20 +40,25 @@ def create_app(config, debug=False, testing=False, config_overrides=None):
     def index():
         return render_template('main.html')
 
+    @app.route("/team")
+    def team():
+
+        return render_template('team.html')
+
     @app.route("/request_sensor")
     def request_sensor():
 
         return render_template('request_sensor.html')
 
+    @app.route("/airu_sensor")
+    def airu_sensor():
+
+        return render_template('airu_sensor.html')
+
     @app.route("/project")
     def project():
 
         return render_template('project.html')
-
-    @app.route("/team")
-    def team():
-
-        return render_template('team.html')
 
     @app.route("/newsroom")
     def newsroom():

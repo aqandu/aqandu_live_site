@@ -4,35 +4,94 @@
   margin-top: 20px;
 }
 
+/* MARKERS */
 .dot {
-  border-radius: 20px;
-  border: 1px solid #FFFFFF;
+  /*  border-radius: 20px; */
+  border-radius: 10px;
+  border: 3px solid #FFFFFF;
 }
 .dot.green {
-  background-color: rgb(30,228,5);
+  background-color: rgb(0,228,0)
 }
 .dot.yellow {
-  background-color: rgb(255,255,11);
+  background-color: rgb(255,255,0);
 }
 .dot.orange {
-  background-color: rgb(252,104,8);
+    background-color: rgb(255,126,0);
 }
 .dot.red {
-  background-color: rgb(251,0,7);
+  background-color: rgb(255,0,0);
+}
+.dot.veryUnhealthyRed {
+  background-color: rgb(153, 0, 76);
+}
+.dot.hazardousRed {
+  background-color: rgb(126, 0, 35);
+}
+.dot.noColor {
+  background-color: rgba(255,255,255,1);
 }
 .dot.green.unhovered {
-  background-color: rgba(30,228,5,0.2);
+  background-color: rgba(0,228,0,0.1);
 }
 .dot.yellow.unhovered {
-  background-color: rgba(255,255,11,0.2);
+  background-color: rgba(255,255,0,0.1);
 }
 .dot.orange.unhovered {
-  background-color: rgba(252,104,8,0.2);
+  background-color: rgba(255,126,0,0.1);
 }
 .dot.red.unhovered {
-  background-color: rgba(251,0,7,0.2);
+  background-color: rgba(255,0,0,0.1);
+}
+.dot.veryUnhealthyRed.unhovered {
+  background-color: rgb(153, 0, 76 , 0.1);
+}
+.dot.hazardousRed.unhovered {
+  background-color: rgb(126, 0, 35, 0.1);
+}
+.dot.noColor.unhovered {
+  background-color: rgba(255,255,255,1);
 }
 
+.dot.colored-border {
+  border: 3px solid #000000;
+}
+
+.dot.sensor-selected {
+  border: 3px solid #b3b3b3;
+}
+
+.leaflet-popup-content {
+
+}
+
+/* Popup */
+.leaflet-popup-content-wrapper {
+  background-color: transparent;
+  box-shadow: none;
+
+  font-family: Frutiger;
+  font-weight: bold;
+
+  border-radius: 0px;
+  padding: 0px;
+}
+
+.leaflet-popup {
+  margin-bottom: 5px;
+}
+
+/*.leaflet-popup-tip {
+  background-color: transparent;
+  border: none;
+  box-shadow: none;
+}*/
+
+.leaflet-popup-tip-container {
+  display: none;
+}
+
+/* TIMELINE */
 .timeline {
   margin-top: 10px;
 }
@@ -73,6 +132,8 @@
 .carousel-indicators{
   margin-bottom: 660px;
 }
+
+
 /* The start of the css for multi-line voronoi from mike bostock's example */
 .axis--y path {
   display: none;
