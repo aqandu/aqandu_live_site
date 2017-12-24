@@ -15,6 +15,7 @@ const y = d3.scaleLinear().domain([0.0, 120.0]);
 const sensLayer = L.layerGroup();
 // const heat = L.heatLayer();
 
+const epaColors = ['green', 'yellow', 'orange', 'red', 'veryUnhealthyRed', 'hazardousRed', 'noColor'];
 
 const margin = {
   top: 20,
@@ -50,12 +51,13 @@ $(function() {
   setInterval('updateDots()', 60000);
 
   // TODO can this layer stuff be made simpler??
-  var overlayMaps = {
-    "SensLayer": sensLayer
-  };
+  // TO ADD THE LAYER ICON BACK uncomment the following lines and the line L.control.layers(null, overlayMaps).addTo(theMap);
+  // var overlayMaps = {
+  //   "SensLayer": sensLayer
+  // };
 
   sensLayer.addTo(theMap);
-  L.control.layers(null, overlayMaps).addTo(theMap);
+  // L.control.layers(null, overlayMaps).addTo(theMap);
 
 });
 
@@ -137,12 +139,16 @@ function setupMap() {
   legend.update = function (thediv) {
     // TODO: draw the legend
     var d3div = d3.select(thediv);
+    d3div.append('div')
+        .text('Sensor Types')
+
     var dataLabel = ["airu", "PurpleAir", "Mesowest", "DAQ"];
     var labels = d3div.selectAll('div').data(dataLabel);
     labels.exit().remove();
     var labelsEnter = labels.enter().append('div');
     labels = labels.merge(labelsEnter);
     labels.text(d => d);
+
     labels.on('mouseover', d => {
       // Add 'unhovered' class to all dots
       d3.select('#SLC-map').selectAll('.dot:not(noColor)').classed('unhovered', true);
@@ -152,15 +158,43 @@ function setupMap() {
       d3.select('#SLC-map').selectAll('.' + d + ':not(noColor)').classed('colored-border', true);
       // So at this point, only stuff that wasn't hovered will have the unhovered class
     });
+
     labels.on('mouseout', d => {
       // Remove 'unhovered' class from all dots
       d3.select('#SLC-map').selectAll('.dot:not(noColor)').classed('unhovered', false);
       d3.select('#SLC-map').selectAll('.dot:not(noColor)').classed('colored-border', false);
     });
+
     return thediv;
   }
 
   legend.addTo(slcMap);
+
+  // adding color legend
+  var colorLegend = L.control({position: 'bottomleft'});
+
+	colorLegend.onAdd = function () {
+
+		var div = L.DomUtil.create('div', 'colorLegend'),
+			grades = [0, 12, 35.4, 55.4, 150.4, 250.4],
+			colorLabels = [],
+			from, to;
+
+		for (var i = 0; i < grades.length; i++) {
+			from = grades[i];
+			to = grades[i + 1];
+
+			colorLabels.push(
+				'<i class="' + getColor(from + 1) + '"></i> ' +
+        // from + (to ? ' &ndash; ' + to + ' µg/m<sup>3</sup> ' : ' µg/m<sup>3</sup> +'));
+        (to ? from + ' &ndash; ' + to + ' µg/m<sup>3</sup> ' : 'above ' + from + ' µg/m<sup>3</sup>'));
+		}
+
+		div.innerHTML = colorLabels.join('<br>');
+		return div;
+	};
+
+	colorLegend.addTo(slcMap);
 
   return slcMap;
 }
@@ -207,17 +241,8 @@ function sensorLayer(response){
     if (item["Latitude"] !== null && item["Longitude"] !== null) {
       let classList = 'dot';
       let theColor = getColor(item["pm25"]);
-      console.log(item["ID"] + ' ' + theColor + ' ' + item["pm25"])
-      classList = classList + ' ' + theColor + ' '
-      // if (item["pm25"] <= 50){
-      //   classList += ' green ';
-      // } else if (item["pm25"] > 50 && item["pm25"]<= 100){
-      //   classList += ' yellow ';
-      // } else if (item["pm25"] > 100 && item["pm25"]<= 150){
-      //   classList += ' orange ';
-      // } else {
-      //   classList += ' red ';
-      // }
+      // console.log(item["ID"] + ' ' + theColor + ' ' + item["pm25"])
+      classList = classList + ' ' + theColor + ' ';
 
       // throw away the spaces in the sensor name string so we have a valid class name
       classList += item["Sensor Source"].replace(/ /g, '');
@@ -235,7 +260,7 @@ function sensorLayer(response){
       mark.id = item['ID'];
 
       mark.bindPopup(
-        L.popup({closeButton: false}).setContent('<span class="popup">' + item["Sensor Source"] + ': ' + item["ID"] + '</span>'))
+        L.popup({closeButton: false, className: 'sensorInformationPopup'}).setContent('<span class="popup">' + item["Sensor Source"] + ': ' + item["ID"] + '</span>'))
       // mark.bindPopup(popup)
 
       mark.on('click', populateGraph)
@@ -270,7 +295,7 @@ function updateDots() {
       let theColor = getColor(currentPM25);
 
       console.log(layer.id + ' ' + theColor + ' ' + currentPM25)
-      $(layer._icon).removeClass(['green', 'yellow', 'orange', 'red'])
+      $(layer._icon).removeClass(epaColors.join(' '))
       $(layer._icon).addClass(theColor)
     });
 

@@ -5,13 +5,33 @@
 }
 
 /* MARKERS */
+
+.green {
+  background-color: rgb(0,228,0);
+}
+.yellow {
+  background-color: rgb(255,255,0);
+}
+.orange {
+  background-color: rgb(255,126,0);
+}
+.red {
+  background-color: rgb(255,0,0);
+}
+.veryUnhealthyRed {
+  background-color: rgb(153, 0, 76);
+}
+.hazardousRed {
+  background-color: rgb(126, 0, 35);
+}
+
 .dot {
   /*  border-radius: 20px; */
   border-radius: 10px;
   border: 3px solid #FFFFFF;
 }
 .dot.green {
-  background-color: rgb(0,228,0)
+  background-color: rgb(0,228,0);
 }
 .dot.yellow {
   background-color: rgb(255,255,0);
@@ -66,7 +86,7 @@
 }
 
 /* Popup */
-.leaflet-popup-content-wrapper {
+.sensorInformationPopup .leaflet-popup-content-wrapper {
   background-color: transparent;
   box-shadow: none;
 
@@ -77,7 +97,7 @@
   padding: 0px;
 }
 
-.leaflet-popup {
+.sensorInformationPopup .leaflet-popup {
   margin-bottom: 5px;
 }
 
@@ -87,7 +107,7 @@
   box-shadow: none;
 }*/
 
-.leaflet-popup-tip-container {
+.sensorInformationPopup .leaflet-popup-tip-container {
   display: none;
 }
 
@@ -97,12 +117,41 @@
 }
 
 .legend {
-  width: 100px; height: 80px; float: left; margin-right: 8px; opacity: 0.7; padding: 6px 8px; font: 14px/16px Arial, Helvetica, sans-serif; background: white;
+  box-shadow: 0 0 15px rgba(0,0,0,0.2);
+  border-radius: 5px;
+  width: 100px;
+  height: 80px;
+  float: left;
+  margin-right: 8px;
+  opacity: 0.7;
+  padding: 6px 8px;
+  font: 14px/16px Arial, Helvetica, sans-serif;
+  background: white;
 }
+
 .txt {
   font-size: 14px;
   line-height: 1.45;
 }
+
+.colorLegend {
+  box-shadow: 0 0 15px rgba(0,0,0,0.2);
+  border-radius: 5px;
+  background: white;
+  opacity: 0.9;
+  line-height: 18px;
+  color: #555;
+  height: 124px;
+  padding: 6px 8px;
+}
+.colorLegend i {
+  width: 18px;
+  height: 18px;
+  float: left;
+  padding: 2px 0px;
+  margin-right: 8px;
+}
+
 .line-style {
   fill: none;
   stroke: #aaa;
