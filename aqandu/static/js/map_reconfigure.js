@@ -88,6 +88,7 @@ function setUp(){
      .call(xAxis);
 
   svg.select(".x.label")      // text label for the x axis
+     .attr("class", "timeline")
      .attr("transform", "translate(" + (width / 2) + " ," + (height + margin.bottom + 15) + ")")
      .style("text-anchor", "middle")
      .text("Time");
@@ -97,12 +98,13 @@ function setUp(){
      .call(yAxis);
 
   svg.select(".y.label")
+     .attr("class", "timeline")
      .attr("transform", "rotate(-90)")
      .attr("y", 0) // rotated! x is now y!
      .attr("x", 0 - (height / 2))
      .attr("dy", "1em")
      .style("text-anchor", "middle")
-     .text("PM 2.5 \u03BCg/m\u00B3");
+     .text("PM 2.5 µg/m\u00B3");
 }
 
 
@@ -139,13 +141,15 @@ function setupMap() {
   legend.update = function (thediv) {
     // TODO: draw the legend
     var d3div = d3.select(thediv);
-    d3div.append('div')
-        .text('Sensor Types')
+    d3div.append('span')
+         .attr("class", "legendTitle")
+         .text('Sensor types:')
 
     var dataLabel = ["airu", "PurpleAir", "Mesowest", "DAQ"];
-    var labels = d3div.selectAll('div').data(dataLabel);
+    var labels = d3div.selectAll('label').data(dataLabel);
     labels.exit().remove();
-    var labelsEnter = labels.enter().append('div');
+    var labelsEnter = labels.enter().append('label')
+                                    .attr("class", "sensorType");
     labels = labels.merge(labelsEnter);
     labels.text(d => d);
 
@@ -180,14 +184,16 @@ function setupMap() {
 			colorLabels = [],
 			from, to;
 
+    colorLabels.push("<span class='legendTitle'>PM2.5 levels:</span>");
+
 		for (var i = 0; i < grades.length; i++) {
 			from = grades[i];
 			to = grades[i + 1];
 
 			colorLabels.push(
-				'<i class="' + getColor(from + 1) + '"></i> ' +
+				'<label><i class="' + getColor(from + 1) + '"></i> ' +
         // from + (to ? ' &ndash; ' + to + ' µg/m<sup>3</sup> ' : ' µg/m<sup>3</sup> +'));
-        (to ? from + ' &ndash; ' + to + ' µg/m<sup>3</sup> ' : 'above ' + from + ' µg/m<sup>3</sup>'));
+        (to ? from + ' &ndash; ' + to + ' µg/m<sup>3</sup></label>' : 'above ' + from + ' µg/m<sup>3</sup></label>'));
 		}
 
 		div.innerHTML = colorLabels.join('<br>');
@@ -265,7 +271,7 @@ function sensorLayer(response){
 
       mark.on('click', populateGraph)
       mark.on('mouseover', function(e) {
-        console.log(e.target.id)
+        // console.log(e.target.id)
         this.openPopup();
       });
       mark.on('mouseout', function(e) {

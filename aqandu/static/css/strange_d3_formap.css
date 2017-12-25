@@ -4,6 +4,18 @@
   margin-top: 20px;
 }
 
+svg text {
+  font-family: 'Open Sans', sans-serif;
+  font-weight: 400;
+  font-size: 8pt;
+}
+
+.label.timeline {
+  font-family: 'Open Sans', sans-serif;
+  font-weight: 400;
+  font-size: 8pt;
+}
+
 /* MARKERS */
 
 .green {
@@ -90,8 +102,11 @@
   background-color: transparent;
   box-shadow: none;
 
-  font-family: Frutiger;
+  /* font-family: Frutiger;
+  font-weight: bold; */
+  font-family: 'Open Sans', sans-serif;
   font-weight: bold;
+  font-size: 8pt;
 
   border-radius: 0px;
   padding: 0px;
@@ -119,32 +134,65 @@
 .legend {
   box-shadow: 0 0 15px rgba(0,0,0,0.2);
   border-radius: 5px;
-  width: 100px;
-  height: 80px;
+  /* width: 100px; */
+  height: 102px;
   float: left;
   margin-right: 8px;
-  opacity: 0.7;
+  opacity: 0.9;
   padding: 6px 8px;
-  font: 14px/16px Arial, Helvetica, sans-serif;
+
   background: white;
+  display: inline-block;
+}
+.legend label.sensorType {
+  font-family: 'Open Sans', sans-serif;
+  font-weight: 400;
+  font-size: 8pt;
+  color: #555;
+
+  line-height: 18px;
+  margin: 0px 0px 0px 10px;
+  display: block;
 }
 
-.txt {
+.legend label.sensorType:hover, .legend label.sensorType:active {
+  /* background: red; */
+  text-decoration: underline;
+}
+
+/* .txt {
   font-size: 14px;
   line-height: 1.45;
-}
+} */
 
 .colorLegend {
   box-shadow: 0 0 15px rgba(0,0,0,0.2);
   border-radius: 5px;
   background: white;
   opacity: 0.9;
-  line-height: 18px;
-  color: #555;
-  height: 124px;
+
+  /* color: #555; */
+  height: 138px;
   padding: 6px 8px;
 }
-.colorLegend i {
+.colorLegend .legendTitle, .legend .legendTitle {
+  font-family: 'Open Sans', sans-serif;
+  font-weight: bold;
+  font-size: 8pt;
+  line-height: 18px;
+
+  margin-bottom: .2em;
+}
+.colorLegend label {
+  font-family: 'Open Sans', sans-serif;
+  font-weight: 400;
+  font-size: 8pt;
+  color: #555;
+
+  line-height: 18px;
+  margin: 0pt;
+}
+.colorLegend label i {
   width: 18px;
   height: 18px;
   float: left;
