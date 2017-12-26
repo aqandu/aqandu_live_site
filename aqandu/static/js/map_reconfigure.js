@@ -27,10 +27,14 @@ const margin = {
 let lineArray = [];
 
 const dbEndpoint = '/dbapi/api';
-const liveSensorURL = generateURL(dbEndpoint, '/liveSensors', null);
+const liveSensorURL_purpleAir = generateURL(dbEndpoint, '/liveSensors', {'type': 'purpleAir'});
+const liveSensorURL_airU = generateURL(dbEndpoint, '/liveSensors', {'type': 'airU'});
+const liveSensorURL_all = generateURL(dbEndpoint, '/liveSensors', {'type': 'all'});
 const lastPM25ValueURL = generateURL(dbEndpoint, '/lastValue', {'fieldKey': 'pm25'});
 
 let theMap;
+
+let liveAirUSensors = [];
 
 
 $(function() {
@@ -49,6 +53,9 @@ $(function() {
 
   // there is new data every minute for a sensor in the db
   setInterval('updateDots()', 60000);
+  setInterval('updateSensors()', 300000); // update every 5min
+  // setInterval('updateSensors()', 60000); // update every 5min
+
 
   // TODO can this layer stuff be made simpler??
   // TO ADD THE LAYER ICON BACK uncomment the following lines and the line L.control.layers(null, overlayMaps).addTo(theMap);
@@ -78,7 +85,33 @@ function setUp(){
   y.range([height, 0]);
 
   svg.attr("width", svgWidth)
-  .attr("height", svgHeight);
+     .attr("height", svgHeight);
+
+  // the color bands
+  svg.append("g").append("path")
+                 .attr("d", getColorBandPath(0, 12))
+                 .style("opacity", 0.1)
+                 .style("stroke", "rgb(0,228,0)")
+                 .style("fill", "rgb(0,228,0)");
+
+  svg.append("g").append("path")
+                 .attr("d", getColorBandPath(12, 35.4))
+                 .style("opacity", 0.1)
+                 .style("stroke", "rgb(255,255,0)")
+                 .style("fill", "rgb(255,255,0)");
+
+  svg.append("g").append("path")
+                 .attr("d", getColorBandPath(35.4, 55.4))
+                 .style("opacity", 0.1)
+                 .style("stroke", "rgb(255,126,0)")
+                 .style("fill", "rgb(255,126,0)");
+
+  svg.append("g").append("path")
+                 .attr("d", getColorBandPath(55.4, 150.4))
+                 .style("opacity", 0.1)
+                .style("stroke", "rgb(255,0,0)")
+                 .style("fill", "rgb(255,0,0)");
+
 
   var xAxis = d3.axisBottom(x).ticks(9);
   var yAxis = d3.axisLeft(y).ticks(7);
@@ -107,6 +140,13 @@ function setUp(){
      .text("PM 2.5 µg/m\u00B3");
 }
 
+
+function getColorBandPath(yStart, yEnd) {
+  return "M" + (margin.left + x(x.domain()[0])) + "," + (margin.top + y(yStart)) +
+         "L" + (margin.left + x(x.domain()[0])) + "," + (margin.top + y(yEnd)) +
+         "L" + (margin.left + x(x.domain()[1])) + "," + (margin.top + y(yEnd)) +
+         "L" + (margin.left + x(x.domain()[1])) + "," + (margin.top + y(yStart));
+}
 
 /**
  * [setupMap description]
@@ -211,7 +251,7 @@ function setupMap() {
  * @return {[type]} [description]
  */
 function drawSensorOnMap() {
-  getDataFromDB(liveSensorURL).then((data) => {
+  getDataFromDB(liveSensorURL_all).then((data) => {
     const response = data.map((d) => {
       if (d['Sensor Source'] === 'Purple Air') {
         d.pm25 = conversionPM(d.pm25, d['Sensor Model']);
@@ -235,55 +275,62 @@ function drawSensorOnMap() {
  * @return {[type]}          [description]
  */
 function sensorLayer(response){
-  response.forEach(function (item) {
+  response.forEach(createMarker);
+}
 
-    var dotIcon = {
-      iconSize:     [20, 20], // size of the icon
-      iconAnchor:   [10, 10], // point of the icon which will correspond to marker's location
-      popupAnchor:  [0, -5], // point from which the popup should open relative to the iconAnchor
-      html: ''
-    };
 
-    if (item["Latitude"] !== null && item["Longitude"] !== null) {
-      let classList = 'dot';
-      let theColor = getColor(item["pm25"]);
-      // console.log(item["ID"] + ' ' + theColor + ' ' + item["pm25"])
-      classList = classList + ' ' + theColor + ' ';
+function createMarker(markerData) {
+  var dotIcon = {
+    iconSize:     [20, 20], // size of the icon
+    iconAnchor:   [10, 10], // point of the icon which will correspond to marker's location
+    popupAnchor:  [0, -5], // point from which the popup should open relative to the iconAnchor
+    html: ''
+  };
 
-      // throw away the spaces in the sensor name string so we have a valid class name
-      classList += item["Sensor Source"].replace(/ /g, '');
-      // classList += ' ' + item['ID'];
-      dotIcon.className = classList;
+  console.log(markerData);
 
-      var mark = new L.marker(
-        L.latLng(
-          parseFloat(item["Latitude"]),
-          parseFloat(item["Longitude"])
-        ),
-        { icon: L.divIcon(dotIcon) }
-      ).addTo(sensLayer);
+  if (markerData["Latitude"] !== null && markerData["Longitude"] !== null) {
+    let classList = 'dot';
+    let theColor = getColor(markerData["pm25"]);
+    // console.log(item["ID"] + ' ' + theColor + ' ' + item["pm25"])
+    classList = classList + ' ' + theColor + ' ';
 
-      mark.id = item['ID'];
+    // throw away the spaces in the sensor name string so we have a valid class name
+    classList += markerData["Sensor Source"].replace(/ /g, '');
+    // classList += ' ' + item['ID'];
+    dotIcon.className = classList;
 
-      mark.bindPopup(
-        L.popup({closeButton: false, className: 'sensorInformationPopup'}).setContent('<span class="popup">' + item["Sensor Source"] + ': ' + item["ID"] + '</span>'))
-      // mark.bindPopup(popup)
+    var mark = new L.marker(
+      L.latLng(
+        parseFloat(markerData["Latitude"]),
+        parseFloat(markerData["Longitude"])
+      ),
+      { icon: L.divIcon(dotIcon) }
+    ).addTo(sensLayer);
 
-      mark.on('click', populateGraph)
-      mark.on('mouseover', function(e) {
-        // console.log(e.target.id)
-        this.openPopup();
-      });
-      mark.on('mouseout', function(e) {
-        this.closePopup();
-      });
+    mark.id = markerData['ID'];
+    if (markerData["Sensor Source"] == "airu") {
+      liveAirUSensors.push(markerData['ID'])
     }
-  });
+
+    mark.bindPopup(
+      L.popup({closeButton: false, className: 'sensorInformationPopup'}).setContent('<span class="popup">' + markerData["Sensor Source"] + ': ' + markerData["ID"] + '</span>'))
+    // mark.bindPopup(popup)
+
+    mark.on('click', populateGraph)
+    mark.on('mouseover', function(e) {
+      // console.log(e.target.id)
+      this.openPopup();
+    });
+    mark.on('mouseout', function(e) {
+      this.closePopup();
+    });
+  }
 }
 
 
 function updateDots() {
-  console.log('updating')
+  console.log('updating the dots current value');
 
   getDataFromDB(lastPM25ValueURL).then((data) => {
 
@@ -309,6 +356,32 @@ function updateDots() {
     alert("error, request failed!");
     console.log("Error: ", err);
     console.warn(arguments);
+  });
+}
+
+
+function updateSensors() {
+  console.log('updating the sensors: adding new airUs if available');
+
+  getDataFromDB(liveSensorURL_airU).then((data) => {
+    // const response = data.map((d) => {
+    //
+    //   if (!liveAirUSensors.includes(d.ID)) {
+    //     return d;
+    //   }
+    // });
+    const response = data.filter((d) => {
+
+      if (!liveAirUSensors.includes(d.ID)) {
+        return d;
+      }
+    });
+
+    sensorLayer(response);
+
+    }).catch((err) => {
+      alert('error, request failed!');
+      console.log('Error: ', err)
   });
 }
 
@@ -398,7 +471,7 @@ function findCorners(ltlg) {
 
 function findNearestSensor(cornerarray, mark, callback) {
 
-  getDataFromDB(liveSensorURL).then((data) => {
+  getDataFromDB(liveSensorURL_all).then((data) => {
 
     response = data.map((d) => {
       // return only location and ID
