@@ -1,10 +1,14 @@
 {% extends "base.html" %}
 {% block head %}
   {{ super() }}
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.1.0/dist/leaflet.css" integrity="sha512-wcw6ts8Anuw10Mzh9Ytw4pylW8+NAD4ch3lqm9lzAsTxg0GFeJgoAtxuCLREZSC5lUXdVyo/7yfsqFjQ4S+aKw==" crossorigin=""/>
+  <!-- <link rel="stylesheet" href="https://unpkg.com/leaflet@1.1.0/dist/leaflet.css" integrity="sha512-wcw6ts8Anuw10Mzh9Ytw4pylW8+NAD4ch3lqm9lzAsTxg0GFeJgoAtxuCLREZSC5lUXdVyo/7yfsqFjQ4S+aKw==" crossorigin=""/> -->
 
   <!-- Make sure you put this AFTER Leaflet's CSS -->
-  <script src="https://unpkg.com/leaflet@1.1.0/dist/leaflet.js" integrity="sha512-mNqn2Wg7tSToJhvHcqfzLMU6J4mkOImSPTxVZAdo+lcPlk+GhZmYgACEe0x35K7YzW1zJ7XyJV/TT1MrdXvMcA==" crossorigin=""></script>
+  <!-- <script src="https://unpkg.com/leaflet@1.1.0/dist/leaflet.js" integrity="sha512-mNqn2Wg7tSToJhvHcqfzLMU6J4mkOImSPTxVZAdo+lcPlk+GhZmYgACEe0x35K7YzW1zJ7XyJV/TT1MrdXvMcA==" crossorigin=""></script> -->
+
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.2.0/dist/leaflet.css" integrity="sha512-M2wvCLH6DSRazYeZRIm1JnYyh22purTM+FDB5CsyxtQJYeKq83arPe5wgbNmcFXGqiSH2XR8dT/fJISVA1r/zQ==" crossorigin=""/>
+
+  <script src="https://unpkg.com/leaflet@1.2.0/dist/leaflet.js" integrity="sha512-lInM/apFSqyy1o6s89K4iQUKg6ppXEgsVxT35HbzUupEVRh2Eu9Wdl4tHj7dZO0s1uvplcYGmt3498TtHq+log==" crossorigin=""></script>
 
   <script src= "https://ajax.aspnetcdn.com/ajax/jQuery/jquery-3.1.1.min.js"></script>
 
@@ -12,168 +16,157 @@
 
   <script src="static/js/leaflet-heat.js"></script>
   <script src="static/js/simpleheat.js"></script>
+
 {% endblock %}
 {% block body %}
 {% block index %}active{% endblock %}
-<!-- <head>
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.1.0/dist/leaflet.css" integrity="sha512-wcw6ts8Anuw10Mzh9Ytw4pylW8+NAD4ch3lqm9lzAsTxg0GFeJgoAtxuCLREZSC5lUXdVyo/7yfsqFjQ4S+aKw==" crossorigin=""/> -->
 
-  <!-- Make sure you put this AFTER Leaflet's CSS -->
-  <!-- <script src="https://unpkg.com/leaflet@1.1.0/dist/leaflet.js" integrity="sha512-mNqn2Wg7tSToJhvHcqfzLMU6J4mkOImSPTxVZAdo+lcPlk+GhZmYgACEe0x35K7YzW1zJ7XyJV/TT1MrdXvMcA==" crossorigin=""></script>
-
-  <script src= "https://ajax.aspnetcdn.com/ajax/jQuery/jquery-3.1.1.min.js"></script>
-
-  <script src="https://d3js.org/d3.v4.js"></script>
-
-  <script src="static/js/leaflet-heat.js"></script>
-  <script src="static/js/simpleheat.js"></script>
-</head> -->
-<header>
-  <div id="carouselExampleIndicators" class="carousel slide" data-ride="carousel">
-    <ol class="carousel-indicators">
-      <li data-target="#carouselExampleIndicators" data-slide-to="0" class="active"></li>
-      <li data-target="#carouselExampleIndicators" data-slide-to="1"></li>
-      <li data-target="#carouselExampleIndicators" data-slide-to="2"></li>
-    </ol>
-    <div class="carousel-inner" role="listbox">
-      <!-- Slide One -->
-      <div class="carousel-item active" style="background-image: url('./static/img/bad_air_1610.jpg')">
-          <div class="carousel-caption">
-              <div class="col-md-15">
-                  <img src="./static/img/aqu-3.png" height="217" width="700">
-                  <h2 class=captionAQ><strong>Exploring Salt Lake City's Air Quality.</strong> </h2>
-                  <br />
-              </div>
+  <header>
+    <div id="carouselExampleIndicators" class="carousel slide" data-ride="carousel">
+      <ol class="carousel-indicators">
+        <li data-target="#carouselExampleIndicators" data-slide-to="0" class="active"></li>
+        <li data-target="#carouselExampleIndicators" data-slide-to="1"></li>
+        <li data-target="#carouselExampleIndicators" data-slide-to="2"></li>
+      </ol>
+      <div class="carousel-inner" role="listbox">
+        <!-- Slide One -->
+        <div class="carousel-item active" style="background-image: url('./static/img/bad_air_1610.jpg')">
+            <div class="carousel-caption">
+                <div class="col-md-15">
+                    <img src="./static/img/aqu-3.png" height="217" width="700">
+                    <h2 class=captionAQ><strong>Exploring Salt Lake City's Air Quality.</strong> </h2>
+                    <br />
+                </div>
+            </div>
+        </div>
+        <!-- Slide Two -->
+        <div class="carousel-item" style="background-image: url('./static/img/sensor_image_1610.jpg')">
+            <div class="carousel-caption">
+                <div class="col-md-15">
+                    <img src="./static/img/aqu-3.png" height="217" width="700">
+                    <h2> <strong>Exploring Salt Lake City's Air Quality.</strong> </h2>
+                    <br />
+                </div>
           </div>
-      </div>
-      <!-- Slide Two -->
-      <div class="carousel-item" style="background-image: url('./static/img/sensor_image_1610.jpg')">
-          <div class="carousel-caption">
-              <div class="col-md-15">
+        </div>
+        <!-- Slide Three - Set the background image for this slide in the line below -->
+        <div class="carousel-item" style="background-image: url('./static/img/Wasatch-Front-1610.jpg')">
+            <div class="carousel-caption">
+                <div class="col-md-15">
                   <img src="./static/img/aqu-3.png" height="217" width="700">
                   <h2> <strong>Exploring Salt Lake City's Air Quality.</strong> </h2>
                   <br />
               </div>
+          </div>
         </div>
       </div>
-      <!-- Slide Three - Set the background image for this slide in the line below -->
-      <div class="carousel-item" style="background-image: url('./static/img/Wasatch-Front-1610.jpg')">
-          <div class="carousel-caption">
-              <div class="col-md-15">
-                <img src="./static/img/aqu-3.png" height="217" width="700">
-                <h2> <strong>Exploring Salt Lake City's Air Quality.</strong> </h2>
-                <br />
-            </div>
-        </div>
-      </div>
+      <a class="carousel-control-prev" href="#carouselExampleIndicators" role="button" data-slide="prev">
+        <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+        <span class="sr-only">Previous</span>
+      </a>
+      <a class="carousel-control-next" href="#carouselExampleIndicators" role="button" data-slide="next">
+        <span class="carousel-control-next-icon" aria-hidden="true"></span>
+        <span class="sr-only">Next</span>
+      </a>
     </div>
-    <a class="carousel-control-prev" href="#carouselExampleIndicators" role="button" data-slide="prev">
-      <span class="carousel-control-prev-icon" aria-hidden="true"></span>
-      <span class="sr-only">Previous</span>
-    </a>
-    <a class="carousel-control-next" href="#carouselExampleIndicators" role="button" data-slide="next">
-      <span class="carousel-control-next-icon" aria-hidden="true"></span>
-      <span class="sr-only">Next</span>
-    </a>
+  </header>
+
+  <div class="main main-raised">
+
+  <!-- Page Content -->
+  <section class="py-5" id="about">
+    <div class="container">
+      <h2 class="title inTheCenter">Project</h2>
+      <p class='description'>
+          Over the last few years, low-cost commodity sensors have hit the markets allowing — for the first time — the ability to measure hyperlocal air quality conditions, both inside and outside of our homes. At the University of Utah, we are building infrastructure that utilizes these new sensors to create accurate measurements of air quality microclimates. We have three synergistic projects:
+          <br /><br />
+          <strong><span class="projectDescription">Outdoor Air Quality</span> leverages existing government and community-based air quality efforts to build a dense network of sensors across Salt Lake City; <br /><br />
+          <span class="projectDescription">AirU</span> engages kids in Salt Lake schools through learning about air quality with a Lego Maker kit and hosting of commodity sensors in classrooms;
+          <br /><br />
+          <span class="projectDescription">Indoor Air Quality</span> uses a network of sensors in the homes of asthmatic families to better understand indoor air quality.</strong>
+          <br /><br />
+
+          Each of these projects utilizes our research in sensor design, air quality science, computational modeling, and communication of data; furthermore, they rely on citizens to engage, promote, and facilitate science.
+
+          We are currently looking for Salt Lake City residents to be part of building our outdoor network by hosting sensors at their homes. Want to get involved? See our sign-up below.
+
+          <br /><br />
+
+          This work is generously funded by grants from the National Science Foundation and the National Institutes of Health.
+      </p>
+  </section>
+
+  <section class="py-5" id="sensorMap">
+      <div class="container">
+          <div id="SLC-map">
+              <!-- <script src="static/js/map_reconfigure.js"></script> -->
+          </div>
+          <div class= "timeline">
+              <svg width="100%">
+                  <g id="colorBands"></g>
+                  <g id="lines"></g>
+                  <g class="x axis"></g>
+                  <text class="x label"></text>
+                  <g class="y axis"></g>
+                  <text class="y label"></text>
+                  <g class="focus" transform="translate(-100,-100)">
+                      <circle r="3.5"></circle>
+                      <text y="-10"></text>
+                  </g>
+                  <g class = "voronoi">
+              </svg>
+              <button onclick="clearData()">Clear Data</button>
+              <div class="tooltip hidden">
+                <p class="tooltipText">These are the available PM2.5 data sources.</p>
+                <p class="tooltipText">Moving the mouse over a source name shows you which sensors belong to it on the map.</p>
+              </div>
+          </div>
+      </div>
+  </section>
+
+  <section class="py-5" id="request-sensor">
+      <div class="container box">
+          <h2 class="title inTheCenter boxed">Sensor Sign Up</h1>
+          <p class='description-centered boxed'>Interested in hosting a sensor (schools see below)? Sign up <a href="{{ url_for('request_sensor') }}">here.</a><p>
+          <p class='description-centered boxed'>Frequently asked questions are available <a href="{{ url_for('sensor_FAQ') }}">here</a>.</p>
+          </br>
+          <p class='description-centered boxed spaced'>Are you a <span class='schoolEmphasis'>school</span      > and interested in hosting a sensor?</br>There is more information and the people to contact <a href="https://airu.coe.utah.edu">here.</a><p>
+      </div>
+  </section>
+
+
+  <section class="py-5" id="mailinglist">
+      <div class="container">
+          <h2 class="title inTheCenter">Mailing List</h2>
+          <p class='description-centered'> Interested in learning more about what we are doing? Sign up for our <a href="{{ url_for('mailinglist') }}">mailing list</a>. Your information will only be used for AQ & U. </p>
+
+      </div>
+  </section>
+
+
+  <section class="py-5" id="contact">
+      <div class="container">
+          <h2 class="title inTheCenter">Contact Us</h2>
+          <p class='description-centered'>If you have a question, have a comment you can contact us under:</p>
+          <p class='description-centered'>Our email address is: <a href="mailto:contact-aqandu@sci.utah.edu">contact-aqandu@sci.utah.edu</a></p>
+      </div>
+  </section>
+
+
+  <section class="py-5" id="affiliations">
+      <div class="container">
+          <h2 class="title inTheCenter">Partners</h2>
+          <div class="affiliations">
+              <a href="http://www.utah.edu" target="_blank"><img class="logo" src="./static/img/ulogo2.png"></a>
+              <a href="https://www.ece.utah.edu" target="_blank"><img class="logo2" src="./static/img/ece_logo-01.png"></a>
+              <a href="https://www.che.utah.edu" target="_blank"><img class="logo3" src="./static/img/ChemE_logo.png"></a>
+              <a href="http://www.sci.utah.edu" target="_blank"><img class="logo" src="./static/img/scilogo.png"></a>
+              <a href="http://vdl.sci.utah.edu" target="_blank"><img class="logo" src="./static/img/vdl.png"></a>
+              <a href="https://sites.google.com/site/pegaillardon/" target="_blank"><img class="logo" src="./static/img/lnis-logo.png"></a>
+          </div>
+      </div>
+  </section>
   </div>
-</header>
-
-<div class="main main-raised">
-
-<!-- Page Content -->
-<section class="py-5" id="about">
-  <div class="container">
-    <h2 class="title inTheCenter">Project</h2>
-    <p class='description'>
-        Over the last few years, low-cost commodity sensors have hit the markets allowing — for the first time — the ability to measure hyperlocal air quality conditions, both inside and outside of our homes. At the University of Utah, we are building infrastructure that utilizes these new sensors to create accurate measurements of air quality microclimates. We have three synergistic projects:
-        <br /><br />
-        <strong><span class="projectDescription">Outdoor Air Quality</span> leverages existing government and community-based air quality efforts to build a dense network of sensors across Salt Lake City; <br /><br />
-        <span class="projectDescription">AirU</span> engages kids in Salt Lake schools through learning about air quality with a Lego Maker kit and hosting of commodity sensors in classrooms;
-        <br /><br />
-        <span class="projectDescription">Indoor Air Quality</span> uses a network of sensors in the homes of asthmatic families to better understand indoor air quality.</strong>
-        <br /><br />
-
-        Each of these projects utilizes our research in sensor design, air quality science, computational modeling, and communication of data; furthermore, they rely on citizens to engage, promote, and facilitate science.
-
-        We are currently looking for Salt Lake City residents to be part of building our outdoor network by hosting sensors at their homes. Want to get involved? See our sign-up below.
-
-        <br /><br />
-
-        This work is generously funded by grants from the National Science Foundation and the National Institutes of Health.
-    </p>
-</section>
-
-<section class="py-5" id="sensorMap">
-    <div class="container">
-        <div id="SLC-map">
-            <!-- <script src="static/js/map_reconfigure.js"></script> -->
-        </div>
-        <div class= "timeline">
-            <svg width="100%">
-                <g id="colorBands"></g>
-                <g id="lines"></g>
-                <g class="x axis"></g>
-                <text class="x label"></text>
-                <g class="y axis"></g>
-                <text class="y label"></text>
-                <g class="focus" transform="translate(-100,-100)">
-                    <circle r="3.5"></circle>
-                    <text y="-10"></text>
-                </g>
-                <g class = "voronoi">
-            </svg>
-            <button onclick="clearData()">Clear Data</button>
-            <div class="tooltip hidden">
-              <p class="tooltipText">These are the available PM2.5 data sources.</p>
-              <p class="tooltipText">Moving the mouse over a source name shows you which sensors belong to it on the map.</p>
-            </div>
-        </div>
-    </div>
-</section>
-
-<section class="py-5" id="request-sensor">
-    <div class="container box">
-        <h2 class="title inTheCenter boxed">Sensor Sign Up</h1>
-        <p class='description-centered boxed'>Interested in hosting a sensor (schools see below)? Sign up <a href="{{ url_for('request_sensor') }}">here.</a><p>
-        <p class='description-centered boxed'>Frequently asked questions are available <a href="{{ url_for('sensor_FAQ') }}">here</a>.</p>
-        </br>
-        <p class='description-centered boxed spaced'>Are you a <span class='schoolEmphasis'>school</span      > and interested in hosting a sensor?</br>There is more information and the people to contact <a href="https://airu.coe.utah.edu">here.</a><p>
-    </div>
-</section>
-
-
-<section class="py-5" id="mailinglist">
-    <div class="container">
-        <h2 class="title inTheCenter">Mailing List</h2>
-        <p class='description-centered'> Interested in learning more about what we are doing? Sign up for our <a href="{{ url_for('mailinglist') }}">mailing list</a>. Your information will only be used for AQ & U. </p>
-
-    </div>
-</section>
-
-
-<section class="py-5" id="contact">
-    <div class="container">
-        <h2 class="title inTheCenter">Contact Us</h2>
-        <p class='description-centered'>If you have a question, have a comment you can contact us under:</p>
-        <p class='description-centered'>Our email address is: <a href="mailto:contact-aqandu@sci.utah.edu">contact-aqandu@sci.utah.edu</a></p>
-    </div>
-</section>
-
-
-<section class="py-5" id="affiliations">
-    <div class="container">
-        <h2 class="title inTheCenter">Partners</h2>
-        <div class="affiliations">
-            <a href="http://www.utah.edu" target="_blank"><img class="logo" src="./static/img/ulogo2.png"></a>
-            <a href="https://www.ece.utah.edu" target="_blank"><img class="logo2" src="./static/img/ece_logo-01.png"></a>
-            <a href="https://www.che.utah.edu" target="_blank"><img class="logo3" src="./static/img/ChemE_logo.png"></a>
-            <a href="http://www.sci.utah.edu" target="_blank"><img class="logo" src="./static/img/scilogo.png"></a>
-            <a href="http://vdl.sci.utah.edu" target="_blank"><img class="logo" src="./static/img/vdl.png"></a>
-            <a href="https://sites.google.com/site/pegaillardon/" target="_blank"><img class="logo" src="./static/img/lnis-logo.png"></a>
-        </div>
-    </div>
-</section>
-</div>
 {% endblock %}
 
 {% block scriptFooter %}

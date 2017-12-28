@@ -280,9 +280,9 @@ function setupMap() {
 function drawSensorOnMap() {
   getDataFromDB(liveSensorURL_all).then((data) => {
     const response = data.map((d) => {
-      if (d['Sensor Source'] === 'Purple Air') {
-        d.pm25 = conversionPM(d.pm25, d['Sensor Model']);
-      }
+      // if (d['Sensor Source'] === 'Purple Air') {
+      d.pm25 = conversionPM(d.pm25, d['Sensor Source'], d['Sensor Model']);
+      // }
 
       return d
     });
@@ -316,9 +316,26 @@ function createMarker(markerData) {
 
   console.log(markerData);
 
-  if (markerData["Latitude"] !== null && markerData["Longitude"] !== null) {
+  if (markerData.Latitude !== null && markerData.Longitude !== null) {
     let classList = 'dot';
-    let theColor = getColor(markerData["pm25"]);
+    let currentPM25 = markerData.pm25;
+
+    let currentTime = new Date().getTime()
+    let timeLastMeasurement = markerData.time;
+    let minutesINBetween = (currentTime - timeLastMeasurement) / (1000 * 60);
+
+    let theColor
+    if (markerData['Sensor Source'] === 'airu') {
+      if (minutesINBetween < 5.0) {
+        theColor = getColor(currentPM25);
+      } else {
+        theColor = 'noColor';
+      }
+    } else {
+      theColor = getColor(currentPM25);
+    }
+
+    // let theColor = getColor(markerData["pm25"]);
     // console.log(item["ID"] + ' ' + theColor + ' ' + item["pm25"])
     classList = classList + ' ' + theColor + ' ';
 
@@ -329,19 +346,19 @@ function createMarker(markerData) {
 
     var mark = new L.marker(
       L.latLng(
-        parseFloat(markerData["Latitude"]),
-        parseFloat(markerData["Longitude"])
+        parseFloat(markerData.Latitude),
+        parseFloat(markerData.Longitude)
       ),
       { icon: L.divIcon(dotIcon) }
     ).addTo(sensLayer);
 
     mark.id = markerData['ID'];
     if (markerData["Sensor Source"] == "airu") {
-      liveAirUSensors.push(markerData['ID'])
+      liveAirUSensors.push(markerData.ID)
     }
 
     mark.bindPopup(
-      L.popup({closeButton: false, className: 'sensorInformationPopup'}).setContent('<span class="popup">' + markerData["Sensor Source"] + ': ' + markerData["ID"] + '</span>'))
+      L.popup({closeButton: false, className: 'sensorInformationPopup'}).setContent('<span class="popup">' + markerData["Sensor Source"] + ': ' + markerData.ID + '</span>'))
     // mark.bindPopup(popup)
 
     mark.on('click', populateGraph)
@@ -364,17 +381,33 @@ function updateDots() {
     // apply conversion for purple air
     Object.keys(data).forEach(function(key) {
         console.log(key, data[key]);
-        let sensorModel = data[key]['Sensor Model']
+        let sensorModel = data[key]['Sensor Model'];
+        let sensorSource = data[key]['Sensor Source'];
         // console.log(conversionPM(data[key]['last'], sensorModel))
-        data[key]['last'] = conversionPM(data[key]['last'], sensorModel);
+        data[key]['last'] = conversionPM(data[key]['last'], sensorSource, sensorModel);
         // console.log(data[key]['last'])
     });
 
     sensLayer.eachLayer(function(layer) {
       // console.log(layer.id)
+      let currentTime = new Date().getTime()
+      let timeLastMeasurement = new Date(data[layer.id].time).getTime();
+      let minutesINBetween = (currentTime - timeLastMeasurement) / (1000 * 60);
+
       let currentPM25 = data[layer.id].last;
 
-      let theColor = getColor(currentPM25);
+      let theColor
+      if (data[layer.id]['Sensor Source'] === 'airu') {
+        if (minutesINBetween < 5.0) {
+          theColor = getColor(currentPM25);
+        } else {
+          theColor = 'noColor';
+        }
+      } else {
+        theColor = getColor(currentPM25);
+      }
+
+
 
       console.log(layer.id + ' ' + theColor + ' ' + currentPM25)
       $(layer._icon).removeClass(epaColors.join(' '))
@@ -553,7 +586,8 @@ function preprocessDBData(id, sensorData) {
     return {
       id: id,
       time: new Date(d.time),
-      pm25: d['pm25']
+      // pm25: d['pm25']
+      pm25: conversionPM(d.pm25, d["Sensor Source"], d["Sensor Model"])
     };
   }).filter((d) => {
     return d.pm25 === 0 || !!d.pm25; // forces NaN, null, undefined to be false, all other values to be true
@@ -851,22 +885,31 @@ PM2.5,TEOM =−54.22405ln(0.98138−0.00772PM2.5,PMS1003)
 for sensors pms5003:
 PM2.5,TEOM =−64.48285ln(0.97176−0.01008PM2.5,PMS5003)
 */
-function conversionPM(pm, sensorModel) {
+function conversionPM(pm, sensorSource, sensorModel) {
 
-  if (sensorModel != null) {
-      var model = sensorModel.split('+')[0];
+  if (sensorSource != 'airu' ) {
+    let model = null;
+    if (sensorModel != null) {
+      model = sensorModel.split('+')[0];
+    }
 
-      var pmv = 0;
-      if (model === 'PMS5003') {
-          // console.log('PMS5003')
-          pmv = (-1) * 64.48285 * Math.log(0.97176 - (0.01008 * pm));
-      } else if (model === 'PMS1003') {
-          // console.log('PMS1003')
-          pmv = (-1) * 54.22405 * Math.log(0.98138 - (0.00772 * pm));
-      }
-  } else {
-      // console.log(sensorModel + ' no model?');
+    var pmv = 0;
+    if (model === 'PMS5003') {
+      // console.log('PMS5003')
+      // pmv = (-1) * 64.48285 * Math.log(0.97176 - (0.01008 * pm));
+      pmv = 0.7778*pm + 2.6536;
+    } else if (model === 'PMS1003') {
+      // console.log('PMS1003')
+      // pmv = (-1) * 54.22405 * Math.log(0.98138 - (0.00772 * pm));
+      pmv = 0.5431*pm + 1.0607;
+    } else {
       pmv = pm;
+    }
+  } else {
+    // console.log(sensorModel + ' no model?');
+    // airu
+    // pmv = pm;
+    pmv = 0.8582*pm + 1.1644;
   }
 
   return pmv;
