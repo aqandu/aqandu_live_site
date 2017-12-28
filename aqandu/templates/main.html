@@ -110,6 +110,7 @@
         </div>
         <div class= "timeline">
             <svg width="100%">
+                <g id="colorBands"></g>
                 <g id="lines"></g>
                 <g class="x axis"></g>
                 <text class="x label"></text>
@@ -122,6 +123,10 @@
                 <g class = "voronoi">
             </svg>
             <button onclick="clearData()">Clear Data</button>
+            <div class="tooltip hidden">
+              <p class="tooltipText">These are the available PM2.5 data sources.</p>
+              <p class="tooltipText">Moving the mouse over a source name shows you which sensors belong to it on the map.</p>
+            </div>
         </div>
     </div>
 </section>

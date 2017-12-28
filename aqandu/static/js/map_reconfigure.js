@@ -4,13 +4,17 @@
 
 // setting dates for timeline and for ajax calls
 const today = new Date().toISOString().substr(0, 19) + 'Z';
+// const todayMST = moment(today).tz("MST").format(moment.HTML5_FMT.DATETIME_LOCAL_SECONDS) + "Z"
 const date = new Date();
+// const dateMST = new Date().toLocaleString("en-US", {timeZone: "America/Denver"});
 date.setDate(date.getDate() - 1);
 const yesterday = date.toISOString().substr(0, 19) + 'Z';
+// const yesterdayMST = moment(date).tz("MST").format(moment.HTML5_FMT.DATETIME_LOCAL_SECONDS) + "Z"
 
+// const x = d3.scaleTime().domain([new Date(yesterday), new Date(today)]);
 const x = d3.scaleTime().domain([new Date(yesterday), new Date(today)]);
 const lineColor = d3.scaleOrdinal(d3.schemeCategory10);
-const y = d3.scaleLinear().domain([0.0, 120.0]);
+const y = d3.scaleLinear().domain([0.0, 150.0]);
 
 const sensLayer = L.layerGroup();
 // const heat = L.heatLayer();
@@ -18,10 +22,10 @@ const sensLayer = L.layerGroup();
 const epaColors = ['green', 'yellow', 'orange', 'red', 'veryUnhealthyRed', 'hazardousRed', 'noColor'];
 
 const margin = {
-  top: 20,
-  right: 30,
-  bottom: 30,
-  left: 40,
+  top: 10,
+  right: 0,
+  bottom: 40,
+  left: 50,
 };
 
 let lineArray = [];
@@ -76,10 +80,10 @@ function setUp(){
   var div = d3.select(".timeline");
   var bounds = div.node().getBoundingClientRect();
   var svgWidth = bounds.width;
-  var svgHeight = 200;
+  var svgHeight = 310;
   var width = svgWidth - margin.left - margin.right;
   var height = svgHeight - margin.top - margin.bottom;
-  var svg = div.select("svg") //sets size of svgContainer
+  var svg = div.select("svg") // sets size of svgContainer
 
   x.range([0, width]);
   y.range([height, 0]);
@@ -88,25 +92,25 @@ function setUp(){
      .attr("height", svgHeight);
 
   // the color bands
-  svg.append("g").append("path")
+  svg.select('#colorBands').append("path")
                  .attr("d", getColorBandPath(0, 12))
                  .style("opacity", 0.1)
                  .style("stroke", "rgb(0,228,0)")
                  .style("fill", "rgb(0,228,0)");
 
-  svg.append("g").append("path")
+  svg.select('#colorBands').append("path")
                  .attr("d", getColorBandPath(12, 35.4))
                  .style("opacity", 0.1)
                  .style("stroke", "rgb(255,255,0)")
                  .style("fill", "rgb(255,255,0)");
 
-  svg.append("g").append("path")
+  svg.select('#colorBands').append("path")
                  .attr("d", getColorBandPath(35.4, 55.4))
                  .style("opacity", 0.1)
                  .style("stroke", "rgb(255,126,0)")
                  .style("fill", "rgb(255,126,0)");
 
-  svg.append("g").append("path")
+  svg.select('#colorBands').append("path")
                  .attr("d", getColorBandPath(55.4, 150.4))
                  .style("opacity", 0.1)
                 .style("stroke", "rgb(255,0,0)")
@@ -122,7 +126,7 @@ function setUp(){
 
   svg.select(".x.label")      // text label for the x axis
      .attr("class", "timeline")
-     .attr("transform", "translate(" + (width / 2) + " ," + (height + margin.bottom + 15) + ")")
+     .attr("transform", "translate(" + (width / 2) + " ," + (height + margin.bottom) + ")")
      .style("text-anchor", "middle")
      .text("Time");
 
@@ -130,7 +134,7 @@ function setUp(){
      .attr('transform', 'translate(' + margin.left + ',' + margin.top + ')')
      .call(yAxis);
 
-  svg.select(".y.label")
+  svg.select(".y.label")    // text label for the y axis
      .attr("class", "timeline")
      .attr("transform", "rotate(-90)")
      .attr("y", 0) // rotated! x is now y!
@@ -181,15 +185,38 @@ function setupMap() {
   legend.update = function (thediv) {
     // TODO: draw the legend
     var d3div = d3.select(thediv);
-    d3div.append('span')
+    var titleDataSource = d3div.append('span')
          .attr("class", "legendTitle")
-         .text('Sensor types:')
+         .text('Data sources:');
+
+    titleDataSource.on('mouseover', d => {
+      var mainOffset_x = $('.main').offset().left
+      var mainOffset_y = $('.main').offset().top
+
+      var x = $(d3div.node()).offset().left;
+      var y = $(d3div.node()).offset().top;
+
+      $('.tooltip').removeClass('hidden')
+      $('.tooltip').addClass('show')
+      var tooltipHeight = $('.tooltip').height();
+      // console.log(tooltipHeight);
+
+      d3.select('.tooltip')
+        .style("left", (x - mainOffset_x) + "px")
+        .style("top", (y - mainOffset_y - tooltipHeight - 6 - 6 - 6 - 3) + "px")
+    })
+
+    titleDataSource.on('mouseout', d => {
+      $('.tooltip').removeClass('show')
+      $('.tooltip').addClass('hidden')
+    });
 
     var dataLabel = ["airu", "PurpleAir", "Mesowest", "DAQ"];
     var labels = d3div.selectAll('label').data(dataLabel);
     labels.exit().remove();
-    var labelsEnter = labels.enter().append('label')
-                                    .attr("class", "sensorType");
+    var labelsEnter = labels.enter()
+                            .append('label')
+                            .attr("class", "sensorType");
     labels = labels.merge(labelsEnter);
     labels.text(d => d);
 
@@ -338,11 +365,13 @@ function updateDots() {
     Object.keys(data).forEach(function(key) {
         console.log(key, data[key]);
         let sensorModel = data[key]['Sensor Model']
+        // console.log(conversionPM(data[key]['last'], sensorModel))
         data[key]['last'] = conversionPM(data[key]['last'], sensorModel);
+        // console.log(data[key]['last'])
     });
 
     sensLayer.eachLayer(function(layer) {
-      console.log(layer.id)
+      // console.log(layer.id)
       let currentPM25 = data[layer.id].last;
 
       let theColor = getColor(currentPM25);
@@ -524,7 +553,6 @@ function preprocessDBData(id, sensorData) {
     return {
       id: id,
       time: new Date(d.time),
-      // pm25: d['pm2.5 (ug/m^3)']
       pm25: d['pm25']
     };
   }).filter((d) => {
@@ -683,7 +711,6 @@ function getGraphData(mark){
       console.log(url)
       getDataFromDB(url).then(data => {
 
-          // console.log(data)
           preprocessDBData(sensor["ID"], data)
 
       }).catch(function(err){
@@ -776,6 +803,7 @@ function populateGraph(e) {
     lineArray = lineArray.filter(line => line.id != clickedDotID);
     drawChart();
     d3.select(this._icon).classed('sensor-selected', false);
+
   } else {
     // only add the timeline if dot has usable data
     if (!d3.select(this._icon).classed('noColor')) {
