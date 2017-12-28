@@ -92,6 +92,8 @@ function setUp(){
      .attr("height", svgHeight);
 
   // the color bands
+  svg.select('#colorBands').selectAll('path').remove(); // added else when resizing it would add the bands all over again
+
   svg.select('#colorBands').append("path")
                  .attr("d", getColorBandPath(0, 12))
                  .style("opacity", 0.1)
