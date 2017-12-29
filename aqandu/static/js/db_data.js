@@ -14,7 +14,7 @@ function generateURL(anEndpoint, route, parameters) { // eslint-disable-line no-
   } else if (route === '/liveSensors') {
     url = `${baseURL}${anEndpoint}${route}/${parameters.type}`;
   } else if (route === '/processedDataFrom?') {
-    url = `${baseURL}${anEndpoint}${route}id=${parameters.id}&start=${parameters.start}&end=${parameters.end}&function=${parameters.function}&functionArg=${parameters.functionArg}&timeInterval=${parameters.timeInterval}`;
+    url = `${baseURL}${anEndpoint}${route}id=${parameters.id}&sensorSource=${parameters.sensorSource}&start=${parameters.start}&end=${parameters.end}&function=${parameters.function}&functionArg=${parameters.functionArg}&timeInterval=${parameters.timeInterval}`;
   } else if (route === '/lastValue') {
     url = `${baseURL}${anEndpoint}${route}?fieldKey=${parameters.fieldKey}`;
   }

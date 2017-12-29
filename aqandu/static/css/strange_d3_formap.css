@@ -93,13 +93,37 @@ svg text {
   border: 3px solid #000000;
 }
 
-.leaflet-popup-content {
+/* .leaflet-popup-content {
+  margin: 0px;
+} */
 
+#timelineControls label {
+  font-family: 'Open Sans', sans-serif;
+  /* font-weight: bold; */
+  font-size: 10pt;
+  color: #555;
+
+  margin-right: 15px;
+  line-height: 32px;
+}
+
+#clearDataButton {
+  font-family: 'Open Sans', sans-serif;
+  /* font-weight: bold; */
+  font-size: 10pt;
+  color: #555;
+
+  margin-left: 30px;
+}
+
+#clearDataButton:hover, #clearDataButton:active {
+  text-decoration: underline #c00;
 }
 
 /* Popup */
 .sensorInformationPopup .leaflet-popup-content-wrapper {
-  background-color: transparent;
+  background-color: rgba(255, 255, 255, 0.8);
+  color: #000;
   box-shadow: none;
 
   /* font-family: Frutiger;
@@ -112,15 +136,13 @@ svg text {
   padding: 0px;
 }
 
-.sensorInformationPopup .leaflet-popup {
+.sensorInformationPopup.leaflet-popup {
   margin-bottom: 5px;
 }
 
-/*.leaflet-popup-tip {
-  background-color: transparent;
-  border: none;
-  box-shadow: none;
-}*/
+.sensorInformationPopup .leaflet-popup-content {
+  margin: 0px 5px 13px 5px;
+}
 
 .sensorInformationPopup .leaflet-popup-tip-container {
   display: none;

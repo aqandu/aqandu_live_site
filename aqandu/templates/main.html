@@ -98,6 +98,28 @@
 
   <section class="py-5" id="sensorMap">
       <div class="container">
+          <h2 class="title inTheCenter">Visualization</h2>
+          <div>
+            <p class='description'>
+              The following visualization consists of two parts a map visualization and a timeline visualization just below the map.
+            </p>
+            <p class='description'>
+              On the map there are colored dots. These colored dots represent sensors. A sensor can be a sensor provided by us (airu) or by Purple Air, Mesowest, or DAQ. The legend in the right bottom corner tells you which dot (sensor) is provided by whom. Moving the mouse cursor over an element in that legend makes the sensors belonging to that group more visible and hides the others. Moving the mouse cursor over a dot opens a popup with the sensor's ID.
+            </p>
+            <p class='description'>
+              The dots itself are colored using the EPA classification (left bottom legend). The dot's color updates every 1 minute, showing the latest measured value by that sensor.
+            </p>
+            <p class='description'>
+              Clicking on a dot (sensor) makes that sensor's data appear in the timeline visualization. Also the dot's border changes from white to grey to show that the sensor has been selected. Clicking on a selected sensor (sensor with grey borders) removes the data from the timeline and the sensor border gets its white color back. You can click on multiple sensors to add them to the timeline visualization. The lines in the timeline all appear in grey. To know which line in the timeline belongs to which sensor, move the mouse cursor over the line and a text box with the sensor ID will appear.
+            </p>
+            <p class='description'>
+              The default time range in the timeline visualization is the past 24 hours. This can be changed by selecting the appropriate radio button below the timeline. The options are the past 24 hours (default), the past 3 days, and the past week. The data used for the past 24 hours is the raw data as captured by the sensor which is the converted to the Federal Reference Method (see next paragraph). Where as for the past 3 day's and the past week's data we aggregate the raw data over one hour and then converted to the Federal Reference Method (see next paragraph).
+              The button to the right of these radio buttons can be used to remove all the data in the timeline and start fresh.
+            </p>
+            <p class='description'>
+              One caveat to be noted is that to be able to compare airU data and Purple Air data in the same graph we applied calibration using the data from the Winter 2017 for both airU and Purple Air sensors. The Purple Air sensor model 1003 is calibrated within the range of 0 to 90 µg/m<sup>3</sup>. The Purple Air sensor model 5003 is calibrated within the range of 0 to 60 µg/m<sup>3</sup>. And finally the airU sensors are calibrated within the range of 0 to 200 µg/m<sup>3</sup>.
+            </p>
+          </div>
           <div id="SLC-map">
               <!-- <script src="static/js/map_reconfigure.js"></script> -->
           </div>
@@ -115,7 +137,18 @@
                   </g>
                   <g class = "voronoi">
               </svg>
-              <button onclick="clearData()">Clear Data</button>
+              <div id="timelineControls">
+                <input type="radio" id="timeRange_24h" name="timeRange" value="1" checked>
+                <label for="timeRange_24h">past 24 hours</label>
+
+                <input type="radio" id="timeRange_3d" name="timeRange" value="3">
+                <label for="timeRange_3d">past 3 days</label>
+
+                <input type="radio" id="timeRange_1w" name="timeRange" value="7">
+                <label for="timeRange_1w">past week</label>
+
+                <button id="clearDataButton" onclick="clearData()">Clear Data</button>
+              </div>
               <div class="tooltip hidden">
                 <p class="tooltipText">These are the available PM2.5 data sources.</p>
                 <p class="tooltipText">Moving the mouse over a source name shows you which sensors belong to it on the map.</p>

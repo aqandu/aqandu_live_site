@@ -8,12 +8,12 @@ const today = new Date().toISOString().substr(0, 19) + 'Z';
 const date = new Date();
 // const dateMST = new Date().toLocaleString("en-US", {timeZone: "America/Denver"});
 date.setDate(date.getDate() - 1);
-const yesterday = date.toISOString().substr(0, 19) + 'Z';
+let pastDate = date.toISOString().substr(0, 19) + 'Z';
 // const yesterdayMST = moment(date).tz("MST").format(moment.HTML5_FMT.DATETIME_LOCAL_SECONDS) + "Z"
 
 // const x = d3.scaleTime().domain([new Date(yesterday), new Date(today)]);
-const x = d3.scaleTime().domain([new Date(yesterday), new Date(today)]);
-const lineColor = d3.scaleOrdinal(d3.schemeCategory10);
+let x = d3.scaleTime().domain([new Date(pastDate), new Date(today)]);
+// const lineColor = d3.scaleOrdinal(d3.schemeCategory10);
 const y = d3.scaleLinear().domain([0.0, 150.0]);
 
 const sensLayer = L.layerGroup();
@@ -39,6 +39,41 @@ const lastPM25ValueURL = generateURL(dbEndpoint, '/lastValue', {'fieldKey': 'pm2
 let theMap;
 
 let liveAirUSensors = [];
+
+let whichTimeRangeToShow = 1;
+
+// deals with settiing the from date for the timeline when the radio button is changed
+$('#timelineControls input[type=radio]').on('change', function() {
+  whichTimeRangeToShow = parseInt($('[name="timeRange"]:checked').val());
+
+  let newDate = new Date(today);  // use "today" as the base date
+  newDate.setDate(newDate.getDate() - whichTimeRangeToShow);
+  pastDate = newDate.toISOString().substr(0, 19) + 'Z';
+
+  // refresh x
+  x = d3.scaleTime().domain([new Date(pastDate), new Date(today)]);
+  setUp();
+
+  // which ID are there
+  let lineData = [];
+  lineArray.forEach(function(aLine) {
+    let theAggregation;
+    if (whichTimeRangeToShow === 1) {
+      theAggregation = false;
+    } else {
+      theAggregation = true;
+    }
+
+    lineData.push({id: aLine.id, sensorSource: aLine.sensorSource, aggregation: theAggregation})
+  });
+
+  clearData(true);
+
+  lineData.forEach(function(aLine) {
+    reGetGraphData(aLine.id, aLine.sensorSource, aLine.aggregation);
+  })
+
+});
 
 
 $(function() {
@@ -584,12 +619,17 @@ function findNearestSensor(cornerarray, mark, callback) {
 
 
 function preprocessDBData(id, sensorData) {
-  const processedSensorData = sensorData.map((d) => {
+
+  let tags = sensorData["tags"][0];
+  let sensorSource = tags["Sensor Source"];
+  let sensorModel = tags["Sensor Model"];
+
+  const processedSensorData = sensorData["data"].map((d) => {
     return {
       id: id,
       time: new Date(d.time),
       // pm25: d['pm25']
-      pm25: conversionPM(d.pm25, d["Sensor Source"], d["Sensor Model"])
+      pm25: conversionPM(d.pm25, sensorSource, sensorModel)
     };
   }).filter((d) => {
     return d.pm25 === 0 || !!d.pm25; // forces NaN, null, undefined to be false, all other values to be true
@@ -605,7 +645,7 @@ function preprocessDBData(id, sensorData) {
 
   if (!present) {
     console.log('not in there yet');
-    var newLine = {id: id, sensorData: processedSensorData};
+    var newLine = {id: id, sensorSource: sensorSource, sensorData: processedSensorData};
 
     // pushes data for this specific line to an array so that there can be multiple lines updated dynamically on Click
     lineArray.push(newLine)
@@ -651,8 +691,8 @@ function drawChart (){
        .attr('transform', 'translate(' + margin.left + ',' + margin.top + ')')
        .attr("d", d => { return valueline(d.sensorData); })
        .attr("class", d => 'line-style line' + d.id)
-       .attr("id", function(d) { return 'line_' + d.id; })
-       .attr("stroke", d => lineColor(d.id)); //no return for d function, see above for example
+       .attr("id", function(d) { return 'line_' + d.id; });
+       // .attr("stroke", d => lineColor(d.id)); //no return for d function, see above for example
 
   var focus = svg.select(".focus");
 
@@ -714,7 +754,7 @@ function drawChart (){
 }
 
 
-function getGraphData(mark){
+function getGraphData(mark, aggregation) {
   findNearestSensor(findCorners(mark.getLatLng()), mark, function (sensor) {
     // mark = mark.bindPopup('<p>'+ sensor["ID"] +'</p>').openPopup();
 
@@ -731,16 +771,19 @@ function getGraphData(mark){
     // }
     //
     // if (!present) {
-      var aggregation = false;
+
+      // var aggregation = false;
 
       let theRoute = '';
       let parameters = {};
       if (!aggregation) {
         theRoute = '/rawDataFrom?';
-        parameters = {'id': sensor['ID'], 'sensorSource': sensor['SensorSource'], 'start': yesterday, 'end': today, 'show': 'pm25'};
+        parameters = {'id': sensor['ID'], 'sensorSource': sensor['SensorSource'], 'start': pastDate, 'end': today, 'show': 'pm25'};
       } else if (aggregation) {
         theRoute = '/processedDataFrom?';
-        parameters = {'id': sensor['ID'], 'start': yesterday, 'end': today, 'function': 'mean', 'functionArg': 'pm25', 'timeInterval': '10m'};
+        parameters = {'id': sensor['ID'], 'sensorSource': sensor['SensorSource'], 'start': pastDate, 'end': today, 'function': 'mean', 'functionArg': 'pm25', 'timeInterval': '60m'};
+      } else {
+        console.log('hmmmm problem');
       }
 
       var url = generateURL(dbEndpoint, theRoute, parameters);
@@ -758,7 +801,36 @@ function getGraphData(mark){
   });
 }
 
-var markr = null;
+
+function reGetGraphData(theID, theSensorSource, aggregation) {
+
+  let theRoute = '';
+  let parameters = {};
+  if (!aggregation) {
+    theRoute = '/rawDataFrom?';
+    parameters = {'id': theID, 'sensorSource': theSensorSource, 'start': pastDate, 'end': today, 'show': 'pm25'};
+  } else if (aggregation) {
+    theRoute = '/processedDataFrom?';
+    parameters = {'id': theID, 'sensorSource': theSensorSource, 'start': pastDate, 'end': today, 'function': 'mean', 'functionArg': 'pm25', 'timeInterval': '60m'};
+  } else {
+    console.log('hmmmm problem');
+  }
+
+  var url = generateURL(dbEndpoint, theRoute, parameters);
+  console.log(url)
+  getDataFromDB(url).then(data => {
+
+      preprocessDBData(theID, data)
+
+  }).catch(function(err){
+
+      alert("error, request failed!");
+      console.log("Error: ", err)
+  });
+
+}
+
+// var markr = null;
 
 // called when clicked somewhere on the map
 // function onMapClick(e) {
@@ -844,7 +916,15 @@ function populateGraph(e) {
     // only add the timeline if dot has usable data
     if (!d3.select(this._icon).classed('noColor')) {
       d3.select(this._icon).classed('sensor-selected', true);
-      getGraphData(this);
+
+      if (whichTimeRangeToShow === 1) {
+
+        getGraphData(this, false);
+
+      } else {
+        getGraphData(this, true);
+      }
+
     }
   }
 }
@@ -870,13 +950,15 @@ function makeHeat(results) {
   heat = L.heatLayer(results).addTo(map);
 }
 
-function clearData(){
+function clearData(changingTimeRange) {
   // lineArray.forEach( // TODO clear the markers from the map )
   lineArray = []; //this empties line array so that new lines can now be added
   d3.selectAll("#lines").html('');  // in theory, we should just call drawChart again
   d3.selectAll(".voronoi").html('');
 
-  d3.selectAll ('.dot').classed('sensor-selected', false);
+  if (!changingTimeRange) {
+    d3.selectAll('.dot').classed('sensor-selected', false);
+  }
 }
 
 
