@@ -10,7 +10,7 @@
 
   <script src="https://unpkg.com/leaflet@1.2.0/dist/leaflet.js" integrity="sha512-lInM/apFSqyy1o6s89K4iQUKg6ppXEgsVxT35HbzUupEVRh2Eu9Wdl4tHj7dZO0s1uvplcYGmt3498TtHq+log==" crossorigin=""></script>
 
-  
+
 
   <script src="https://d3js.org/d3.v4.js"></script>
 
@@ -101,7 +101,7 @@
           <h2 class="title inTheCenter">Visualization</h2>
           <div>
             <p class='description'>
-              The following visualization consists of two parts a map visualization and a timeline visualization just below the map.
+              The following visualization consists of two parts a map visualization and a timeline visualization just below the map. It is best viewed using Google Chrome, Safari, or Firefox.
             </p>
             <p class='description'>
               On the map there are colored dots. These colored dots represent sensors. A sensor can be a sensor provided by us (airu) or by Purple Air, Mesowest, or DAQ. The legend in the right bottom corner tells you which dot (sensor) is provided by whom. Moving the mouse cursor over an element in that legend makes the sensors belonging to that group more visible and hides the others. Moving the mouse cursor over a dot opens a popup with the sensor's ID.
@@ -148,6 +148,15 @@
                 <label for="timeRange_1w">past week</label>
 
                 <button id="clearDataButton" onclick="clearData()">Clear Data</button>
+
+                <form id="sensorDataSearch">
+                  <div>
+                    <label for="sensorDataSearch">Show data for airU sensor with sensor ID:</label>
+                    <input type="search" id="sensorDataSearch" name="q" placeholder="S-A-XXX" required size="7" pattern="S-A-[0-9]{3}" aria-label="Search for the data of your airU sensor">
+                    <button><i class="fa fa-search"></i></button>
+                    <span class="validity"></span>
+                  </div>
+                </form>
               </div>
               <div class="tooltip hidden">
                 <p class="tooltipText">These are the available PM2.5 data sources.</p>

@@ -116,6 +116,18 @@ svg text {
   margin-left: 30px;
 }
 
+input:invalid ~ span:after {
+    content: '✖';
+    padding-left: 5px;
+    position: absolute:
+}
+
+input:valid ~ span:after {
+    content: '✓';
+    padding-left: 5px;
+    position: absolute:
+}
+
 #clearDataButton:hover, #clearDataButton:active {
   text-decoration: underline #c00;
 }

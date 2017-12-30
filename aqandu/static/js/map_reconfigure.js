@@ -42,42 +42,62 @@ let liveAirUSensors = [];
 
 let whichTimeRangeToShow = 1;
 
-// deals with settiing the from date for the timeline when the radio button is changed
-$('#timelineControls input[type=radio]').on('change', function() {
-  whichTimeRangeToShow = parseInt($('[name="timeRange"]:checked').val());
 
-  let newDate = new Date(today);  // use "today" as the base date
-  newDate.setDate(newDate.getDate() - whichTimeRangeToShow);
-  pastDate = newDate.toISOString().substr(0, 19) + 'Z';
-
-  // refresh x
-  x = d3.scaleTime().domain([new Date(pastDate), new Date(today)]);
-  setUp();
-
-  // which ID are there
-  let lineData = [];
-  lineArray.forEach(function(aLine) {
-    let theAggregation;
-    if (whichTimeRangeToShow === 1) {
-      theAggregation = false;
-    } else {
-      theAggregation = true;
-    }
-
-    lineData.push({id: aLine.id, sensorSource: aLine.sensorSource, aggregation: theAggregation})
-  });
-
-  clearData(true);
-
-  lineData.forEach(function(aLine) {
-    reGetGraphData(aLine.id, aLine.sensorSource, aLine.aggregation);
-  })
-
-});
 
 
 $(function() {
   window.onload = window.onresize = function () {
+
+    // deals with settiing the from date for the timeline when the radio button is changed
+    $('#timelineControls input[type=radio]').on('change', function() {
+      whichTimeRangeToShow = parseInt($('[name="timeRange"]:checked').val());
+
+      let newDate = new Date(today);  // use "today" as the base date
+      newDate.setDate(newDate.getDate() - whichTimeRangeToShow);
+      pastDate = newDate.toISOString().substr(0, 19) + 'Z';
+
+      // refresh x
+      x = d3.scaleTime().domain([new Date(pastDate), new Date(today)]);
+      setUp();
+
+      // which ID are there
+      let lineData = [];
+      lineArray.forEach(function(aLine) {
+        let theAggregation = getAggregation(whichTimeRangeToShow);
+        // if (whichTimeRangeToShow === 1) {
+        //   theAggregation = false;
+        // } else {
+        //   theAggregation = true;
+        // }
+
+        lineData.push({id: aLine.id, sensorSource: aLine.sensorSource, aggregation: theAggregation})
+      });
+
+      clearData(true);
+
+      lineData.forEach(function(aLine) {
+        reGetGraphData(aLine.id, aLine.sensorSource, aLine.aggregation);
+
+      })
+
+    });
+
+    $('#sensorDataSearch').on('submit', function(e) {
+        e.preventDefault();  //prevent form from submitting
+        let data = $("#sensorDataSearch :input").serializeArray();
+        console.log(data[0].value);
+
+        let anAggregation = getAggregation(whichTimeRangeToShow);
+        reGetGraphData(data[0].value, 'airu', anAggregation);
+
+        // if the sensor is visible on the map, mark it as selected
+        sensLayer.eachLayer(function(layer) {
+          if (layer.id === data[0].value) {
+            d3.select(layer._icon).classed('sensor-selected', true)
+          }
+        });
+    });
+
     setUp();
     // TODO: call the render function(s)
     //  L.imageOverlay('overlay1.png', [[40.795925, -111.998256], [40.693031, -111.827190]], {
@@ -107,6 +127,15 @@ $(function() {
 
 });
 
+
+function getAggregation(timeRange) {
+
+  if (timeRange === 1) {
+    return false;
+  } else {
+    return true;
+  }
+}
 
 /**
  * [setUp description]
@@ -917,13 +946,15 @@ function populateGraph(e) {
     if (!d3.select(this._icon).classed('noColor')) {
       d3.select(this._icon).classed('sensor-selected', true);
 
-      if (whichTimeRangeToShow === 1) {
-
-        getGraphData(this, false);
-
-      } else {
-        getGraphData(this, true);
-      }
+      let aggregation = getAggregation(whichTimeRangeToShow);
+      getGraphData(this, aggregation);
+      // if (whichTimeRangeToShow === 1) {
+      //
+      //   getGraphData(this, false);
+      //
+      // } else {
+      //   getGraphData(this, true);
+      // }
 
     }
   }
