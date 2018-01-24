@@ -42,7 +42,7 @@ let liveAirUSensors = [];
 
 let whichTimeRangeToShow = 1;
 
-
+let currentlySelectedDataSource = 'none';
 
 
 $(function() {
@@ -286,20 +286,44 @@ function setupMap() {
     labels = labels.merge(labelsEnter);
     labels.text(d => d);
 
-    labels.on('mouseover', d => {
-      // Add 'unhovered' class to all dots
-      d3.select('#SLC-map').selectAll('.dot:not(noColor)').classed('unhovered', true);
-      d3.select('#SLC-map').selectAll('.dot:not(noColor)').classed('colored-border', false);
-      // Remove 'unhovered' class from dots whose class matches the hovered legend entry
-      d3.select('#SLC-map').selectAll('.' + d + ':not(noColor)').classed('unhovered', false);
-      d3.select('#SLC-map').selectAll('.' + d + ':not(noColor)').classed('colored-border', true);
-      // So at this point, only stuff that wasn't hovered will have the unhovered class
-    });
+    labels.on('click', d => {
+      if (currentlySelectedDataSource != 'none') {
+        // element in sensor type legend has been clicked (was already selected) or another element has been selected
 
-    labels.on('mouseout', d => {
-      // Remove 'unhovered' class from all dots
-      d3.select('#SLC-map').selectAll('.dot:not(noColor)').classed('unhovered', false);
-      d3.select('#SLC-map').selectAll('.dot:not(noColor)').classed('colored-border', false);
+        d3.select('.clickedLegendElement').classed('clickedLegendElement', false)
+        if (currentlySelectedDataSource === d) {
+          // remove notPartOfGroup class
+          // remove colored-border-selected class
+          d3.select('#SLC-map').selectAll('.dot:not(noColor)').classed('notPartOfGroup', false);
+          d3.select('#SLC-map').selectAll('.dot:not(noColor)').classed('partOfGroup-border', false);
+
+          currentlySelectedDataSource = 'none'
+        } else {
+          // moved from one element to another wiuthout first unchecking it
+
+          d3.select(d3.event.currentTarget).classed('clickedLegendElement', true)
+
+          d3.select('#SLC-map').selectAll('.dot:not(noColor)').classed('notPartOfGroup', true);
+          d3.select('#SLC-map').selectAll('.dot:not(noColor)').classed('partOfGroup-border', false);
+          d3.select('#SLC-map').selectAll('.' + d + ':not(noColor)').classed('notPartOfGroup', false);
+          d3.select('#SLC-map').selectAll('.' + d + ':not(noColor)').classed('partOfGroup-border', true);
+
+          currentlySelectedDataSource = d
+        }
+
+      } else {
+        // add the notPartOfGroup class to all dots, then remove it for the ones that are actually notPartOfGroup
+        // remove partOfGroup-border for all dots and add it only for the selected ones
+
+        d3.select(d3.event.currentTarget).classed('clickedLegendElement', true)
+
+        d3.select('#SLC-map').selectAll('.dot:not(noColor)').classed('notPartOfGroup', true);
+        d3.select('#SLC-map').selectAll('.dot:not(noColor)').classed('partOfGroup-border', false);
+        d3.select('#SLC-map').selectAll('.' + d + ':not(noColor)').classed('notPartOfGroup', false);
+        d3.select('#SLC-map').selectAll('.' + d + ':not(noColor)').classed('partOfGroup-border', true);
+
+        currentlySelectedDataSource = d;
+      }
     });
 
     return thediv;

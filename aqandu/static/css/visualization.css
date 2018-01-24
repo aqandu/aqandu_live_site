@@ -63,25 +63,25 @@ svg text {
 .dot.noColor {
   background-color: rgba(255,255,255,0);
 }
-.dot.green.unhovered {
+.dot.green.notPartOfGroup {
   background-color: rgba(0,228,0,0.1);
 }
-.dot.yellow.unhovered {
+.dot.yellow.notPartOfGroup {
   background-color: rgba(255,255,0,0.1);
 }
-.dot.orange.unhovered {
+.dot.orange.notPartOfGroup {
   background-color: rgba(255,126,0,0.1);
 }
-.dot.red.unhovered {
+.dot.red.notPartOfGroup {
   background-color: rgba(255,0,0,0.1);
 }
-.dot.veryUnhealthyRed.unhovered {
+.dot.veryUnhealthyRed.notPartOfGroup {
   background-color: rgb(153, 0, 76 , 0.1);
 }
-.dot.hazardousRed.unhovered {
+.dot.hazardousRed.notPartOfGroup {
   background-color: rgb(126, 0, 35, 0.1);
 }
-.dot.noColor.unhovered {
+.dot.noColor.notPartOfGroup {
   background-color: rgba(255,255,255,0);
 }
 
@@ -89,7 +89,7 @@ svg text {
   border: 3px solid #000000;
 }
 
-.dot.colored-border {
+.dot.partOfGroup-border {
   border: 3px solid #808080;
 }
 
@@ -189,9 +189,13 @@ input:valid ~ span:after {
   display: block;
 }
 
-.legend label.sensorType:hover, .legend label.sensorType:active {
+/* .legend label.sensorType:hover, .legend label.sensorType:active {
   /* background: red; */
-  text-decoration: underline #c00;
+  /* text-decoration: underline #c00; */
+/* } */
+
+.clickedLegendElement {
+  text-decoration: underline #808080;
 }
 
 /* .txt {
