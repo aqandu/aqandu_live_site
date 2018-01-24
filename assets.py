@@ -26,7 +26,7 @@ def init(app=None):
 
         all_css = Bundle(
             'css/airu.css',
-            'css/strange_d3_formap.css',
+            'css/visualization.css',
             'css/ie10-viewport-bug-workaround.css',
             filters='cssmin', output='css/all_css.%(version)s.css')
         env.register('css', all_css)

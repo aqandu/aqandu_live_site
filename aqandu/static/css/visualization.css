@@ -86,11 +86,11 @@ svg text {
 }
 
 .dot.sensor-selected {
-  border: 3px solid #b3b3b3;
+  border: 3px solid #000000;
 }
 
 .dot.colored-border {
-  border: 3px solid #000000;
+  border: 3px solid #808080;
 }
 
 /* .leaflet-popup-content {
