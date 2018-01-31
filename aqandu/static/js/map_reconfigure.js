@@ -141,7 +141,7 @@ function getAggregation(timeRange) {
  * [setUp description]
  */
 function setUp(){
-  var div = d3.select(".timeline");
+  var div = d3.select("#timeline");
   var bounds = div.node().getBoundingClientRect();
   var svgWidth = bounds.width;
   var svgHeight = 310;
@@ -709,10 +709,17 @@ function preprocessDBData(id, sensorData) {
 
 
 function drawChart (){
-  var svg = d3.select("div svg"); // TODO: this isn't specific enough...
+  var svg = d3.select("#timeline svg");
   var bounds = svg.node().getBoundingClientRect();
   var width = bounds.width;
   var height = bounds.height;
+
+  var formatTime = d3.timeFormat('%a %m/%d/%Y %I:%M%p');
+  // Mon Jan 29 2018 15:01:16 GMT-0700 (MST)
+  // var timestampPrser = d3.timeParse'(%a %b %Y %H:%M:%S GMT-0700 (MST)');
+  var s = d3.formatSpecifier("f");
+  s.precision = d3.precisionFixed(0.01);
+  var pmFormat = d3.format(s);
 
   // Scale the range of the data
   var valueline = d3.line()
@@ -758,7 +765,9 @@ function drawChart (){
     hoveredLine.node().parentNode.appendChild(hoveredLine.node());
     // console.log(d.data.time)
     focus.attr("transform", "translate(" + (x(d.data.time) + margin.left) + "," + (y(d.data.pm25)+ margin.top) + ")"); //x and y gets coordinates from values, which we can then change with margin
-    focus.select("text").text(d.data.id);
+    // focus.select("text").text(d.data.id);
+    // focus.select("text").text(formatTime(d.data.time) + ': ' + d.data.pm25 + ' µg/m\u00B3');
+    focus.select("text").text(pmFormat(d.data.pm25) + ' µg/m\u00B3' + '  ' + formatTime(d.data.time));
   }
 
   function mouseout(d) {
