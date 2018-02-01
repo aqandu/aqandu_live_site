@@ -83,6 +83,6 @@ flask assets clean
 
 Run main.py again until you reach get a message that tells you that the "Debugger is Active!". Copy and paste the http into your browser. 
 
-**Ta Dah! You should see the AQandU website. 
+**Ta Dah! You should see the AQandU website. **
 
 
