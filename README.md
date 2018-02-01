@@ -66,7 +66,7 @@ There are going to be dependencies missing. To install these, the easiest way is
   
 Now, for each dependency do the following:
 
-  pip install <name of dependency>
+  pip install name_of_dependency
   
 Until you reach the config error. Pascal can send you that, as it's not on github. Just copy/paste it into your aqandu file system, same place as your main.py file.
 Run main.py again until you reach get a message that tells you that the "Debugger is Active!". Copy and paste the http into your browser. Ta Dah! You should see the AQandU website. 
