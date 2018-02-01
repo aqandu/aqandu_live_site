@@ -34,8 +34,11 @@ This is so that the code is available in all sessions without needing to activat
 *Paste the following into your file:*
 
   export WORKON_HOME=~/.ve
+  
   export PROJECT_HOME=~/workspace
+  
   eval "$(pyenv init -)"
+  
   #pyenv virtualenvwrapper_lazy
   
 *Save and exit the bashrc file, and end your terminal session. Open a new terminal window, then paste this into the prompt:*
