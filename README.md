@@ -1,10 +1,11 @@
-# aqandu
+# AQandU
 These are instructions for setting up the Python Virtual Environment and frontend of AQandU on a mac. 
 
 The instructions are inspired by this guide: 
   https://medium.com/@henriquebastos/the-definitive-guide-to-setup-my-python-workspace-628d68552e14
   
-***Setting Up Virtual Environment***  
+**Setting Up Virtual Environment**
+
 First, make sure you have homebrew installed. To install, simply paste this into your terminal prompt:
   /usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
 
@@ -26,7 +27,7 @@ This is so that the code is available in all sessions without needing to activat
 
 Open your ~/.bashrc file. You can do this using vi or vim like so:
 
-  vim ~/.bashrc 
+  6. vim ~/.bashrc 
 
 Paste the following into your file:
 
@@ -45,7 +46,7 @@ Next, paste this:
   
 Now uncomment the line #pyenv virtualenvwrapper_lazy on your ~/.bashrc and restart the terminal, exiting and closing its window and opening a new one.
 
-***You've set up the Python Virtual Environment, now let's set up the frontend***
+**You've set up the Python Virtual Environment, now let's set up the frontend**
 
 Set up the the project like so:
 
@@ -68,7 +69,16 @@ Now, for each dependency do the following:
 
   pip install name_of_dependency
   
-Until you reach the config error. Pascal can send you that, as it's not on github. Just copy/paste it into your aqandu file system, same place as your main.py file.
+Until you reach the config error. Pascal can send you that, as it's not on github. Just copy/paste it into your aqandu file system, same place as your main.py file. At this point, you should have installed flask. 
+Do this:
+
+export FLASK_APP=main.py
+flask assets build
+
+When you are done with the entire session, use this:
+
+flask assets clean
+
 Run main.py again until you reach get a message that tells you that the "Debugger is Active!". Copy and paste the http into your browser. Ta Dah! You should see the AQandU website. 
 
 
