@@ -59,28 +59,30 @@ This is so that the code is available in all sessions without needing to activat
   workon aqandu
   
 You also need to have aqandu on your computer.
-The easiest way to do this is to clone the repo from git:
+*The easiest way to do this is to clone the repo from git:*
 
   git clone https://github.com/visdesignlab/aqandu.git
   
-There are going to be dependencies missing. To install these, the easiest way is to run main.py:
+*There are going to be dependencies missing. To install these, the easiest way is to run main.py:*
 
   python main.py
   
-Now, for each dependency do the following:
+*Now, for each dependency do the following:*
 
-  pip install name_of_dependency
+  pip install **name_of_dependency**
   
 Until you reach the config error. Pascal can send you that, as it's not on github. Just copy/paste it into your aqandu file system, same place as your main.py file. At this point, you should have installed flask. 
-Do this:
+*Do this:*
 
 export FLASK_APP=main.py
 flask assets build
 
-When you are done with the entire session, use this:
+*When you are done with the entire session, use this:*
 
 flask assets clean
 
-Run main.py again until you reach get a message that tells you that the "Debugger is Active!". Copy and paste the http into your browser. Ta Dah! You should see the AQandU website. 
+Run main.py again until you reach get a message that tells you that the "Debugger is Active!". Copy and paste the http into your browser. 
+
+**Ta Dah! You should see the AQandU website. 
 
 
