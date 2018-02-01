@@ -46,6 +46,7 @@ Next, paste this:
 Now uncomment the line #pyenv virtualenvwrapper_lazy on your ~/.bashrc and restart the terminal, exiting and closing its window and opening a new one.
 
 ***You've set up the Python Virtual Environment, now let's set up the frontend***
+
 Set up the the project like so:
 
   mkproject aqandu #I named the project aqandu, you can name it whatever you want. 
