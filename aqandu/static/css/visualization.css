@@ -61,28 +61,28 @@ svg text {
   background-color: rgb(126, 0, 35);
 }
 .dot.noColor {
-  background-color: rgba(255,255,255,0);
+  background-color: rgba(255, 255, 255, 0);
 }
 .dot.green.notPartOfGroup {
-  background-color: rgba(0,228,0,0.1);
+  background-color: rgba(0, 228, 0, 0.1);
 }
 .dot.yellow.notPartOfGroup {
-  background-color: rgba(255,255,0,0.1);
+  background-color: rgba(255, 255, 0, 0.1);
 }
 .dot.orange.notPartOfGroup {
-  background-color: rgba(255,126,0,0.1);
+  background-color: rgba(255, 126, 0, 0.1);
 }
 .dot.red.notPartOfGroup {
-  background-color: rgba(255,0,0,0.1);
+  background-color: rgba(255, 0, 0, 0.1);
 }
 .dot.veryUnhealthyRed.notPartOfGroup {
-  background-color: rgb(153, 0, 76 , 0.1);
+  background-color: rgba(153, 0, 76, 0.1);
 }
 .dot.hazardousRed.notPartOfGroup {
-  background-color: rgb(126, 0, 35, 0.1);
+  background-color: rgba(126, 0, 35, 0.1);
 }
 .dot.noColor.notPartOfGroup {
-  background-color: rgba(255,255,255,0);
+  background-color: rgba(255, 255, 255, 0);
 }
 
 .dot.sensor-selected {

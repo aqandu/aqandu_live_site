@@ -757,6 +757,14 @@ function drawChart (){
   var focus = svg.select(".focus");
 
   function mouseover(d) { //d is voronoi paths
+
+    // iterate over the layers and get the right one
+    sensLayer.eachLayer(function(layer) {
+      if (layer.id === d.data.id) {
+        layer.openPopup();
+      }
+    });
+
     let hoveredLine = svg.select('.line' + d.data.id);
     hoveredLine.classed("hover", true);
     // Sneaky hack to bump hoveredLine to be the last child of its parent;
@@ -771,6 +779,14 @@ function drawChart (){
   }
 
   function mouseout(d) {
+
+    // close the popup
+    sensLayer.eachLayer(function(layer) {
+      if (layer.id === d.data.id) {
+        layer.closePopup();
+      }
+    });
+
     let hoveredLine = svg.select('.line' + d.data.id);
     hoveredLine.classed("hover", false);
     focus.attr("transform", "translate(-100,-100)");
