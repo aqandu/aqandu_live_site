@@ -859,7 +859,7 @@ function getGraphData(mark, aggregation) {
         parameters = {'id': sensor['ID'], 'sensorSource': sensor['SensorSource'], 'start': pastDate, 'end': today, 'show': 'pm25'};
       } else if (aggregation) {
         theRoute = '/processedDataFrom?';
-        parameters = {'id': sensor['ID'], 'sensorSource': sensor['SensorSource'], 'start': pastDate, 'end': today, 'function': 'mean', 'functionArg': 'pm25', 'timeInterval': '60m'};
+        parameters = {'id': sensor['ID'], 'sensorSource': sensor['SensorSource'], 'start': pastDate, 'end': today, 'function': 'mean', 'functionArg': 'pm25', 'timeInterval': '5m'}; // 60m
       } else {
         console.log('hmmmm problem');
       }
@@ -889,7 +889,7 @@ function reGetGraphData(theID, theSensorSource, aggregation) {
     parameters = {'id': theID, 'sensorSource': theSensorSource, 'start': pastDate, 'end': today, 'show': 'pm25'};
   } else if (aggregation) {
     theRoute = '/processedDataFrom?';
-    parameters = {'id': theID, 'sensorSource': theSensorSource, 'start': pastDate, 'end': today, 'function': 'mean', 'functionArg': 'pm25', 'timeInterval': '60m'};
+    parameters = {'id': theID, 'sensorSource': theSensorSource, 'start': pastDate, 'end': today, 'function': 'mean', 'functionArg': 'pm25', 'timeInterval': '5m'}; // 60min
   } else {
     console.log('hmmmm problem');
   }
