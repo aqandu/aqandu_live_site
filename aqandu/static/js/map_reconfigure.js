@@ -230,6 +230,8 @@ function setupMap() {
 
   // load a tile layer
   L.tileLayer('https://api.tiles.mapbox.com/v4/{id}/{z}/{x}/{y}.png?access_token=pk.eyJ1Ijoic2tpdHJlZSIsImEiOiJjajUyb2l0YzQwaHJwMnFwMTNhdGwxMGx1In0.V5OuKXRdmwjq4Lk3o8me1A', {
+// L.tileLayer('https://api.mapbox.com/styles/v1/oscarinslc/cjdy1fjlq1n9p2spe1f1dwvjp/tiles/256/{z}/{x}/{y}?access_token=pk.eyJ1Ijoib3NjYXJpbnNsYyIsImEiOiJjajZ3bG5kbnUxN2h3Mnd1aDdlOTJ6ZnUzIn0.fLYowxdcPCmZSLt51mG8tw', {
+
     maxZoom: 18,
     id: 'mapbox.streets',
     accessToken: 'pk.eyJ1Ijoic2tpdHJlZSIsImEiOiJjajUydDkwZjUwaHp1MzJxZHhkYnl3eTd4In0.TdQB-1U_ID-37stKON_osw'
@@ -714,7 +716,8 @@ function drawChart (){
   var width = bounds.width;
   var height = bounds.height;
 
-  var formatTime = d3.timeFormat('%a %m/%d/%Y %I:%M%p');
+  var formatDate = d3.timeFormat('%a %m/%d/%Y');
+  var formatTime = d3.timeFormat('%I:%M%p');
   // Mon Jan 29 2018 15:01:16 GMT-0700 (MST)
   // var timestampPrser = d3.timeParse'(%a %b %Y %H:%M:%S GMT-0700 (MST)');
   var s = d3.formatSpecifier("f");
@@ -755,6 +758,9 @@ function drawChart (){
        // .attr("stroke", d => lineColor(d.id)); //no return for d function, see above for example
 
   var focus = svg.select(".focus");
+  var dateFocus = svg.select(".dateFocus");
+
+
 
   function mouseover(d) { //d is voronoi paths
 
@@ -772,10 +778,26 @@ function drawChart (){
     //.node() gets the dom element (line element), then when you append child to the parent that it already has, it bumps updated child to the front
     hoveredLine.node().parentNode.appendChild(hoveredLine.node());
     // console.log(d.data.time)
-    focus.attr("transform", "translate(" + (x(d.data.time) + margin.left) + "," + (y(d.data.pm25)+ margin.top) + ")"); //x and y gets coordinates from values, which we can then change with margin
+    focus.attr("transform", "translate(" + (x(d.data.time) + margin.left) + "," + (y(d.data.pm25) + margin.top) + ")"); //x and y gets coordinates from values, which we can then change with margin
     // focus.select("text").text(d.data.id);
     // focus.select("text").text(formatTime(d.data.time) + ': ' + d.data.pm25 + ' µg/m\u00B3');
-    focus.select("text").text(pmFormat(d.data.pm25) + ' µg/m\u00B3' + '  ' + formatTime(d.data.time));
+    focus.select("text").text(pmFormat(d.data.pm25) + ' µg/m\u00B3');
+
+    // date focus
+    dateFocus.attr("transform", "translate(" + (x(d.data.time) + margin.left) + "," + (y(2) + margin.top) + ")");
+    dateFocus.select("rect").attr('x', -1);
+    dateFocus.select("rect").attr('height', 9);
+    dateFocus.select("rect").attr('width', 2);
+
+    // the date
+    dateFocus.select("#focusDate").text(formatDate(d.data.time));
+    dateFocus.select("#focusDate").attr('text-anchor', 'middle');
+    dateFocus.select("#focusDate").attr('y', '30');
+
+    // the time
+    dateFocus.select("#focusTime").text(formatTime(d.data.time));
+    dateFocus.select("#focusTime").attr('text-anchor', 'middle');
+    dateFocus.select("#focusTime").attr('y', '40');
   }
 
   function mouseout(d) {
