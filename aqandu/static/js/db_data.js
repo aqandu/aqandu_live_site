@@ -17,6 +17,8 @@ function generateURL(anEndpoint, route, parameters) { // eslint-disable-line no-
     url = `${baseURL}${anEndpoint}${route}id=${parameters.id}&sensorSource=${parameters.sensorSource}&start=${parameters.start}&end=${parameters.end}&function=${parameters.function}&functionArg=${parameters.functionArg}&timeInterval=${parameters.timeInterval}`;
   } else if (route === '/lastValue') {
     url = `${baseURL}${anEndpoint}${route}?fieldKey=${parameters.fieldKey}`;
+  } else if (route === '/contours') {
+    url = `${baseURL}${anEndpoint}${route}`;
   }
 
   return url;

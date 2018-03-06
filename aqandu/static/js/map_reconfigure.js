@@ -35,6 +35,7 @@ const liveSensorURL_purpleAir = generateURL(dbEndpoint, '/liveSensors', {'type':
 const liveSensorURL_airU = generateURL(dbEndpoint, '/liveSensors', {'type': 'airU'});
 const liveSensorURL_all = generateURL(dbEndpoint, '/liveSensors', {'type': 'all'});
 const lastPM25ValueURL = generateURL(dbEndpoint, '/lastValue', {'fieldKey': 'pm25'});
+const contoursURL = generateURL(dbEndpoint, '/contours', null);
 
 let theMap;
 
@@ -161,26 +162,35 @@ function setUp(){
   svg.select('#colorBands').append("path")
                  .attr("d", getColorBandPath(0, 12))
                  .style("opacity", 0.1)
-                 .style("stroke", "rgb(0,228,0)")
-                 .style("fill", "rgb(0,228,0)");
+                 // .style("stroke", "rgb(0,228,0)")
+                 // .style("fill", "rgb(0,228,0)");
+                 .style("stroke", "rgb(166, 217, 106)")
+                 .style("fill", "rgb(166, 217, 106)");
+
 
   svg.select('#colorBands').append("path")
                  .attr("d", getColorBandPath(12, 35.4))
                  .style("opacity", 0.1)
-                 .style("stroke", "rgb(255,255,0)")
-                 .style("fill", "rgb(255,255,0)");
+                 // .style("stroke", "rgb(255,255,0)")
+                 // .style("fill", "rgb(255,255,0)");
+                 .style("stroke", "rgb(255, 255, 191)")
+                 .style("fill", "rgb(255, 255, 191)");
 
   svg.select('#colorBands').append("path")
                  .attr("d", getColorBandPath(35.4, 55.4))
                  .style("opacity", 0.1)
-                 .style("stroke", "rgb(255,126,0)")
-                 .style("fill", "rgb(255,126,0)");
+                 // .style("stroke", "rgb(255,126,0)")
+                 // .style("fill", "rgb(255,126,0)");
+                 .style("stroke", "rgb(253, 174, 97)")
+                 .style("fill", "rgb(253, 174, 97)");
 
   svg.select('#colorBands').append("path")
                  .attr("d", getColorBandPath(55.4, 150.4))
                  .style("opacity", 0.1)
-                .style("stroke", "rgb(255,0,0)")
-                 .style("fill", "rgb(255,0,0)");
+                 // .style("stroke", "rgb(255,0,0)")
+                 // .style("fill", "rgb(255,0,0)");
+                 .style("stroke", "rgb(215, 25, 28)")
+                 .style("fill", "rgb(215, 25, 28)");
 
 
   var xAxis = d3.axisBottom(x).ticks(9);
@@ -225,17 +235,122 @@ function getColorBandPath(yStart, yEnd) {
 function setupMap() {
   const slcMap = L.map('SLC-map', {
     center: [40.7608, -111.8910],
-    zoom: 13
+    zoom: 9
+  }); //13
+
+  //beginning of Peter's code (how to use StamenTileLayer)
+  var bottomLayer = new L.StamenTileLayer("toner");
+  slcMap.addLayer(bottomLayer);
+
+  var topPane = slcMap.createPane('leaflet-top-pane', slcMap.getPanes().mapPane);
+  var topLayerLines = new L.StamenTileLayer('toner-lines');
+  var topLayerLabels = new L.StamenTileLayer('toner-labels');
+  slcMap.addLayer(topLayerLines);
+  slcMap.addLayer(topLayerLabels);
+  topPane.appendChild(topLayerLines.getContainer());
+  topPane.appendChild(topLayerLabels.getContainer());
+  topLayerLabels.setZIndex(9);
+  topLayerLines.setZIndex(9);
+
+  L.svg().addTo(slcMap);
+
+
+  getDataFromDB(contoursURL).then(data => {
+
+      // process contours data
+      console.log(data)
+
+      var transform = d3.geoTransform({
+          point: projectPoint
+      });
+      var path = d3.geoPath().projection(transform);
+
+      function projectPoint(x, y) {
+          var point = slcMap.latLngToLayerPoint(new L.LatLng(y, x));
+          this.stream.point(point.x, point.y);
+      }
+
+      var contours = [];
+      for (var key in data) {
+        // check if the property/key is defined in the object itself, not in parent
+        if (data.hasOwnProperty(key)) {
+            console.log(key, data[key]);
+            var theContour = data[key]['contours'][0];
+            var aContour = theContour.path;
+            aContour.level = theContour.level;
+            aContour.k = theContour.k;
+
+            contours.push(aContour);
+        }
+      }
+
+      contours.sort(function(a,b) {
+          return b.level - a.level;
+      });
+
+      var levelColours = ['#a6d96a', '#ffffbf', '#fdae61', '#d7191c', '#bd0026', '#a63603'];
+      var defaultContourColor = 'black';
+      var defaultContourWidth = 1;
+
+      //console.log('jsonStruct:', jsonStruct);
+      var mapSVG = d3.select("#SLC-map").select("svg");
+      var g = mapSVG.select("g");  //.attr("class", "leaflet-zoom-hide").attr('opacity', 0.8);
+      var contourPath = g.selectAll("path")
+        .data(contours)
+      .enter().append("path")
+      .style("fill",function(d, i) { return levelColours[d.level];})
+      .style("stroke", defaultContourColor)
+      .style('stroke-width', defaultContourWidth)
+      .style('opacity', 1)
+      .on('mouseover', function(d) {
+          d3.select(this).style('stroke', 'black');
+      })
+      .on('mouseout', function(d) {
+          d3.select(this).style('stroke', defaultContourColor);
+      });
+
+      function resetView() {
+        console.log('reset:', slcMap.options.center);
+        contourPath.attr("d", function(d) {
+          var pathStr = d.map(function(d1) {
+            var point = slcMap.latLngToLayerPoint(new L.LatLng(d1[1], d1[2]));
+            return d1[0] + point.x + "," + point.y;
+          }).join('');
+
+          //console.log('d', d);
+
+          return pathStr;
+        });
+      }
+
+      // slcMap.on("viewreset", resetView);
+      slcMap.on("zoom", resetView);
+
+      resetView();
+
+
+  }).catch(function(err){
+
+      alert("error, request failed!");
+      console.log("Error: ", err)
   });
 
-  // load a tile layer
-  L.tileLayer('https://api.tiles.mapbox.com/v4/{id}/{z}/{x}/{y}.png?access_token=pk.eyJ1Ijoic2tpdHJlZSIsImEiOiJjajUyb2l0YzQwaHJwMnFwMTNhdGwxMGx1In0.V5OuKXRdmwjq4Lk3o8me1A', {
-// L.tileLayer('https://api.mapbox.com/styles/v1/oscarinslc/cjdy1fjlq1n9p2spe1f1dwvjp/tiles/256/{z}/{x}/{y}?access_token=pk.eyJ1Ijoib3NjYXJpbnNsYyIsImEiOiJjajZ3bG5kbnUxN2h3Mnd1aDdlOTJ6ZnUzIn0.fLYowxdcPCmZSLt51mG8tw', {
 
-    maxZoom: 18,
-    id: 'mapbox.streets',
-    accessToken: 'pk.eyJ1Ijoic2tpdHJlZSIsImEiOiJjajUydDkwZjUwaHp1MzJxZHhkYnl3eTd4In0.TdQB-1U_ID-37stKON_osw'
-  }).addTo(slcMap);
+  // var imageUrl = 'static/sample_data/test_colorbrewer.svg',
+  // imageBounds = [[40.70159, -112.058312], [40.8433918609, -111.8109267]];
+  // L.imageOverlay(imageUrl, imageBounds, {
+  //    opacity: 0.8,
+  //    interactive: true,
+  //  }).addTo(slcMap);
+
+//   // load a tile layer
+//   L.tileLayer('https://api.tiles.mapbox.com/v4/{id}/{z}/{x}/{y}.png?access_token=pk.eyJ1Ijoic2tpdHJlZSIsImEiOiJjajUyb2l0YzQwaHJwMnFwMTNhdGwxMGx1In0.V5OuKXRdmwjq4Lk3o8me1A', {
+// // L.tileLayer('https://api.mapbox.com/styles/v1/oscarinslc/cjdy1fjlq1n9p2spe1f1dwvjp/tiles/256/{z}/{x}/{y}?access_token=pk.eyJ1Ijoib3NjYXJpbnNsYyIsImEiOiJjajZ3bG5kbnUxN2h3Mnd1aDdlOTJ6ZnUzIn0.fLYowxdcPCmZSLt51mG8tw', {
+//
+//     maxZoom: 18,
+//     id: 'mapbox.streets',
+//     accessToken: 'pk.eyJ1Ijoic2tpdHJlZSIsImEiOiJjajUydDkwZjUwaHp1MzJxZHhkYnl3eTd4In0.TdQB-1U_ID-37stKON_osw'
+//   }).addTo(slcMap);
 
   // disabling zooming when scrolling down the page (https://gis.stackexchange.com/questions/111887/leaflet-mouse-wheel-zoom-only-after-click-on-map)
   slcMap.scrollWheelZoom.disable();

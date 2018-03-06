@@ -19,70 +19,89 @@ svg text {
 /* MARKERS */
 
 .green {
-  background-color: rgb(0,228,0);
+  /* background-color: rgb(0,228,0); */
+  background-color: rgb(166, 217, 106);
 }
 .yellow {
-  background-color: rgb(255,255,0);
+  /* background-color: rgb(255,255,0); */
+  background-color: rgb(255, 255, 191);
 }
 .orange {
-  background-color: rgb(255,126,0);
+  /* background-color: rgb(255,126,0); */
+  background-color: rgb(253, 174, 97);
 }
 .red {
-  background-color: rgb(255,0,0);
+  /* background-color: rgb(255,0,0); */
+  background-color: rgb(215, 25, 28);
 }
 .veryUnhealthyRed {
-  background-color: rgb(153, 0, 76);
+  /* background-color: rgb(153, 0, 76); */
+  background-color: rgb(189, 0, 38);
 }
 .hazardousRed {
-  background-color: rgb(126, 0, 35);
+  /* background-color: rgb(126, 0, 35); */
+  background-color: rgb(166, 54, 3);
 }
-
+/* c = ('#a6d96a', '#ffffbf', '#fdae61', '#d7191c', '#bd0026', '#a63603') */
 .dot {
   /*  border-radius: 20px; */
   border-radius: 10px;
   border: 3px solid #FFFFFF;
 }
 .dot.green {
-  background-color: rgb(0,228,0);
+  /* background-color: rgb(0,228,0); original EPA*/
+  background-color: rgb(166, 217, 106);
 }
 .dot.yellow {
-  background-color: rgb(255,255,0);
+  /* background-color: rgb(255,255,0); original EPA */
+  background-color: rgb(255, 255, 191);
 }
 .dot.orange {
-    background-color: rgb(255,126,0);
+  /* background-color: rgb(255,126,0); original EPA */
+  background-color: rgb(253, 174, 97);
 }
 .dot.red {
-  background-color: rgb(255,0,0);
+  /* background-color: rgb(255,0,0); original EPA */
+  background-color: rgb(215, 25, 28);
 }
 .dot.veryUnhealthyRed {
-  background-color: rgb(153, 0, 76);
+  /* background-color: rgb(153, 0, 76);  original EPA */
+  background-color: rgb(189, 0, 38);
 }
 .dot.hazardousRed {
-  background-color: rgb(126, 0, 35);
+  /* background-color: rgb(126, 0, 35);  original EPA */
+  background-color: rgb(166, 54, 3);
 }
 .dot.noColor {
   background-color: rgba(255, 255, 255, 0);
 }
 .dot.green.notPartOfGroup {
-  background-color: rgba(0, 228, 0, 0.1);
+  /* background-color: rgba(0, 228, 0, 0.1); original EPA */
+  background-color: rgb(166, 217, 106, 0.1);
 }
 .dot.yellow.notPartOfGroup {
-  background-color: rgba(255, 255, 0, 0.1);
+  /* background-color: rgba(255, 255, 0, 0.1); original EPA */
+  background-color: rgb(255, 255, 191, 0.1);
 }
 .dot.orange.notPartOfGroup {
-  background-color: rgba(255, 126, 0, 0.1);
+  /* background-color: rgba(255, 126, 0, 0.1); original EPA */
+  background-color: rgb(253, 174, 97, 0.1);
 }
 .dot.red.notPartOfGroup {
-  background-color: rgba(255, 0, 0, 0.1);
+  /* background-color: rgba(255, 0, 0, 0.1); original EPA */
+  background-color: rgb(215, 25, 28, 0.1);
 }
 .dot.veryUnhealthyRed.notPartOfGroup {
-  background-color: rgba(153, 0, 76, 0.1);
+  /* background-color: rgba(153, 0, 76, 0.1); original EPA */
+  background-color: rgb(189, 0, 38, 0.1);
 }
 .dot.hazardousRed.notPartOfGroup {
-  background-color: rgba(126, 0, 35, 0.1);
+  /* background-color: rgba(126, 0, 35, 0.1); original EPA */
+  background-color: rgb(166, 54, 3, 0.1);
 }
 .dot.noColor.notPartOfGroup {
-  background-color: rgba(255, 255, 255, 0);
+  /* background-color: rgba(255, 255, 255, 0); original EPA */
+  background-color: ;
 }
 
 .dot.sensor-selected {
