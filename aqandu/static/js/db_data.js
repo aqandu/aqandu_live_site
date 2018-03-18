@@ -19,6 +19,8 @@ function generateURL(anEndpoint, route, parameters) { // eslint-disable-line no-
     url = `${baseURL}${anEndpoint}${route}?fieldKey=${parameters.fieldKey}`;
   } else if (route === '/contours') {
     url = `${baseURL}${anEndpoint}${route}`;
+  } else if (route === '/getLatestContour') {
+    url = `${baseURL}${anEndpoint}${route}`;
   }
 
   return url;

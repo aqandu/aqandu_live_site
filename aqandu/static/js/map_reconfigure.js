@@ -36,6 +36,7 @@ const liveSensorURL_airU = generateURL(dbEndpoint, '/liveSensors', {'type': 'air
 const liveSensorURL_all = generateURL(dbEndpoint, '/liveSensors', {'type': 'all'});
 const lastPM25ValueURL = generateURL(dbEndpoint, '/lastValue', {'fieldKey': 'pm25'});
 const contoursURL = generateURL(dbEndpoint, '/contours', null);
+const lastContourURL = generateURL(dbEndpoint, '/getLatestContour', null);
 
 let theMap;
 
@@ -255,27 +256,30 @@ function setupMap() {
   L.svg().addTo(slcMap);
 
 
-  getDataFromDB(contoursURL).then(data => {
+  getDataFromDB(lastContourURL).then(data => {
 
       // process contours data
       console.log(data)
 
-      var transform = d3.geoTransform({
-          point: projectPoint
-      });
-      var path = d3.geoPath().projection(transform);
+      // function projectPoint(x, y) {
+      //     var point = slcMap.latLngToLayerPoint(new L.LatLng(y, x));
+      //     this.stream.point(point.x, point.y);
+      // }
+      //
+      // var transform = d3.geoTransform({
+      //     point: projectPoint
+      // });
 
-      function projectPoint(x, y) {
-          var point = slcMap.latLngToLayerPoint(new L.LatLng(y, x));
-          this.stream.point(point.x, point.y);
-      }
+      // var path = d3.geoPath().projection(transform);
+
 
       var contours = [];
       for (var key in data) {
         // check if the property/key is defined in the object itself, not in parent
         if (data.hasOwnProperty(key)) {
             console.log(key, data[key]);
-            var theContour = data[key]['contours'][0];
+            // var theContour = data[key]['contours'][0];
+            var theContour = data[key];
             var aContour = theContour.path;
             aContour.level = theContour.level;
             aContour.k = theContour.k;
