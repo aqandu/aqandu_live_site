@@ -6,3 +6,7 @@ aqandu/templates/form.html
 aqandu/templates/index new.html
 aqandu/templates/list.html
 env/
+*all_*
+aqandu/static/.webassets-cache
+aqandu/static/.webassets-manifest
+*__pycache__*
