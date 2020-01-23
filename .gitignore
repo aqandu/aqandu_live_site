@@ -5,3 +5,4 @@ aqandu/templates/base old.html
 aqandu/templates/form.html
 aqandu/templates/index new.html
 aqandu/templates/list.html
+.env/
