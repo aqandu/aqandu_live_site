@@ -10,3 +10,6 @@ env/
 aqandu/static/.webassets-cache
 aqandu/static/.webassets-manifest
 *__pycache__*
+*.DS_Store
+aqandu/static/svgs-26-03-2018-13-40/
+aqandu/static/sample_data/
