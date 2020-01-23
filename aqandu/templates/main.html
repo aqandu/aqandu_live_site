@@ -1,112 +1,97 @@
 {% extends "base.html" %}
 {% block head %}
-  {{ super() }}
+{{ super() }}
 
-  <!-- <link rel="stylesheet" href="https://unpkg.com/leaflet@1.2.0/dist/leaflet.css" integrity="sha512-M2wvCLH6DSRazYeZRIm1JnYyh22purTM+FDB5CsyxtQJYeKq83arPe5wgbNmcFXGqiSH2XR8dT/fJISVA1r/zQ==" crossorigin=""/> -->
+<script src="https://unpkg.com/leaflet@1.2.0/dist/leaflet.js"
+  integrity="sha512-lInM/apFSqyy1o6s89K4iQUKg6ppXEgsVxT35HbzUupEVRh2Eu9Wdl4tHj7dZO0s1uvplcYGmt3498TtHq+log=="
+  crossorigin=""></script>
 
-  <script src="https://unpkg.com/leaflet@1.2.0/dist/leaflet.js" integrity="sha512-lInM/apFSqyy1o6s89K4iQUKg6ppXEgsVxT35HbzUupEVRh2Eu9Wdl4tHj7dZO0s1uvplcYGmt3498TtHq+log==" crossorigin=""></script>
+<script src="https://d3js.org/d3.v4.js"></script>
+<script src="static/js/d3-geo.min.js"></script>
+<script src="https://stamen-maps.a.ssl.fastly.net/js/tile.stamen.js"></script>
 
 
-
-  <script src="https://d3js.org/d3.v4.js"></script>
-  <script src="static/js/d3-geo.min.js"></script>
-
-  <!-- <script src="static/js/leaflet-heat.js"></script> -->
-  <!-- <script src="http://maps.stamen.com/js/tile.stamen.js"></script> -->
-  <script src="https://stamen-maps.a.ssl.fastly.net/js/tile.stamen.js"></script>
-
-  <!-- <link rel="stylesheet" href="https://unpkg.com/leaflet@1.2.0/dist/leaflet.css" integrity="sha512-M2wvCLH6DSRazYeZRIm1JnYyh22purTM+FDB5CsyxtQJYeKq83arPe5wgbNmcFXGqiSH2XR8dT/fJISVA1r/zQ==" crossorigin=""/> -->
-
-  <link rel="stylesheet" type="text/css" href="static/css/leaflet.contextmenu.min.css" />
+<link rel="stylesheet" type="text/css" href="static/css/leaflet.contextmenu.min.css"/>
 
 {% endblock %}
 {% block body %}
 {% block index %}active{% endblock %}
 
-  <div id="mainpage">
-      <div id="SLC-map">
-      </div>
-
-      <div id="timeline">
-          <div id="closeTimelineButton" class="customButton"><a href="#">X</a></div>
-          <!-- <div id="openTimeliner"><i class='aqu_icon fas fa-list fa-2x'></i></div> -->
-          <svg width="100%">
-              <g id="slider"></g>
-              <g id="graph">
-                <g id="colorBands"></g>
-                <g id="lines"></g>
-                <g class="x axis"></g>
-                <text class="x label"></text>
-                <g class="y axis"></g>
-                <text class="y label"></text>
-                <g class="focus" transform="translate(-100,-100)">
-                    <circle r="3.5"></circle>
-                    <text y="-10"></text>
-                </g>
-                <g class="dateFocus" transform="translate(-100,-100)">
-                    <!-- <circle r="3.5"></circle> -->
-                    <rect></rect>
-                    <!-- <text y="10"></text> -->
-                    <text id='focusDate'></text>
-                    <text id='focusTime'></text>
-                </g>
-                <g class = "voronoi">
-              </g>
-          </svg>
-          <div id="timelineControls">
-            <div>
-              <input type="radio" id="timeRange_24h" name="timeRange" value="1" checked>
-              <label for="timeRange_24h">past 24 hours</label>
-            <!-- </div>
-
-            <div> -->
-              <input type="radio" id="timeRange_3d" name="timeRange" value="3">
-              <label for="timeRange_3d">past 3 days</label>
-            </div>
-
-            <div>
-              <input type="radio" id="timeRange_1w" name="timeRange" value="7">
-              <label for="timeRange_1w">past week</label>
-            </div>
-
-            <!-- <div id="controlsForTimeline" class="closeButton"><i class="aqu_icon_close far fa-window-close fa-2x"></i></div> -->
-            <div id="closeTimelineControlButton" class="customButton"><a href="#">X</a></div>
-
-
-
-            <form id="sensorDataSearchForm">
-              <div id="search">
-                <div>
-                  <!-- <label for="sensorDataSearch">Show data for airU sensor with sensor ID:</label> -->
-                  <label for="sensorDataSearch">Show data for airU sensor:</label>
-                  <input type="search" id="sensorDataSearch" name="q" placeholder="S-A-XXX" required size="7" pattern="S-A-[0-9]{3}" aria-label="Search for the data of your airU sensor">
-                  <button><i class="fa fa-search"></i></button>
-                  <span class="validity"></span>
-                </div>
-                <div>
-                  <span id="errorInformation"></span>
-                </div>
-              </div>
-            </form>
-
-            <div>
-              <button id="clearDataButton" onclick="clearData()">Clear Data</button>
-            </div>
-
-          </div>
-          <div id="openTimelineControlButton" class='customButton'><i class='aqu_icon fas fa-list fa-2x'></i></div>
-      </div>
-      <div class="tooltip hidden">
-        <p class="tooltipText">These are the available PM2.5 data sources.</p>
-        <p class="tooltipText">Clicking a source name shows you which sensors belong to it on the map.</p>
-      </div>
+<div id="mainpage">
+  <div id="SLC-map">
   </div>
+
+  <div id="timeline">
+    <div id="closeTimelineButton" class="customButton"><a href="#">X</a></div>
+    <svg width="100%">
+      <g id="slider"></g>
+      <g id="graph">
+        <g id="colorBands"></g>
+        <g id="lines"></g>
+        <g class="x axis"></g>
+        <text class="x label"></text>
+        <g class="y axis"></g>
+        <text class="y label"></text>
+        <g class="focus" transform="translate(-100,-100)">
+          <circle r="3.5"></circle>
+          <text y="-10"></text>
+        </g>
+        <g class="dateFocus" transform="translate(-100,-100)">
+          <rect></rect>
+          <text id='focusDate'></text>
+          <text id='focusTime'></text>
+        </g>
+        <g class="voronoi">
+        </g>
+    </svg>
+    <div id="timelineControls">
+      <div>
+        <input type="radio" id="timeRange_24h" name="timeRange" value="1" checked>
+        <label for="timeRange_24h">past 24 hours</label>
+        <input type="radio" id="timeRange_3d" name="timeRange" value="3">
+        <label for="timeRange_3d">past 3 days</label>
+      </div>
+
+      <div>
+        <input type="radio" id="timeRange_1w" name="timeRange" value="7">
+        <label for="timeRange_1w">past week</label>
+      </div>
+
+      <div id="closeTimelineControlButton" class="customButton"><a href="#">X</a></div>
+
+      <form id="sensorDataSearchForm">
+        <div id="search">
+          <div>
+            <label for="sensorDataSearch">Show data for airU sensor:</label>
+            <input type="search" id="sensorDataSearch" name="q" placeholder="S-A-XXX" required size="7"
+              pattern="S-A-[0-9]{3}" aria-label="Search for the data of your airU sensor">
+            <button><i class="fa fa-search"></i></button>
+            <span class="validity"></span>
+          </div>
+          <div>
+            <span id="errorInformation"></span>
+          </div>
+        </div>
+      </form>
+
+      <div>
+        <button id="clearDataButton" onclick="clearData()">Clear Data</button>
+      </div>
+
+    </div>
+    <div id="openTimelineControlButton" class='customButton'><i class='aqu_icon fas fa-list fa-2x'></i></div>
+  </div>
+  <div class="tooltip hidden">
+    <p class="tooltipText">These are the available PM2.5 data sources.</p>
+    <p class="tooltipText">Clicking a source name shows you which sensors belong to it on the map.</p>
+  </div>
+</div>
 {% endblock %}
 
 {% block scriptFooter %}
-  <script type="text/javascript" src="static/js/leaflet.contextmenu.min.js"></script>
-  <script type="text/javascript" src="static/js/db_data.js"></script>
-  <script type="text/javascript" src="static/js/map_reconfigure.js"></script>
-  <script type="text/javascript" src="static/js/loadingoverlay.min.js"></script>
-  <script type="text/javascript" src="static/js/leaflet.contextmenu.min.js"></script>
+<script type="text/javascript" src="static/js/leaflet.contextmenu.min.js"></script>
+<script type="text/javascript" src="static/js/db_data.js"></script>
+<script type="text/javascript" src="static/js/map_reconfigure.js"></script>
+<script type="text/javascript" src="static/js/loadingoverlay.min.js"></script>
+<script type="text/javascript" src="static/js/leaflet.contextmenu.min.js"></script>
 {% endblock %}

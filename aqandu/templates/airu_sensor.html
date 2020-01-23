@@ -2,130 +2,162 @@
 {% block body %}
 {% block airu_sensor %}active{% endblock %}
 <div class="main main-raised">
-
-    <section class="py-5" id="airuSensor">
-        <div class="container pushContainerDown">
-            <div class="row">
-    <!-- <div class="col-md-8 col-md-offset-2"> -->
-                <div class="col-md-12">
-                    <h2 class="title inTheCenter">AirU Sensor</h2>
-
-                    <!-- <h3 class="title inTheCenter">Manual</h3> -->
-
-                    <p class="description">Here, you can find the latest release of the sensor installation guide:</p>
-
-                    <p class="description"><a href="http://air.eng.utah.edu/files/manual/Sensor Installation Guide V2.0.pdf" target="_blank" rel=noopener>Sensor Installation Guide V2.0</a> <i>(Current)</i></p>
-                    <p class="description"><a href="http://air.eng.utah.edu/files/manual/Sensor Installation Guide V1.0.pdf" target="_blank" rel=noopener>Sensor Installation Guide V1.0</a></p>
-
-                </div>
-            </div>
+  <section class="py-5" id="airuSensor">
+    <div class="container pushContainerDown">
+      <div class="row">
+        <div class="col-md-12">
+          <h2 class="title inTheCenter">AirU Sensor</h2>
+          <p class="description">Here, you can find the latest release of the sensor installation guide:</p>
+          <p class="description"><a href="http://air.eng.utah.edu/files/manual/Sensor Installation Guide V2.0.pdf"
+              target="_blank" rel=noopener>Sensor Installation Guide V2.0</a> <i>(Current)</i></p>
+          <p class="description"><a href="http://air.eng.utah.edu/files/manual/Sensor Installation Guide V1.0.pdf"
+              target="_blank" rel=noopener>Sensor Installation Guide V1.0</a></p>
         </div>
-    </section>
+      </div>
+    </div>
+  </section>
 
-
-    <section class="py-5" id="visualizationsSection">
-        <div class="container">
-            <div class="row">
-                <div class="col-md-12">
-                    <h2 class="title inTheCenter">Visualization: Map and Timeline</h2>
-                    <!-- <div> -->
-                      <p class='description'>
-                        The following visualization consists of two parts a map visualization and a timeline visualization just below the map. It is best viewed using Google Chrome, Safari, or Firefox. This visualization displays <a href="#pm2.5Section">PM2.5 mass concentration</a> in µg/m<sup>3</sup>.
-                      </p>
-                      <p class='description'>
-                        On the map there are colored dots. These colored dots represent sensors. A sensor can be a sensor provided by us (AirU) or by PurpleAir, MesoWest, or <a href="https://deq.utah.gov/Divisions/daq/index.htm" target="_blank" rel=noopener>DAQ</a>. The lower part of the legend on the right tells you which dot (sensor) is provided by whom. Clicking an element in that legend makes the sensors belonging to that group more visible and hides the others. Moving the mouse cursor over a dot opens a popup with the sensor's ID.
-                      </p>
-                      <p class='description'>
-                        The dots itself are colored using a variation of the EPA classification color scheme (right upper part of the legend). The dot's color updates every 1 minute, showing the latest measured value by that sensor.
-                      </p>
-                      <p class='description'>
-                        Clicking on a dot (sensor) makes that sensor's data appear in the timeline visualization. Also the dot's border changes from white to black to show that the sensor has been selected. Clicking on a selected sensor (sensor with black borders) again removes the data from the timeline and the sensor border gets its white color back. You can click on multiple sensors to add them to the timeline visualization. The lines in the timeline all appear in grey. To know which line in the timeline belongs to which sensor, move the mouse cursor over the line and a text box with the sensor ID will appear over the sensor in the map visualization.
-                      </p>
-                      <p class='description'>
-                        The default time range in the timeline visualization is the past 24 hours. This can be changed by selecting the appropriate radio button below the timeline. The options are the past 24 hours (default), the past 3 days, and the past week. The data used for the past 24 hours is the raw data as captured by the sensor which is corrected to our best estimate of actual PM2.5 concentrations (see <a href="#calibrationSection">Calibration</a>). Whereas for the past 3 day's and the past week's data we aggregate the raw data over one hour and then converte to our best estimate of PM2.5 concentrations (see <a href="#calibrationSection">Calibration</a>).
-                        The button to the right of these radio buttons can be used to remove all the data in the timeline and start fresh.
-                      </p>
-                      <!-- <p class='description'>
-                        One caveat to be noted is that to be able to compare AirU data and PurpleAir data in the same graph we applied calibration using the data from the Winter 2017 for both AirU and PurpleAir sensors. The PurpleAir sensor model 1003 is calibrated within the range of 0 to 90 µg/m<sup>3</sup>. The PurpleAir sensor model 5003 is calibrated within the range of 0 to 60 µg/m<sup>3</sup>. And finally the AirU sensors are calibrated within the range of 0 to 200 µg/m<sup>3</sup>.
-                      </p> -->
-                    <!-- </div> -->
-                </div>
-            </div>
+  <section class="py-5" id="visualizationsSection">
+    <div class="container">
+      <div class="row">
+        <div class="col-md-12">
+          <h2 class="title inTheCenter">Visualization: Map and Timeline</h2>
+          <!-- <div> -->
+          <p class='description'>
+            The following visualization consists of two parts a map visualization and a timeline visualization just
+            below the map. It is best viewed using Google Chrome, Safari, or Firefox. This visualization displays <a
+              href="#pm2.5Section">PM2.5 mass concentration</a> in µg/m<sup>3</sup>.
+          </p>
+          <p class='description'>
+            On the map there are colored dots. These colored dots represent sensors. A sensor can be a sensor provided
+            by us (AirU) or by PurpleAir, MesoWest, or <a href="https://deq.utah.gov/Divisions/daq/index.htm"
+              target="_blank" rel=noopener>DAQ</a>. The lower part of the legend on the right tells you which dot
+            (sensor) is provided by whom. Clicking an element in that legend makes the sensors belonging to that group
+            more visible and hides the others. Moving the mouse cursor over a dot opens a popup with the sensor's ID.
+          </p>
+          <p class='description'>
+            The dots itself are colored using a variation of the EPA classification color scheme (right upper part of
+            the legend). The dot's color updates every 1 minute, showing the latest measured value by that sensor.
+          </p>
+          <p class='description'>
+            Clicking on a dot (sensor) makes that sensor's data appear in the timeline visualization. Also the dot's
+            border changes from white to black to show that the sensor has been selected. Clicking on a selected sensor
+            (sensor with black borders) again removes the data from the timeline and the sensor border gets its white
+            color back. You can click on multiple sensors to add them to the timeline visualization. The lines in the
+            timeline all appear in grey. To know which line in the timeline belongs to which sensor, move the mouse
+            cursor over the line and a text box with the sensor ID will appear over the sensor in the map visualization.
+          </p>
+          <p class='description'>
+            The default time range in the timeline visualization is the past 24 hours. This can be changed by selecting
+            the appropriate radio button below the timeline. The options are the past 24 hours (default), the past 3
+            days, and the past week. The data used for the past 24 hours is the raw data as captured by the sensor which
+            is corrected to our best estimate of actual PM2.5 concentrations (see <a
+              href="#calibrationSection">Calibration</a>). Whereas for the past 3 day's and the past week's data we
+            aggregate the raw data over one hour and then converte to our best estimate of PM2.5 concentrations (see <a
+              href="#calibrationSection">Calibration</a>).
+            The button to the right of these radio buttons can be used to remove all the data in the timeline and start
+            fresh.
+          </p>
         </div>
-    </section>
+      </div>
+    </div>
+  </section>
 
-    <section class="py-5" id="ModelingSection">
-        <div class="container">
-            <div class="row">
-                <div class="col-md-12">
-                    <h2 class="title inTheCenter">Model</h3>
+  <section class="py-5" id="ModelingSection">
+    <div class="container">
+      <div class="row">
+        <div class="col-md-12">
+          <h2 class="title inTheCenter">Model</h3>
 
-                    <video controls width="620">
-                      <source src="http://air.eng.utah.edu/files/videos/july4th-7th_modeling_results_ios.mov" type="video/mov">
-                      <source src="http://air.eng.utah.edu/files/videos/july4th-7th_modeling_results.mp4" type="video/mp4">
-                      <source src="http://air.eng.utah.edu/files/videos/july4th-7th_modeling_results.webm" type="video/webm">
+            <video controls width="620">
+              <source src="http://air.eng.utah.edu/files/videos/july4th-7th_modeling_results_ios.mov" type="video/mov">
+              <source src="http://air.eng.utah.edu/files/videos/july4th-7th_modeling_results.mp4" type="video/mp4">
+              <source src="http://air.eng.utah.edu/files/videos/july4th-7th_modeling_results.webm" type="video/webm">
 
-                      <p>Sorry, your browser doesn't support embedded videos, but don't worry, you can <a href="http://air.eng.utah.edu/files/videos/july4th-7th_modeling_results.mp4">download it</a>
-                      and watch it with your favorite video player!</p>
-                    </video>
+              <p>Sorry, your browser doesn't support embedded videos, but don't worry, you can <a
+                  href="http://air.eng.utah.edu/files/videos/july4th-7th_modeling_results.mp4">download it</a>
+                and watch it with your favorite video player!</p>
+            </video>
 
-                    <p class="description">
-                      <br />
-                      This video illustrates how our model estimates PM2.5 levels throughout the valley during the July 4th fireworks and the Dollar Ridge Fire. In particular, you can see how PM2.5 levels spike around 2:00pm on July 4th and remain elevated in lower portions of the valley until early morning July 5th. In general, we see lower levels of PM2.5 on the east bench, likely due to the fireworks restrictions in those areas. At 7:00pm on July 5th, we see PM levels increase on the east side of the valley as a result of the Dollar Ridge Fire, and these increased levels sweep across the valley until 10:00am on July 6th when the winds shifted direction and clean air moved into the valley.
-                    </p>
-                </div>
-            </div>
+            <p class="description">
+              <br/>
+              This video illustrates how our model estimates PM2.5 levels throughout the valley during the July 4th
+              fireworks and the Dollar Ridge Fire. In particular, you can see how PM2.5 levels spike around 2:00pm on
+              July 4th and remain elevated in lower portions of the valley until early morning July 5th. In general, we
+              see lower levels of PM2.5 on the east bench, likely due to the fireworks restrictions in those areas. At
+              7:00pm on July 5th, we see PM levels increase on the east side of the valley as a result of the Dollar
+              Ridge Fire, and these increased levels sweep across the valley until 10:00am on July 6th when the winds
+              shifted direction and clean air moved into the valley.
+            </p>
         </div>
-    </section>
+      </div>
+    </div>
+  </section>
 
-    <section class="py-5" id="calibrationSection">
-        <div class="container">
-            <div class="row">
-                <div class="col-md-12">
-                    <h3 class="title inTheCenter">Calibration</h3>
-                    <p class="description">
-                      We do our best to provide a good estimate of PM2.5 concentration everywhere in our study area.  Both AirU and PurpleAir sensors measure light scattering and convert light scattering to an estimate of PM2.5 concentration.  These raw measurements must be corrected depending on the properties of the particles and/or the season to provide the best estimate of actual PM2.5 concentrations.  We have developed seasonal correction factors for two PurpleAir model sensors and the AirU sensor based on co-location with the division of air quality measurements (DAQ) or laboratory calibrations.  If you are interested in more detail about how we do this, see our recent publications:
-                      <ul class="description">
-                        <li><a href="https://www.sciencedirect.com/science/article/pii/S0269749118316129" target="_blank" rel="noopener">Long-term field evaluation of the Plantower PMS low-cost particulate matter sensors</a></li>
-                        <li><a href="https://www.sciencedirect.com/science/article/pii/S026974911632718X" target="_blank" rel="noopener">Ambient and laboratory evaluation of a low-cost particulate matter sensor</a></li>
-                      </ul>
-                    </p>
-
-                    <p class="description">
-                      We are continually updating the correction factors as we gather more data. If you would like the seasonal calibration factors for PurpleAir or AirU sensors, please contact us at <a href="mailto:contact-aqandu@sci.utah.edu">contact-aqandu@sci.utah.edu</a>. The DAQ and MesoWest monitors are presented without correction.<br />
-                      <br />
-                      Note, if you download the data from our API <a href="https://air.eng.utah.edu/dbapi/api/dashboard" target="_blank" rel="noopener">API dashboard</a>, these data are raw and  uncorrected.<br />
-                      <br />
-                      Thanks to the Division of Air Quality, PurpleAir, and the graduate student who calibrated all of the AirU PM sensors in the sensor network.
-                    </p>
-                </div>
-            </div>
+  <section class="py-5" id="calibrationSection">
+    <div class="container">
+      <div class="row">
+        <div class="col-md-12">
+          <h3 class="title inTheCenter">Calibration</h3>
+          <p class="description">
+            We do our best to provide a good estimate of PM2.5 concentration everywhere in our study area. Both AirU and
+            PurpleAir sensors measure light scattering and convert light scattering to an estimate of PM2.5
+            concentration. These raw measurements must be corrected depending on the properties of the particles and/or
+            the season to provide the best estimate of actual PM2.5 concentrations. We have developed seasonal
+            correction factors for two PurpleAir model sensors and the AirU sensor based on co-location with the
+            division of air quality measurements (DAQ) or laboratory calibrations. If you are interested in more detail
+            about how we do this, see our recent publications:
+            <ul class="description">
+              <li><a href="https://www.sciencedirect.com/science/article/pii/S0269749118316129" target="_blank"
+                  rel="noopener">Long-term field evaluation of the Plantower PMS low-cost particulate matter sensors</a>
+              </li>
+              <li><a href="https://www.sciencedirect.com/science/article/pii/S026974911632718X" target="_blank"
+                  rel="noopener">Ambient and laboratory evaluation of a low-cost particulate matter sensor</a></li>
+            </ul>
+          </p>
+          <p class="description">
+            We are continually updating the correction factors as we gather more data. If you would like the seasonal
+            calibration factors for PurpleAir or AirU sensors, please contact us at <a
+              href="mailto:contact-aqandu@sci.utah.edu">contact-aqandu@sci.utah.edu</a>. The DAQ and MesoWest monitors
+            are presented without correction.<br/>
+            <br/>
+            Note, if you download the data from our API <a href="https://air.eng.utah.edu/dbapi/api/dashboard"
+              target="_blank" rel="noopener">API dashboard</a>, these data are raw and uncorrected.<br/>
+            <br/>
+            Thanks to the Division of Air Quality, PurpleAir, and the graduate student who calibrated all of the AirU PM
+            sensors in the sensor network.
+          </p>
         </div>
-    </section>
+      </div>
+    </div>
+  </section>
 
+  <section class="py-5" id="pm2.5Section">
+    <div class="container">
+      <div class="row">
+        <div class="col-md-12">
+          <h3 class="title inTheCenter">What is PM2.5?</h3>
 
-
-    <section class="py-5" id="pm2.5Section">
-        <div class="container">
-            <div class="row">
-                <div class="col-md-12">
-                    <h3 class="title inTheCenter">What is PM2.5?</h3>
-
-                    <p class="description">
-                        PM2.5 is the mass of particulate matter that is smaller than 2.5 µm in diameter, and it is about 1/10th the size of a human hair. This is one of the key pollutants that the US EPA measures because of its potential for adverse health effects, and the Wasatch Front experiences elevated levels of PM2.5 during our wintertime inversions as well as periodically because of dust storms, wild-fires and fireworks. To understand the potential health impacts of PM2.5 concentrations, you can use the following EPA guidance. <b>24-hour average</b> PM2.5 concentrations greater than:
-                        <ul class="description">
-                            <li>35 µg/m<sup>3</sup> are considered unhealthy for sensitive groups</li>
-                            <li>55 µg/m<sup>3</sup> are considered unhealthy</li>
-                            <li>150 µg/m<sup>3</sup> are considered very unhealthy</li>
-                        </ul>
-                    </p>
-                    <p class="description">
-                        You can get more information on the health effects of PM2.5 on <a href="https://www.airnow.gov/" target="_blank" rel=noopener>EPA’s AirNow site</a>
-                    </p>
-                </div>
-            </div>
+          <p class="description">
+            PM2.5 is the mass of particulate matter that is smaller than 2.5 µm in diameter, and it is about 1/10th the
+            size of a human hair. This is one of the key pollutants that the US EPA measures because of its potential
+            for adverse health effects, and the Wasatch Front experiences elevated levels of PM2.5 during our wintertime
+            inversions as well as periodically because of dust storms, wild-fires and fireworks. To understand the
+            potential health impacts of PM2.5 concentrations, you can use the following EPA guidance. <b>24-hour
+              average</b> PM2.5 concentrations greater than:
+            <ul class="description">
+              <li>35 µg/m<sup>3</sup> are considered unhealthy for sensitive groups</li>
+              <li>55 µg/m<sup>3</sup> are considered unhealthy</li>
+              <li>150 µg/m<sup>3</sup> are considered very unhealthy</li>
+            </ul>
+          </p>
+          <p class="description">
+            You can get more information on the health effects of PM2.5 on <a href="https://www.airnow.gov/"
+              target="_blank" rel=noopener>EPA’s AirNow site</a>
+          </p>
         </div>
-    </section>
-
+      </div>
+    </div>
+  </section>
 </div>
 {% endblock %}
