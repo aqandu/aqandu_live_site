@@ -36,4 +36,4 @@ six==1.11.0
 tenacity==4.5.0
 urllib3==1.22
 webassets==0.12.1
-Werkzeug==0.12.2
+Werkzeug==0.15.3
