@@ -832,7 +832,7 @@ function createMarkerDebugging(markerData) {
   if (markerData.Latitude !== null && markerData.Longitude !== null) {
     let classList = 'dot';
     let theColor = 'hazardousRed'
-    
+
     classList = classList + ' ' + theColor + ' ';
     dotIcon.className = classList;
 
@@ -1120,7 +1120,7 @@ function dateDiffInSeconds(a, b) {
   return Math.floor((utc2 - utc1) / MS_PER_SEC);
 }
 
-function preprocessDBData(id, sensorData) {\
+function preprocessDBData(id, sensorData) {
   let sanitizedID = id.split(' ').join('_')
 
   let tags = sensorData['tags'][0];
