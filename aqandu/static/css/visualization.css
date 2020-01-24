@@ -1,19 +1,13 @@
 #mainpage {
   height: 100%;
   width: 100%;
-
-  /* z-index: 1000; */
 }
 
 #SLC-map {
   position: absolute;
   top: 44px;
-
-  /* height: 100%; */
   height: calc(100% - 44px);
   width: 100%;
-
-  /* z-index: 1000; */
 }
 
 svg text {
@@ -31,133 +25,101 @@ svg text {
 /* MARKERS */
 
 .green {
-  /* background-color: rgb(0,228,0); */
   background-color: rgb(166, 217, 106);
 }
 .green1 {
-  /* background-color: rgb(0,228,0); */
   background-color: rgb(49, 163, 84);
 }
 .green2 {
-  /* background-color: rgb(0,228,0); */
   background-color: rgb(161, 217, 155);
 }
 .green3 {
-  /* background-color: rgb(0,228,0); */
   background-color: rgb(229, 245, 224);
 }
 .yellow {
-  /* background-color: rgb(255,255,0); */
   background-color: rgb(255, 255, 191);
 }
 .yellow1 {
-  /* background-color: rgb(255,255,0); */
   background-color: rgb(255, 255, 204);
 }
 .yellow2 {
-  /* background-color: rgb(255,255,0); */
   background-color: rgb(255, 237, 160);
 }
 .yellow3 {
-  /* background-color: rgb(255,255,0); */
   background-color: rgb(254, 217, 118);
 }
 .orange {
-  /* background-color: rgb(255,126,0); */
   background-color: rgb(253, 174, 97);
 }
 .orange1 {
-  /* background-color: rgb(255,126,0); */
   background-color: rgb(254, 178, 76);
 }
 .orange2 {
-  /* background-color: rgb(255,126,0); */
   background-color: rgb(253, 141, 60);
 }
 .orange3 {
-  /* background-color: rgb(255,126,0); */
   background-color: rgb(252, 78, 42);
 }
 .red {
-  /* background-color: rgb(255,0,0); */
   background-color: rgb(215, 25, 28);
 }
 .red1 {
-  /* background-color: rgb(255,0,0); */
   background-color: rgb(227, 26, 28);
 }
 .veryUnhealthyRed {
-  /* background-color: rgb(153, 0, 76); */
   background-color: rgb(189, 0, 38);
 }
 .veryUnhealthyRed1 {
-  /* background-color: rgb(153, 0, 76); */
   background-color: rgb(189, 0, 38);
 }
 .hazardousRed {
-  /* background-color: rgb(126, 0, 35); */
   background-color: rgb(166, 54, 3);
 }
 .hazardousRed1 {
-  /* background-color: rgb(126, 0, 35); */
   background-color: rgb(128, 0, 38);
 }
 
-/* c = ('#a6d96a', '#ffffbf', '#fdae61', '#d7191c', '#bd0026', '#a63603') */
 .dot {
-  /*  border-radius: 20px; */
   border-radius: 10px;
   border: 3px solid #FFFFFF;
 }
 .dot.green {
-  /* background-color: rgb(0,228,0); */
   background-color: rgb(166, 217, 106);
 }
 .dot.yellow {
-  /* background-color: rgb(255,255,0); */
   background-color: rgb(255, 255, 191);
 }
 .dot.orange {
-  /* background-color: rgb(255,126,0); */
   background-color: rgb(253, 174, 97);
 }
 .dot.red {
-  /* background-color: rgb(255,0,0); */
   background-color: rgb(215, 25, 28);
 }
 .dot.veryUnhealthyRed {
-  /* background-color: rgb(153, 0, 76); */
   background-color: rgb(189, 0, 38);
 }
 .dot.hazardousRed {
-  /* background-color: rgb(126, 0, 35); */
   background-color: rgb(166, 54, 3);
 }
 .dot.noColor {
   background-color: rgba(255, 255, 255, 0);
 }
 .dot.green.notPartOfGroup {
-  /* background-color: rgba(0, 228, 0, 0.1); */
   background-color: rgb(166, 217, 106, 0.1);
 }
 .dot.yellow.notPartOfGroup {
-  /* background-color: rgba(255, 255, 0, 0.1); */
   background-color: rgb(255, 255, 191, 0.1);
 }
 .dot.orange.notPartOfGroup {
-  /* background-color: rgba(255, 126, 0, 0.1); */
   background-color: rgb(253, 174, 97, 0.1);
 }
 .dot.red.notPartOfGroup {
-  /* background-color: rgba(255, 0, 0, 0.1); */
   background-color: rgb(215, 25, 28, 0.1);
 }
 .dot.veryUnhealthyRed.notPartOfGroup {
-  /* background-color: rgba(153, 0, 76, 0.1); */
   background-color: rgb(189, 0, 38, 0.1);
 }
 .dot.hazardousRed.notPartOfGroup {
-  /* background-color: rgba(126, 0, 35, 0.1); */
   background-color: rgb(166, 54, 3, 0.1);
 }
 .dot.noColor.notPartOfGroup {
@@ -172,31 +134,21 @@ svg text {
   border: 3px solid #808080;
 }
 
-/* .leaflet-popup-content {
-  margin: 0px;
-} */
-
 #timelineControls {
   position: absolute;
   top: 30px;
   right: 10px;
-
   padding: 5px;
-
   background-color: rgba(255,255,255,0.7);
-
   box-shadow: 0 0 15px rgba(0,0,0,0.2);
   border-radius: 5px;
 }
 
 #timelineControls label {
   font-family: 'Open Sans', sans-serif;
-  /* font-weight: bold; */
   font-size: 10pt;
   color: #555;
-
   margin: 0px 10px 10px 2px;
-  /* line-height: 32px; */
 }
 
 #sensorDataSearch {
@@ -209,23 +161,21 @@ svg text {
 
 #clearDataButton {
   font-family: 'Open Sans', sans-serif;
-  /* font-weight: bold; */
   font-size: 10pt;
   color: #555;
-
   margin: 0px 10px 0px 0px;
 }
 
 input:invalid ~ span.validity:after {
     content: '✖';
     padding-left: 5px;
-    position: absolute:
+    position: absolute;
 }
 
 input:valid ~ span.validity:after {
     content: '✓';
     padding-left: 5px;
-    position: absolute:
+    position: absolute;
 }
 
 #clearDataButton:hover, #clearDataButton:active {
@@ -234,7 +184,6 @@ input:valid ~ span.validity:after {
 
 #errorInformation {
   font-family: 'Open Sans',sans-serif;
-
   font-size: 7pt;
   color: #555;
 }
@@ -244,13 +193,9 @@ input:valid ~ span.validity:after {
   background-color: rgba(255, 255, 255, 0.8);
   color: #000;
   box-shadow: none;
-
-  /* font-family: Frutiger;
-  font-weight: bold; */
   font-family: 'Open Sans', sans-serif;
   font-weight: bold;
   font-size: 8pt;
-
   border-radius: 0px;
   padding: 0px;
 }
@@ -273,13 +218,11 @@ input:valid ~ span.validity:after {
   right: 0px;
 }
 
-
 #closeTimelineControlButton {
   position: absolute;
   top: 0px;
   right: 0px;
 }
-
 
 #closeTimelineButton {
   position: absolute;
@@ -287,17 +230,13 @@ input:valid ~ span.validity:after {
   left: 10px;
 }
 
-
 .customButton {
   background-color: #ffffff;
-
   width: 30px;
   height: 30px;
   line-height: 26px;
-
   border: 2px solid rgba(0,0,0,0.4);
   border-radius: 4px;
-
   font-family: 'Open Sans', sans-serif;
   font-weight: 400;
 }
@@ -307,9 +246,7 @@ input:valid ~ span.validity:after {
   text-align: center;
   font-size: 22px;
   font-weight: 400;
-
   color: #000000;
-
   text-decoration: none;
 }
 
@@ -321,15 +258,12 @@ input:valid ~ span.validity:after {
   background-color: #f2f2f2;
 }
 
-
 #openTimelineControlButton {
   position: absolute;
   top: 28px;
   right: 10px;
-
   font-size: 12px;
 }
-
 
 .aqu_icon {
   position: absolute;
@@ -338,13 +272,11 @@ input:valid ~ span.validity:after {
   background-color: #fff;
   color: #000;
   font-size: 1.5em;
-  /* padding: 2px; */
 }
 
 .aqu_icon_close {
   font-size: 1.5em
 }
-
 
 .reappearingButton:hover {
   background-color: #f2f2f2;
@@ -372,24 +304,14 @@ input:valid ~ span.validity:after {
 
 /* TIMELINE */
 #timeline {
-  /* margin-top: 10px; */
   position: absolute;
   padding: 0px 5px 0px;
-  /* display: block; */
   z-index: 1025;
   width: 100%;
-  /* top: 50; */
   bottom: 0;
   background-color: #ffffff;
   height: 37%;
 }
-
-/* @media only screen and (max-height: 800px) {
-  #timeline {
-    bottom: -37%;
-  }
-} */
-
 
 /* SLIDER */
 .track,
@@ -433,8 +355,7 @@ input:valid ~ span.validity:after {
 
 .leaflet-verticalcentertop {
   position: absolute;
-  z-index: 1000; /* <-- new line! */
-  /* top: 17%; */
+  z-index: 1000;
   top: 6%;
   transform: translateY(-10%);
   padding-top: 10px;
@@ -446,7 +367,7 @@ input:valid ~ span.validity:after {
 
 .leaflet-verticalcenterbottom {
   position: absolute;
-  z-index: 1000; /* <-- new line! */
+  z-index: 1000;
   top: 50%;
   transform: translateY(50%);
   padding-top: 10px;
@@ -459,16 +380,13 @@ input:valid ~ span.validity:after {
 #legend {
   box-shadow: 0 0 15px rgba(0,0,0,0.2);
   border-radius: 5px;
-  /* width: 100px; */
-  height: 447px;     /*243px;*/   /*102px;*/
+  height: 447px;
   float: left;
   margin-right: 8px;
   opacity: 0.9;
   padding: 6px 8px;
-
   background: white;
   display: inline-block;
-
   min-width: 117px;
 }
 
@@ -477,66 +395,34 @@ input:valid ~ span.validity:after {
   font-weight: 400;
   font-size: 8pt;
   color: #555;
-
   line-height: 18px;
   margin: 0px 0px 0px 5px;
   display: block;
 }
 
-
 .notSelectedLabel {
   padding-right: 5px;
-
   color: #ffffff;
 }
 
-
 .selectedLabel {
   padding-right: 5px;
-
   color: #808080;
 }
-
 
 #labelContainer {
   margin-top: 15px;
 }
 
-
 .theHR {
   margin: 10px 0px 5px;
 }
 
-/* .legend label.sensorType:hover, .legend label.sensorType:active {
-  /* background: red; */
-  /* text-decoration: underline #c00; */
-/* } */
-
-/* label.clickedLegendElement {
-  text-decoration: underline #808080;
-} */
-
-/* .txt {
-  font-size: 14px;
-  line-height: 1.45;
-} */
-
-/* .colorLegend {
-  box-shadow: 0 0 15px rgba(0,0,0,0.2);
-  border-radius: 5px;
-  background: white;
-  opacity: 0.9; */
-
-  /* color: #555; */
-  /* height: 138px;
-  padding: 6px 8px;
-} */
-#colorLegend .legendTitle {  /*, #legend .legendTitle {*/
+#colorLegend .legendTitle {
   font-family: 'Open Sans', sans-serif;
   font-weight: bold;
   font-size: 8pt;
   line-height: 18px;
-
   margin-bottom: 1.5em;
 }
 #colorLegend label {
@@ -544,7 +430,6 @@ input:valid ~ span.validity:after {
   font-weight: 400;
   font-size: 8pt;
   color: #555;
-
   line-height: 18px;
   margin: 0pt;
 }
@@ -560,104 +445,73 @@ input:valid ~ span.validity:after {
   font-weight: 400;
   font-size: 8pt;
   color: #555;
-
-  /* line-height: 18px; */
   margin: 0px;
-
   display: block;
 }
 
 .tickLegend {
   display: inline-block;
   position:relative;
-
-  /* top: -10pt; */
   left: -5px;
 }
 
 .colorbar {
   width: 18px;
   display: inline-block;
-
   border: 1px solid #000;
 }
 
 #green1 {
-  /* height: 4px; */
-  /* height: 18px; */
   height: 12px;
 }
 
 #green2 {
-  /* height: 4px; */
-  /* height: 18px; */
   height: 12px;
 }
 
 #green3 {
-  /* height: 4px; */
-  /* height: 18px; */
   height: 12px;
 }
 
 #yellow1 {
-  /* height: calc(19.8px - 12.0px); */
-  /* height: 27px; */
   height: 18px;
 }
 
 #yellow2 {
-  /* height:  calc(27.6px - 19.8px); */
-  /* height: 27px; */
   height: 18px;
 }
 
 #yellow3 {
-  /* height: calc(35.4px - 27.6px); */
-  /* height: 27px; */
   height: 18px;
 }
 
 #orange1 {
-  /* height: calc(42.1px -35.4px); */
-  /* height: 24px; */
   height: 16px;
 }
 
 #orange2 {
-  /* height: calc(48.7px - 42.1px); */
-  /* height: 24px; */
   height: 16px;
 }
 
 #orange3 {
-  /* height: calc(55.4px - 48.7px); */
-  /* height: 24px; */
   height: 16px;
 }
 
 #red1 {
-  /* height: calc(150.4px - 55.4px); */
-  /* height: 60px; */
   height: 40px;
 }
 
 #veryUnhealthyRed1 {
-  /* height: calc(250.4px - 150.4px); */
-  /* height: 60px; */
   height: 40px;
 }
 
 #hazardousRed1 {
-  /* height: calc(300px - 250.4px); */
-  /* height: 51px; */
   height: 34px;
 }
 
 .dot.dblclickOnMap {
   background-color: rgb(55, 126, 184);
 }
-
 
 #PM25level {
   margin-bottom: 5px;
@@ -714,7 +568,6 @@ input:valid ~ span.validity:after {
 
 #tickLegend_350 {
   bottom: 33px;
-  /* left: -37px; */
 }
 
 .line-style {
@@ -723,12 +576,11 @@ input:valid ~ span.validity:after {
   stroke-linejoin: round;
   stroke-linecap: round;
   stroke-width: 1px;
-  /* shape-rendering: crispEdges; */
 }
 @media(min-width: 992px) {
   .col-md-6 {
     width: 30%;
-    margin-bottom: 120px:
+    margin-bottom: 120px;
   }
 }
 
@@ -764,10 +616,6 @@ input:valid ~ span.validity:after {
   stroke: #000;
 }
 
-/* .focus {
-  z-index: 1000;
-} */
-
 .focus circle {
   fill: none;
   stroke: black;
@@ -781,7 +629,6 @@ input:valid ~ span.validity:after {
 .voronoi path {
   fill: none;
   pointer-events: all;
-  /*stroke: #bada55;*/
 }
 
 #form {
@@ -791,7 +638,7 @@ input:valid ~ span.validity:after {
 }
 
 .tooltip {
-  pointer-events:none; /*let mouse events pass through*/
+  pointer-events:none;
   position: absolute;
   background: #000;
   color: #FFF;
@@ -805,9 +652,8 @@ input:valid ~ span.validity:after {
   border: solid;
   border-color: #000 transparent;
   border-width: 6px 6px 0 6px;
-  top: 110px; /* same as height .tooltip*/
+  top: 110px;
   content: "";
-  /* left: calc(50% - 6px); */
   left: 8px;
   position: absolute;
   z-index: 99;
@@ -820,7 +666,6 @@ input:valid ~ span.validity:after {
   content: "";
   position: absolute;
   z-index: 99;
-
   top: 12px;
   left: 170px;
 }

@@ -8,7 +8,6 @@ body {
   -webkit-font-smoothing: subpixel-antialiased;
 }
 
-
 .carousel-item {
   height: 65vh;
   min-height: 300px;
@@ -18,7 +17,6 @@ body {
   -o-background-size: cover;
   background-size: cover;
 }
-
 
 h1 {
   text-align: center;
@@ -34,39 +32,27 @@ h1 {
   background-color: #cc0000 !important;
 }
 
-
 p {
   color: #999999;
   font-size: 18px;
 }
 
-
 .affiliations {
   display: -webkit-flex;
   display: flex;
   align-items: center;
+  flex-flow: row wrap;
   -webkit-flex-flow: row wrap;
   justify-content: space-around;
 }
-
 
 .affiliations > * {
   margin: 1em 0;
 }
 
-/* .paddedContainer {
-  padding-top: 4rem!important;
-} */
-
 p.description {
   text-align: justify;
 }
-
-
-p.description-centered {
-  /* text-align: center; */
-}
-
 
 p.description-centered.boxed {
   text-align: center;
@@ -74,17 +60,11 @@ p.description-centered.boxed {
   font-size: 24px;
 }
 
-
 p.description-centered.boxed.spaced {
   line-height: 1.3em;
 }
 
-/* ul.supplier {
-  text-align: center;
-} */
-
 ul li.supplier {
-  /* margin-left: 250px; */
   color: #FFFFFF;
   font-size: 24px;
   line-height: 1.3em;
@@ -96,33 +76,27 @@ a.supplier {
   text-decoration: none;
 }
 
-
 .description.smaller {
   font-size: 12px;
   text-align: justify;
 }
 
-
 .description li {
   font-size: 18px;
 }
-
 
 .schoolEmphasis {
   font-weight: 900;
   text-decoration: underline;
 }
 
-
 .function {
   font-size: 16px;
   color: #999999;
 }
 
-
 .faq {
   font-size: 16px;
-  /*text-align: justify;*/
   text-align: left;
   color: #000000;
 }
@@ -131,24 +105,17 @@ a.supplier {
   font-weight: bold;
 }
 
-
 .logo {
   height: 50px;
-  /*width: 400px;*/
 }
-
 
 .logo2 {
   height: 45px;
-  /*width: 400px;*/
 }
-
 
 .logo3 {
   height: 55px;
-  /*width: 400px;*/
 }
-
 
 .sensorparts {
   height: 200px;
@@ -156,11 +123,9 @@ a.supplier {
   float: right;
 }
 
-
 .changeColor a {
   color: white;
 }
-
 
 .changeColor a:hover {
   color: white;
@@ -168,32 +133,22 @@ a.supplier {
   text-decoration: none;
 }
 
-
 .centerBlock {
   display: table;
   margin: auto;
 }
 
-
 .portrait {
   padding: 25px 0px;
 }
-
 
 .twitterWiki {
   padding: 5px 5px;
 }
 
-
 .pushContainerDown {
   margin-top: 140px;
 }
-
-
-.overFooter {
-    botto m-bottom: 40px;
-}
-
 
 .inTheCenter {
   text-align: center;
@@ -209,7 +164,6 @@ a.supplier {
   color: #999999;
 }
 
-
 p.description-centered.boxed a {
   color: #FFFFFF;
   border-bottom: dotted 2px #FFFFFF;
@@ -220,11 +174,9 @@ p.description-centered.boxed a {
   margin: 20px 0px;
 }
 
-
 .newsroom_soundcloud {
   margin: 20px 0px;
 }
-
 
 .soundcloud {
   width: 700px;
@@ -232,7 +184,6 @@ p.description-centered.boxed a {
   margin-right: auto;
   display: block;
 }
-
 
 .newsroom_big {
   width: 500px;
@@ -246,30 +197,24 @@ h2.title {
   font-weight: 500;
 }
 
-
 h2.title.boxed {
   color: #ffffff;
   font-weight: 500;
 }
-
 
 .projectDescription {
   color: #f44336;
   font-size: 20px
 }
 
-
 .container.box {
   background-color: #f44336;
   padding: 10px 0px;
-  /*color: #000000;*/
 }
-
 
 .container.box.centered {
   text-align: center;
 }
-
 
 .centeredList {
   display: flex;
