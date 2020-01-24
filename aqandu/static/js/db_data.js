@@ -1,9 +1,6 @@
 /* global XMLHttpRequest:true */
 /* eslint no-undef: "error" */
 
-
-// TODO move from http to https
-
 var baseURL = 'https://air.eng.utah.edu';
 
 
@@ -25,34 +22,9 @@ function generateURL(anEndpoint, route, parameters) { // eslint-disable-line no-
     url = `${baseURL}${anEndpoint}${route}?location_lat=${parameters.location.lat}&location_lng=${parameters.location.lng}&start=${parameters.start}&end=${parameters.end}`;
   }
 
-
-
   return url;
 }
 
-// var promiseObj = new Promise(function(resolve, reject){
-//    var xhr = new XMLHttpRequest();
-//    xhr.open(methodType, url, true);
-//    xhr.send();
-//    xhr.onreadystatechange = function(){
-//    if (xhr.readyState === 4){
-//       if (xhr.status === 200){
-//          console.log("xhr done successfully");
-//          var resp = xhr.responseText;
-//          var respJson = JSON.parse(resp);
-//          resolve(respJson);
-//       } else {
-//          reject(xhr.status);
-//          console.log("xhr failed");
-//       }
-//    } else {
-//       console.log("xhr processing going on");
-//    }
-// }
-// console.log("request sent successfully");
-// });
-// return promiseObj;
-// }
 function getDataFromDB(anURL) { // eslint-disable-line no-unused-vars
   return new Promise((resolve, reject) => {
     const method = 'GET';
@@ -77,12 +49,6 @@ function getDataFromDB(anURL) { // eslint-disable-line no-unused-vars
     }
 
     request.send();
-
-    // // If request has an error, then reject the promise
-    // request.onerror = function showWarning(e) {
-    //   console.log('Something went wrong....');
-    //   reject(e);
-    // };
 
     console.log("request sent successfully");
   });
