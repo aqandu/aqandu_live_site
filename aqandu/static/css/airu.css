@@ -5,9 +5,8 @@
  */
 
 body {
-    -webkit-font-smoothing: subpixel-antialiased;
+  -webkit-font-smoothing: subpixel-antialiased;
 }
-
 
 .carousel-item {
   height: 65vh;
@@ -19,210 +18,222 @@ body {
   background-size: cover;
 }
 
-
 h1 {
-    text-align: center;
-    color: #f44336;
+  text-align: center;
+  color: #f44336;
 }
 
 .captionAQ {
-    font-size: 2.6em;
+  font-size: 2.6em;
 }
 
 
 .bg-dark {
-    background-color: #cc0000 !important;
+  background-color: #cc0000 !important;
 }
-
 
 p {
-    color: #999999;
-    font-size: 18px;
+  color: #999999;
+  font-size: 18px;
 }
-
 
 .affiliations {
-    display: -webkit-flex;
-    display: flex;
-    align-items: center;
-    -webkit-flex-flow: row wrap;
-    justify-content: space-around;
+  display: -webkit-flex;
+  display: flex;
+  align-items: center;
+  flex-flow: row wrap;
+  -webkit-flex-flow: row wrap;
+  justify-content: space-around;
 }
-
 
 .affiliations > * {
   margin: 1em 0;
 }
 
-
 p.description {
-    text-align: justify;
+  text-align: justify;
 }
-
-
-p.description-centered {
-    text-align: center;
-}
-
 
 p.description-centered.boxed {
-    text-align: center;
-    color: #FFFFFF;
-    font-size: 24px;
+  text-align: center;
+  color: #FFFFFF;
+  font-size: 24px;
 }
-
 
 p.description-centered.boxed.spaced {
-    line-height: 1.3em;
+  line-height: 1.3em;
 }
 
+ul li.supplier {
+  color: #FFFFFF;
+  font-size: 24px;
+  line-height: 1.3em;
+}
+
+a.supplier {
+  color: #FFF;
+  border-bottom: dotted 2px #FFF;
+  text-decoration: none;
+}
 
 .description.smaller {
-    font-size: 12px;
-    text-align: justify;
+  font-size: 12px;
+  text-align: justify;
 }
 
+.description li {
+  font-size: 18px;
+}
 
 .schoolEmphasis {
-    font-weight: 900;
-    text-decoration: underline;
+  font-weight: 900;
+  text-decoration: underline;
 }
-
 
 .function {
-    font-size: 16px;
-    color: #999999;
+  font-size: 16px;
+  color: #999999;
 }
 
-
 .faq {
-    font-size: 16px;
-    /*text-align: justify;*/
-    text-align: left;
-    color: #000000;
+  font-size: 16px;
+  text-align: left;
+  color: #000000;
 }
 
 .faq.question {
-    font-weight: bold;
+  font-weight: bold;
 }
-
 
 .logo {
-    height: 50px;
-    /*width: 400px;*/
+  height: 50px;
 }
-
 
 .logo2 {
-    height: 45px;
-    /*width: 400px;*/
+  height: 45px;
 }
-
 
 .logo3 {
-    height: 55px;
-    /*width: 400px;*/
+  height: 55px;
 }
-
 
 .sensorparts {
-    height: 200px;
-    display: inline;
-    float: right;
+  height: 200px;
+  display: inline;
+  float: right;
 }
-
 
 .changeColor a {
-    color: white;
+  color: white;
 }
-
 
 .changeColor a:hover {
-    color: white;
-    background-color: rgba(255, 255, 255, 0.1);
-    text-decoration: none;
+  color: white;
+  background-color: rgba(255, 255, 255, 0.1);
+  text-decoration: none;
 }
-
 
 .centerBlock {
-    display: table;
-    margin: auto;
+  display: table;
+  margin: auto;
 }
-
 
 .portrait {
-    padding: 25px 0px;
+  padding: 25px 0px;
 }
-
 
 .twitterWiki {
-    padding: 5px 5px;
+  padding: 5px 5px;
 }
-
 
 .pushContainerDown {
-    margin-top: 90px;
+  margin-top: 140px;
 }
-
-
-.overFooter {
-    bottom-bottom: 40px;
-}
-
 
 .inTheCenter {
-    text-align: center;
+  text-align: center;
 }
 
 .portrait a.name {
-    border-bottom: dotted 1px #E64C3C;
+  border-bottom: dotted 1px #E64C3C;
 }
 
 .description a {
-    border-bottom: dotted 1px #E64C3C;
-    text-decoration: none;
-    color: #999999;
+  border-bottom: dotted 1px #E64C3C;
+  text-decoration: none;
+  color: #999999;
 }
 
-
 p.description-centered.boxed a {
-    color: #FFFFFF;
-    border-bottom: dotted 2px #FFFFFF;
-    text-decoration: none;
+  color: #FFFFFF;
+  border-bottom: dotted 2px #FFFFFF;
+  text-decoration: none;
 }
 
 .newsroom_image {
-    margin: 20px 0px;
+  margin: 20px 0px;
+}
+
+.newsroom_soundcloud {
+  margin: 20px 0px;
+}
+
+.soundcloud {
+  width: 700px;
+  margin-left: auto;
+  margin-right: auto;
+  display: block;
 }
 
 .newsroom_big {
-    width: 500px;
-    margin-left: auto;
-	margin-right: auto;
-	display: block;
+  width: 500px;
+  margin-left: auto;
+  margin-right: auto;
+  display: block;
 }
 
 h2.title {
-    color: #f44336;
-    font-weight: 500;
+  color: #f44336;
+  font-weight: 500;
 }
-
 
 h2.title.boxed {
-    color: #ffffff;
-    font-weight: 500;
+  color: #ffffff;
+  font-weight: 500;
 }
-
 
 .projectDescription {
-    color: #f44336;
-    font-size: 20px
+  color: #f44336;
+  font-size: 20px
 }
 
-
 .container.box {
-    background-color: #f44336;
-    padding: 10px 0px;
-    /*color: #000000;*/
+  background-color: #f44336;
+  padding: 10px 0px;
+}
 
+.container.box.centered {
+  text-align: center;
+}
+
+.centeredList {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.team {
+  margin-top: 60px;
+}
+
+.team .team-player .title {
+  margin: 30px auto;
+}
+
+.team .team-player img {
+  max-width: 170px;
+}
+video {
+  display: block;
+  margin: 0 auto;
 }

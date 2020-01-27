@@ -1,0 +1,127 @@
+{% extends "base.html" %}
+{% block body %}
+{% block about %}active{% endblock %}
+<div class="main main-raised">
+  <section class="py-5" id="about">
+    <div class="container pushContainerDown">
+      <h2 class="title inTheCenter">Project</h2>
+      <p class='description'>
+        Over the last few years, low-cost commodity sensors have hit the markets allowing — for the first time — the
+        ability to measure hyperlocal air quality conditions outside of our homes. At the University of Utah, we are
+        building infrastructure that utilizes these new sensors to create accurate measurements of air quality
+        microclimates.
+
+        <br/>
+        <br/>
+
+        Our <span class="projectDescription">Outdoor Air Quality</span> project leverages existing government and
+        community-based air quality efforts to build a dense network of sensors across Salt Lake City.
+
+        <br/>
+        <br/>
+
+        This project utilizes our research in sensor design, air quality science, computational modeling, and
+        communication of data; furthermore, it relies on citizens to engage, promote, and facilitate science.
+
+        We are currently looking for Salt Lake City residents to be part of building our outdoor network by hosting
+        sensors at their homes. Want to get involved? See our sensor sign-up below or directly sign-up <a
+          href="{{ url_for('request_sensor') }}">here</a>.
+
+        <br/>
+        <br/>
+
+        This work is generously funded by grants from the National Science Foundation, the National Institutes of
+        Health, Utah Ignite, Lawrence T. &amp Janet T. Dee Foundation and UCAIR.
+      </p>
+    </div>
+  </section>
+
+  <section class="py-5" id="request-sensor">
+    <div class="container box centered">
+      <h2 class="title boxed">Sensor Sign Up</h1>
+        <p class='description-centered boxed'>Interested in hosting one of our limited, sponsored sensor (schools see
+          below)? Sign up <a href="{{ url_for('request_sensor') }}">here.</a>
+          <p>
+            <p class='description-centered boxed'>Frequently asked questions are available <a
+                href="{{ url_for('sensor_FAQ') }}">here</a>.</p>
+            </br>
+            <p class='description-centered boxed spaced'>You can also purchase an air quality sensor from a third party
+              supplier.</br>The following suppliers are compatible with our AQ & U network:</p>
+            <div class='centeredList'>
+              <ul>
+                <li class='supplier'>AirU sensors from <a class='supplier' href="https://www.tetradsensors.com"
+                    target="_blank">Tetrad Sensor Network Solutions LLC</a></li>
+                <li class='supplier'>PurpleAir sensors from <a class='supplier' href="https://www.purpleair.com/sensors"
+                    target="_blank">PurpleAir</a></li>
+              </ul>
+            </div>
+            </br>
+            <p class='description-centered boxed spaced'>Are you a <span class='schoolEmphasis'>school</span> and
+              interested in hosting a sensor?</br>There is more information and the people to contact <a
+                href="https://airu.coe.utah.edu">here.</a>
+              <p>
+    </div>
+  </section>
+
+  <section class="py-5" id="mailinglist">
+    <div class="container">
+      <h2 class="title inTheCenter">Mailing List</h2>
+      <p class='description-centered'> Interested in learning more about what we are doing? Sign up for our <a
+          href="{{ url_for('mailinglist') }}">mailing list</a>. Your information will only be used for AQ & U. </p>
+
+    </div>
+  </section>
+
+  <section class="py-5" id="contact">
+    <div class="container">
+      <h2 class="title inTheCenter">Contact Us</h2>
+      <p class='description-centered'>If you have a question, have a comment you can contact us under:</p>
+      <p class='description-centered'>Our email address is: <a
+          href="mailto:contact-aqandu@sci.utah.edu">contact-aqandu@sci.utah.edu</a></p>
+    </div>
+  </section>
+
+  <section class="py-5" id="affiliations">
+    <div class="container">
+      <h2 class="title inTheCenter">Academic Partners</h2>
+      <div class="affiliations">
+        <a href="http://www.utah.edu" target="_blank"><img class="logo" src="./static/img/ulogo2.png"></a>
+        <a href="https://www.ece.utah.edu" target="_blank"><img class="logo2" src="./static/img/ece_logo-01.png"></a>
+        <a href="https://www.che.utah.edu" target="_blank"><img class="logo3" src="./static/img/ChemE_logo.png"></a>
+        <a href="http://www.sci.utah.edu" target="_blank"><img class="logo" src="./static/img/scilogo.png"></a>
+        <a href="http://vdl.sci.utah.edu" target="_blank"><img class="logo" src="./static/img/vdl.png"></a>
+        <a href="https://sites.google.com/site/pegaillardon/" target="_blank"><img class="logo"
+            src="./static/img/lnis-logo.png"></a>
+      </div>
+    </div>
+  </section>
+
+  <section class="py-5" id="affiliations">
+    <div class="container">
+      <h2 class="title inTheCenter">Community Partners</h2>
+      <div class="affiliations">
+        <a href="http://www.purpleair.com" target="_blank"><span class="fas fa-cloud" aria-hidden="true"></span>
+          PurpleAir</a>
+        <a href="https://www.breatheutah.org" target="_blank"><img src="./static/img/breatheUtah.png"
+            height="100px"></a>
+      </div>
+      <!-- style="color:#000;" -->
+    </div>
+  </section>
+
+  <section class="py-5" id="affiliations">
+    <div class="container">
+      <h2 class="title inTheCenter">Funding Sources</h2>
+      <div class="affiliations">
+        <a href="https://nsf.gov" target="_blank"><img src="./static/img/NSFlogo.png" height="50px"></a>
+        <a href="https://www.nih.gov" target="_blank"><img src="./static/img/nih-logo-color.png" height="40px"></a>
+        <a href="http://www.utahignite.com" target="_blank"><img
+            src="./static/img/cropped-Utah-Smart-City-and-Gigabit-Community.png" height="40px"></a>
+        <a href="https://deefoundation.org/" target="_blank"><img src="./static/img/deefoundation_logo.png"
+            height="40px"></a>
+        <a href="https://www.ucair.org/" target="_blank"><img src="./static/img/UCAIR_logo.png" height="40px"></a>
+      </div>
+    </div>
+  </section>
+</div>
+{% endblock %}

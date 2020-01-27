@@ -74,8 +74,7 @@ You also need to have aqandu on your computer.
 Until you reach the config error. Pascal can send you that, as it's not on github. Just copy/paste it into your aqandu file system, same place as your main.py file. At this point, you should have installed flask. 
 *Do this:*
 
-export FLASK_APP=main.py
-flask assets build
+FLASK_APP=main.py flask assets build
 
 *When you are done with the entire session, use this:*
 

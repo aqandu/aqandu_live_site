@@ -1,226 +1,97 @@
 {% extends "base.html" %}
 {% block head %}
-  {{ super() }}
-  <!-- <link rel="stylesheet" href="https://unpkg.com/leaflet@1.1.0/dist/leaflet.css" integrity="sha512-wcw6ts8Anuw10Mzh9Ytw4pylW8+NAD4ch3lqm9lzAsTxg0GFeJgoAtxuCLREZSC5lUXdVyo/7yfsqFjQ4S+aKw==" crossorigin=""/> -->
+{{ super() }}
 
-  <!-- Make sure you put this AFTER Leaflet's CSS -->
-  <!-- <script src="https://unpkg.com/leaflet@1.1.0/dist/leaflet.js" integrity="sha512-mNqn2Wg7tSToJhvHcqfzLMU6J4mkOImSPTxVZAdo+lcPlk+GhZmYgACEe0x35K7YzW1zJ7XyJV/TT1MrdXvMcA==" crossorigin=""></script> -->
+<script src="https://unpkg.com/leaflet@1.2.0/dist/leaflet.js"
+  integrity="sha512-lInM/apFSqyy1o6s89K4iQUKg6ppXEgsVxT35HbzUupEVRh2Eu9Wdl4tHj7dZO0s1uvplcYGmt3498TtHq+log=="
+  crossorigin=""></script>
 
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.2.0/dist/leaflet.css" integrity="sha512-M2wvCLH6DSRazYeZRIm1JnYyh22purTM+FDB5CsyxtQJYeKq83arPe5wgbNmcFXGqiSH2XR8dT/fJISVA1r/zQ==" crossorigin=""/>
+<script src="https://d3js.org/d3.v4.js"></script>
+<script src="static/js/d3-geo.min.js"></script>
+<script src="https://stamen-maps.a.ssl.fastly.net/js/tile.stamen.js"></script>
 
-  <script src="https://unpkg.com/leaflet@1.2.0/dist/leaflet.js" integrity="sha512-lInM/apFSqyy1o6s89K4iQUKg6ppXEgsVxT35HbzUupEVRh2Eu9Wdl4tHj7dZO0s1uvplcYGmt3498TtHq+log==" crossorigin=""></script>
 
-
-
-  <script src="https://d3js.org/d3.v4.js"></script>
-  <script src="static/js/d3-geo.min.js"></script>
-
-  <script src="static/js/leaflet-heat.js"></script>
-  <script src="static/js/simpleheat.js"></script>
-  <script src="http://maps.stamen.com/js/tile.stamen.js"></script>
+<link rel="stylesheet" type="text/css" href="static/css/leaflet.contextmenu.min.css"/>
 
 {% endblock %}
 {% block body %}
 {% block index %}active{% endblock %}
 
-  <header>
-    <div id="carouselExampleIndicators" class="carousel slide" data-ride="carousel">
-      <ol class="carousel-indicators">
-        <li data-target="#carouselExampleIndicators" data-slide-to="0" class="active"></li>
-        <li data-target="#carouselExampleIndicators" data-slide-to="1"></li>
-        <li data-target="#carouselExampleIndicators" data-slide-to="2"></li>
-      </ol>
-      <div class="carousel-inner" role="listbox">
-        <!-- Slide One -->
-        <div class="carousel-item active" style="background-image: url('./static/img/bad_air_1610.jpg')">
-            <div class="carousel-caption">
-                <div class="col-md-15">
-                    <img src="./static/img/aqu-3.png" height="217" width="700">
-                    <h2 class=captionAQ><strong>Exploring Salt Lake City's Air Quality.</strong> </h2>
-                    <br />
-                </div>
-            </div>
-        </div>
-        <!-- Slide Two -->
-        <div class="carousel-item" style="background-image: url('./static/img/sensor_image_1610.jpg')">
-            <div class="carousel-caption">
-                <div class="col-md-15">
-                    <img src="./static/img/aqu-3.png" height="217" width="700">
-                    <h2> <strong>Exploring Salt Lake City's Air Quality.</strong> </h2>
-                    <br />
-                </div>
-          </div>
-        </div>
-        <!-- Slide Three - Set the background image for this slide in the line below -->
-        <div class="carousel-item" style="background-image: url('./static/img/Wasatch-Front-1610.jpg')">
-            <div class="carousel-caption">
-                <div class="col-md-15">
-                  <img src="./static/img/aqu-3.png" height="217" width="700">
-                  <h2> <strong>Exploring Salt Lake City's Air Quality.</strong> </h2>
-                  <br />
-              </div>
-          </div>
-        </div>
-      </div>
-      <a class="carousel-control-prev" href="#carouselExampleIndicators" role="button" data-slide="prev">
-        <span class="carousel-control-prev-icon" aria-hidden="true"></span>
-        <span class="sr-only">Previous</span>
-      </a>
-      <a class="carousel-control-next" href="#carouselExampleIndicators" role="button" data-slide="next">
-        <span class="carousel-control-next-icon" aria-hidden="true"></span>
-        <span class="sr-only">Next</span>
-      </a>
-    </div>
-  </header>
-
-  <div class="main main-raised">
-
-  <!-- Page Content -->
-  <section class="py-5" id="about">
-    <div class="container">
-      <h2 class="title inTheCenter">Project</h2>
-      <p class='description'>
-          Over the last few years, low-cost commodity sensors have hit the markets allowing — for the first time — the ability to measure hyperlocal air quality conditions, both inside and outside of our homes. At the University of Utah, we are building infrastructure that utilizes these new sensors to create accurate measurements of air quality microclimates. We have three synergistic projects:
-          <br /><br />
-          <strong><span class="projectDescription">Outdoor Air Quality</span> leverages existing government and community-based air quality efforts to build a dense network of sensors across Salt Lake City; <br /><br />
-          <span class="projectDescription">AirU</span> engages kids in Salt Lake schools through learning about air quality with a Lego Maker kit and hosting of commodity sensors in classrooms;
-          <br /><br />
-          <span class="projectDescription">Indoor Air Quality</span> uses a network of sensors in the homes of asthmatic families to better understand indoor air quality.</strong>
-          <br /><br />
-
-          Each of these projects utilizes our research in sensor design, air quality science, computational modeling, and communication of data; furthermore, they rely on citizens to engage, promote, and facilitate science.
-
-          We are currently looking for Salt Lake City residents to be part of building our outdoor network by hosting sensors at their homes. Want to get involved? See our sign-up below.
-
-          <br /><br />
-
-          This work is generously funded by grants from the National Science Foundation and the National Institutes of Health.
-      </p>
-  </section>
-
-  <section class="py-5" id="sensorMap">
-      <div class="container">
-          <h2 class="title inTheCenter">Visualization</h2>
-          <div>
-            <p class='description'>
-              The following visualization consists of two parts a map visualization and a timeline visualization just below the map. It is best viewed using Google Chrome, Safari, or Firefox.
-            </p>
-            <p class='description'>
-              On the map there are colored dots. These colored dots represent sensors. A sensor can be a sensor provided by us (airu) or by Purple Air, Mesowest, or DAQ. The legend in the right bottom corner tells you which dot (sensor) is provided by whom. Moving the mouse cursor over an element in that legend makes the sensors belonging to that group more visible and hides the others. Moving the mouse cursor over a dot opens a popup with the sensor's ID.
-            </p>
-            <p class='description'>
-              The dots itself are colored using the EPA classification (left bottom legend). The dot's color updates every 1 minute, showing the latest measured value by that sensor.
-            </p>
-            <p class='description'>
-              Clicking on a dot (sensor) makes that sensor's data appear in the timeline visualization. Also the dot's border changes from white to grey to show that the sensor has been selected. Clicking on a selected sensor (sensor with grey borders) removes the data from the timeline and the sensor border gets its white color back. You can click on multiple sensors to add them to the timeline visualization. The lines in the timeline all appear in grey. To know which line in the timeline belongs to which sensor, move the mouse cursor over the line and a text box with the sensor ID will appear.
-            </p>
-            <p class='description'>
-              The default time range in the timeline visualization is the past 24 hours. This can be changed by selecting the appropriate radio button below the timeline. The options are the past 24 hours (default), the past 3 days, and the past week. The data used for the past 24 hours is the raw data as captured by the sensor which is the converted to the Federal Reference Method (see next paragraph). Where as for the past 3 day's and the past week's data we aggregate the raw data over one hour and then converted to the Federal Reference Method (see next paragraph).
-              The button to the right of these radio buttons can be used to remove all the data in the timeline and start fresh.
-            </p>
-            <p class='description'>
-              One caveat to be noted is that to be able to compare airU data and Purple Air data in the same graph we applied calibration using the data from the Winter 2017 for both airU and Purple Air sensors. The Purple Air sensor model 1003 is calibrated within the range of 0 to 90 µg/m<sup>3</sup>. The Purple Air sensor model 5003 is calibrated within the range of 0 to 60 µg/m<sup>3</sup>. And finally the airU sensors are calibrated within the range of 0 to 200 µg/m<sup>3</sup>.
-            </p>
-          </div>
-          <div id="SLC-map">
-              <!-- <script src="static/js/map_reconfigure.js"></script> -->
-          </div>
-          <div id="timeline">
-              <svg width="100%">
-                  <g id="colorBands"></g>
-                  <g id="lines"></g>
-                  <g class="x axis"></g>
-                  <text class="x label"></text>
-                  <g class="y axis"></g>
-                  <text class="y label"></text>
-                  <g class="focus" transform="translate(-100,-100)">
-                      <circle r="3.5"></circle>
-                      <text y="-10"></text>
-                  </g>
-                  <g class="dateFocus" transform="translate(-100,-100)">
-                      <!-- <circle r="3.5"></circle> -->
-                      <rect></rect>
-                      <!-- <text y="10"></text> -->
-                      <text id='focusDate'></text>
-                      <text id='focusTime'></text>
-                  </g>
-                  <g class = "voronoi">
-              </svg>
-              <div id="timelineControls">
-                <input type="radio" id="timeRange_24h" name="timeRange" value="1" checked>
-                <label for="timeRange_24h">past 24 hours</label>
-
-                <input type="radio" id="timeRange_3d" name="timeRange" value="3">
-                <label for="timeRange_3d">past 3 days</label>
-
-                <input type="radio" id="timeRange_1w" name="timeRange" value="7">
-                <label for="timeRange_1w">past week</label>
-
-                <button id="clearDataButton" onclick="clearData()">Clear Data</button>
-
-                <form id="sensorDataSearch">
-                  <div>
-                    <label for="sensorDataSearch">Show data for airU sensor with sensor ID:</label>
-                    <input type="search" id="sensorDataSearch" name="q" placeholder="S-A-XXX" required size="7" pattern="S-A-[0-9]{3}" aria-label="Search for the data of your airU sensor">
-                    <button><i class="fa fa-search"></i></button>
-                    <span class="validity"></span>
-                  </div>
-                </form>
-              </div>
-              <div class="tooltip hidden">
-                <p class="tooltipText">These are the available PM2.5 data sources.</p>
-                <p class="tooltipText">Clicking a source name shows you which sensors belong to it on the map.</p>
-              </div>
-          </div>
-      </div>
-  </section>
-
-  <section class="py-5" id="request-sensor">
-      <div class="container box">
-          <h2 class="title inTheCenter boxed">Sensor Sign Up</h1>
-          <p class='description-centered boxed'>Interested in hosting a sensor (schools see below)? Sign up <a href="{{ url_for('request_sensor') }}">here.</a><p>
-          <p class='description-centered boxed'>Frequently asked questions are available <a href="{{ url_for('sensor_FAQ') }}">here</a>.</p>
-          </br>
-          <p class='description-centered boxed spaced'>Are you a <span class='schoolEmphasis'>school</span      > and interested in hosting a sensor?</br>There is more information and the people to contact <a href="https://airu.coe.utah.edu">here.</a><p>
-      </div>
-  </section>
-
-
-  <section class="py-5" id="mailinglist">
-      <div class="container">
-          <h2 class="title inTheCenter">Mailing List</h2>
-          <p class='description-centered'> Interested in learning more about what we are doing? Sign up for our <a href="{{ url_for('mailinglist') }}">mailing list</a>. Your information will only be used for AQ & U. </p>
-
-      </div>
-  </section>
-
-
-  <section class="py-5" id="contact">
-      <div class="container">
-          <h2 class="title inTheCenter">Contact Us</h2>
-          <p class='description-centered'>If you have a question, have a comment you can contact us under:</p>
-          <p class='description-centered'>Our email address is: <a href="mailto:contact-aqandu@sci.utah.edu">contact-aqandu@sci.utah.edu</a></p>
-      </div>
-  </section>
-
-
-  <section class="py-5" id="affiliations">
-      <div class="container">
-          <h2 class="title inTheCenter">Partners</h2>
-          <div class="affiliations">
-              <a href="http://www.utah.edu" target="_blank"><img class="logo" src="./static/img/ulogo2.png"></a>
-              <a href="https://www.ece.utah.edu" target="_blank"><img class="logo2" src="./static/img/ece_logo-01.png"></a>
-              <a href="https://www.che.utah.edu" target="_blank"><img class="logo3" src="./static/img/ChemE_logo.png"></a>
-              <a href="http://www.sci.utah.edu" target="_blank"><img class="logo" src="./static/img/scilogo.png"></a>
-              <a href="http://vdl.sci.utah.edu" target="_blank"><img class="logo" src="./static/img/vdl.png"></a>
-              <a href="https://sites.google.com/site/pegaillardon/" target="_blank"><img class="logo" src="./static/img/lnis-logo.png"></a>
-          </div>
-      </div>
-  </section>
+<div id="mainpage">
+  <div id="SLC-map">
   </div>
+
+  <div id="timeline">
+    <div id="closeTimelineButton" class="customButton"><a href="#">X</a></div>
+    <svg width="100%">
+      <g id="slider"></g>
+      <g id="graph">
+        <g id="colorBands"></g>
+        <g id="lines"></g>
+        <g class="x axis"></g>
+        <text class="x label"></text>
+        <g class="y axis"></g>
+        <text class="y label"></text>
+        <g class="focus" transform="translate(-100,-100)">
+          <circle r="3.5"></circle>
+          <text y="-10"></text>
+        </g>
+        <g class="dateFocus" transform="translate(-100,-100)">
+          <rect></rect>
+          <text id='focusDate'></text>
+          <text id='focusTime'></text>
+        </g>
+        <g class="voronoi">
+        </g>
+    </svg>
+    <div id="timelineControls">
+      <div>
+        <input type="radio" id="timeRange_24h" name="timeRange" value="1" checked>
+        <label for="timeRange_24h">past 24 hours</label>
+        <input type="radio" id="timeRange_3d" name="timeRange" value="3">
+        <label for="timeRange_3d">past 3 days</label>
+      </div>
+
+      <div>
+        <input type="radio" id="timeRange_1w" name="timeRange" value="7">
+        <label for="timeRange_1w">past week</label>
+      </div>
+
+      <div id="closeTimelineControlButton" class="customButton"><a href="#">X</a></div>
+
+      <form id="sensorDataSearchForm">
+        <div id="search">
+          <div>
+            <label for="sensorDataSearch">Show data for airU sensor:</label>
+            <input type="search" id="sensorDataSearch" name="q" placeholder="S-A-XXX" required size="7"
+              pattern="S-A-[0-9]{3}" aria-label="Search for the data of your airU sensor">
+            <button><i class="fa fa-search"></i></button>
+            <span class="validity"></span>
+          </div>
+          <div>
+            <span id="errorInformation"></span>
+          </div>
+        </div>
+      </form>
+
+      <div>
+        <button id="clearDataButton" onclick="clearData()">Clear Data</button>
+      </div>
+
+    </div>
+    <div id="openTimelineControlButton" class='customButton'><i class='aqu_icon fas fa-list fa-2x'></i></div>
+  </div>
+  <div class="tooltip hidden">
+    <p class="tooltipText">These are the available PM2.5 data sources.</p>
+    <p class="tooltipText">Clicking a source name shows you which sensors belong to it on the map.</p>
+  </div>
+</div>
 {% endblock %}
 
 {% block scriptFooter %}
-  <script src="static/js/db_data.js"></script>
-  <script src="static/js/map_reconfigure.js"></script>
+<script type="text/javascript" src="static/js/leaflet.contextmenu.min.js"></script>
+<script type="text/javascript" src="static/js/db_data.js"></script>
+<script type="text/javascript" src="static/js/map_reconfigure.js"></script>
+<script type="text/javascript" src="static/js/loadingoverlay.min.js"></script>
+<script type="text/javascript" src="static/js/leaflet.contextmenu.min.js"></script>
 {% endblock %}

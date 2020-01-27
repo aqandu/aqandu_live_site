@@ -3592,15 +3592,6 @@ h2.title {
   width: 100%;
 }
 
-.team {
-  margin-top: 80px;
-}
-.team .team-player .title {
-  margin: 30px auto;
-}
-.team .team-player img {
-  max-width: 170px;
-}
 
 .nav-align-center {
   text-align: center;

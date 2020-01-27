@@ -1,7 +1,13 @@
-#SLC-map {
-  height: 500px;
+#mainpage {
+  height: 100%;
   width: 100%;
-  margin-top: 20px;
+}
+
+#SLC-map {
+  position: absolute;
+  top: 44px;
+  height: calc(100% - 44px);
+  width: 100%;
 }
 
 svg text {
@@ -19,89 +25,105 @@ svg text {
 /* MARKERS */
 
 .green {
-  /* background-color: rgb(0,228,0); */
   background-color: rgb(166, 217, 106);
 }
+.green1 {
+  background-color: rgb(49, 163, 84);
+}
+.green2 {
+  background-color: rgb(161, 217, 155);
+}
+.green3 {
+  background-color: rgb(229, 245, 224);
+}
 .yellow {
-  /* background-color: rgb(255,255,0); */
   background-color: rgb(255, 255, 191);
 }
+.yellow1 {
+  background-color: rgb(255, 255, 204);
+}
+.yellow2 {
+  background-color: rgb(255, 237, 160);
+}
+.yellow3 {
+  background-color: rgb(254, 217, 118);
+}
 .orange {
-  /* background-color: rgb(255,126,0); */
   background-color: rgb(253, 174, 97);
 }
+.orange1 {
+  background-color: rgb(254, 178, 76);
+}
+.orange2 {
+  background-color: rgb(253, 141, 60);
+}
+.orange3 {
+  background-color: rgb(252, 78, 42);
+}
 .red {
-  /* background-color: rgb(255,0,0); */
   background-color: rgb(215, 25, 28);
 }
+.red1 {
+  background-color: rgb(227, 26, 28);
+}
 .veryUnhealthyRed {
-  /* background-color: rgb(153, 0, 76); */
+  background-color: rgb(189, 0, 38);
+}
+.veryUnhealthyRed1 {
   background-color: rgb(189, 0, 38);
 }
 .hazardousRed {
-  /* background-color: rgb(126, 0, 35); */
   background-color: rgb(166, 54, 3);
 }
-/* c = ('#a6d96a', '#ffffbf', '#fdae61', '#d7191c', '#bd0026', '#a63603') */
+.hazardousRed1 {
+  background-color: rgb(128, 0, 38);
+}
+
 .dot {
-  /*  border-radius: 20px; */
   border-radius: 10px;
   border: 3px solid #FFFFFF;
 }
 .dot.green {
-  /* background-color: rgb(0,228,0); original EPA*/
   background-color: rgb(166, 217, 106);
 }
 .dot.yellow {
-  /* background-color: rgb(255,255,0); original EPA */
   background-color: rgb(255, 255, 191);
 }
 .dot.orange {
-  /* background-color: rgb(255,126,0); original EPA */
   background-color: rgb(253, 174, 97);
 }
 .dot.red {
-  /* background-color: rgb(255,0,0); original EPA */
   background-color: rgb(215, 25, 28);
 }
 .dot.veryUnhealthyRed {
-  /* background-color: rgb(153, 0, 76);  original EPA */
   background-color: rgb(189, 0, 38);
 }
 .dot.hazardousRed {
-  /* background-color: rgb(126, 0, 35);  original EPA */
   background-color: rgb(166, 54, 3);
 }
 .dot.noColor {
   background-color: rgba(255, 255, 255, 0);
 }
 .dot.green.notPartOfGroup {
-  /* background-color: rgba(0, 228, 0, 0.1); original EPA */
   background-color: rgb(166, 217, 106, 0.1);
 }
 .dot.yellow.notPartOfGroup {
-  /* background-color: rgba(255, 255, 0, 0.1); original EPA */
   background-color: rgb(255, 255, 191, 0.1);
 }
 .dot.orange.notPartOfGroup {
-  /* background-color: rgba(255, 126, 0, 0.1); original EPA */
   background-color: rgb(253, 174, 97, 0.1);
 }
 .dot.red.notPartOfGroup {
-  /* background-color: rgba(255, 0, 0, 0.1); original EPA */
   background-color: rgb(215, 25, 28, 0.1);
 }
 .dot.veryUnhealthyRed.notPartOfGroup {
-  /* background-color: rgba(153, 0, 76, 0.1); original EPA */
   background-color: rgb(189, 0, 38, 0.1);
 }
 .dot.hazardousRed.notPartOfGroup {
-  /* background-color: rgba(126, 0, 35, 0.1); original EPA */
   background-color: rgb(166, 54, 3, 0.1);
 }
 .dot.noColor.notPartOfGroup {
-  /* background-color: rgba(255, 255, 255, 0); original EPA */
-  background-color: ;
+  background-color: rgba(255, 255, 255, 0);
 }
 
 .dot.sensor-selected {
@@ -112,43 +134,58 @@ svg text {
   border: 3px solid #808080;
 }
 
-/* .leaflet-popup-content {
-  margin: 0px;
-} */
+#timelineControls {
+  position: absolute;
+  top: 30px;
+  right: 10px;
+  padding: 5px;
+  background-color: rgba(255,255,255,0.7);
+  box-shadow: 0 0 15px rgba(0,0,0,0.2);
+  border-radius: 5px;
+}
 
 #timelineControls label {
   font-family: 'Open Sans', sans-serif;
-  /* font-weight: bold; */
   font-size: 10pt;
   color: #555;
+  margin: 0px 10px 10px 2px;
+}
 
-  margin-right: 15px;
-  line-height: 32px;
+#sensorDataSearch {
+  width: 60px;
+}
+
+#search label {
+  margin: 0px;
 }
 
 #clearDataButton {
   font-family: 'Open Sans', sans-serif;
-  /* font-weight: bold; */
   font-size: 10pt;
   color: #555;
-
-  margin-left: 30px;
+  margin: 0px 10px 0px 0px;
 }
 
-input:invalid ~ span:after {
+input:invalid ~ span.validity:after {
     content: '✖';
     padding-left: 5px;
-    position: absolute:
+    position: absolute;
 }
 
-input:valid ~ span:after {
+input:valid ~ span.validity:after {
     content: '✓';
     padding-left: 5px;
-    position: absolute:
+    position: absolute;
 }
 
 #clearDataButton:hover, #clearDataButton:active {
   text-decoration: underline #c00;
+}
+
+#errorInformation {
+  font-family: 'Open Sans',sans-serif;
+  font-size: 7pt;
+  color: #555;
 }
 
 /* Popup */
@@ -156,13 +193,9 @@ input:valid ~ span:after {
   background-color: rgba(255, 255, 255, 0.8);
   color: #000;
   box-shadow: none;
-
-  /* font-family: Frutiger;
-  font-weight: bold; */
   font-family: 'Open Sans', sans-serif;
   font-weight: bold;
   font-size: 8pt;
-
   border-radius: 0px;
   padding: 0px;
 }
@@ -179,82 +212,362 @@ input:valid ~ span:after {
   display: none;
 }
 
-/* TIMELINE */
-#timeline {
-  margin-top: 10px;
+#closeLegendButton {
+  position: absolute;
+  top: 0px;
+  right: 0px;
 }
 
-.legend {
+#closeTimelineControlButton {
+  position: absolute;
+  top: 0px;
+  right: 0px;
+}
+
+#closeTimelineButton {
+  position: absolute;
+  top: 5px;
+  left: 10px;
+}
+
+.customButton {
+  background-color: #ffffff;
+  width: 30px;
+  height: 30px;
+  line-height: 26px;
+  border: 2px solid rgba(0,0,0,0.4);
+  border-radius: 4px;
+  font-family: 'Open Sans', sans-serif;
+  font-weight: 400;
+}
+
+.customButton a {
+  display: block;
+  text-align: center;
+  font-size: 22px;
+  font-weight: 400;
+  color: #000000;
+  text-decoration: none;
+}
+
+.customButton a:hover {
+  background-color: #f2f2f2;
+}
+
+.customButton:hover {
+  background-color: #f2f2f2;
+}
+
+#openTimelineControlButton {
+  position: absolute;
+  top: 28px;
+  right: 10px;
+  font-size: 12px;
+}
+
+.aqu_icon {
+  position: absolute;
+  top: 4px;
+  left: 5px;
+  background-color: #fff;
+  color: #000;
+  font-size: 1.5em;
+}
+
+.aqu_icon_close {
+  font-size: 1.5em
+}
+
+.reappearingButton:hover {
+  background-color: #f2f2f2;
+}
+
+.moreInfo {
+  font-size: 1.5em;
+}
+
+#numberof_airu {
+  padding-left: 10px;
+}
+
+#numberof_PurpleAir {
+  padding-left: 10px;
+}
+
+#numberof_Mesowest {
+  padding-left: 10px;
+}
+
+#numberof_DAQ{
+  padding-left: 10px;
+}
+
+/* TIMELINE */
+#timeline {
+  position: absolute;
+  padding: 0px 5px 0px;
+  z-index: 1025;
+  width: 100%;
+  bottom: 0;
+  background-color: #ffffff;
+  height: 37%;
+}
+
+/* SLIDER */
+.track,
+.track-inset,
+.track-overlay {
+  stroke-linecap: round;
+}
+
+.track {
+  stroke: #000;
+  stroke-opacity: 0.3;
+  stroke-width: 10px;
+}
+
+.track-inset {
+  stroke: #ddd;
+  stroke-width: 8px;
+}
+
+.track-overlay {
+  pointer-events: stroke;
+  stroke-width: 50px;
+  stroke: transparent;
+  cursor: grab;
+}
+
+.handle {
+  fill: #c00;
+  stroke: #000;
+  stroke-opacity: 0.5;
+  stroke-width: 1.25px;
+}
+
+.ticks {
+  font: 10px sans-serif;
+}
+
+#contourTime {
+  fill: #c00;
+}
+
+.leaflet-verticalcentertop {
+  position: absolute;
+  z-index: 1000;
+  top: 6%;
+  transform: translateY(-10%);
+  padding-top: 10px;
+}
+
+.leaflet-verticalcentertop .leaflet-control {
+  margin-bottom: 10px;
+}
+
+.leaflet-verticalcenterbottom {
+  position: absolute;
+  z-index: 1000;
+  top: 50%;
+  transform: translateY(50%);
+  padding-top: 10px;
+}
+
+.leaflet-verticalcenterbottom .leaflet-control {
+  margin-bottom: 10px;
+}
+
+#legend {
   box-shadow: 0 0 15px rgba(0,0,0,0.2);
   border-radius: 5px;
-  /* width: 100px; */
-  height: 102px;
+  height: 447px;
   float: left;
   margin-right: 8px;
   opacity: 0.9;
   padding: 6px 8px;
-
   background: white;
   display: inline-block;
+  min-width: 117px;
 }
-.legend label.sensorType {
+
+#legend label.sensorType {
   font-family: 'Open Sans', sans-serif;
   font-weight: 400;
   font-size: 8pt;
   color: #555;
-
   line-height: 18px;
-  margin: 0px 0px 0px 10px;
+  margin: 0px 0px 0px 5px;
   display: block;
 }
 
-/* .legend label.sensorType:hover, .legend label.sensorType:active {
-  /* background: red; */
-  /* text-decoration: underline #c00; */
-/* } */
-
-.clickedLegendElement {
-  text-decoration: underline #808080;
+.notSelectedLabel {
+  padding-right: 5px;
+  color: #ffffff;
 }
 
-/* .txt {
-  font-size: 14px;
-  line-height: 1.45;
-} */
-
-.colorLegend {
-  box-shadow: 0 0 15px rgba(0,0,0,0.2);
-  border-radius: 5px;
-  background: white;
-  opacity: 0.9;
-
-  /* color: #555; */
-  height: 138px;
-  padding: 6px 8px;
+.selectedLabel {
+  padding-right: 5px;
+  color: #808080;
 }
-.colorLegend .legendTitle, .legend .legendTitle {
+
+#labelContainer {
+  margin-top: 15px;
+}
+
+.theHR {
+  margin: 10px 0px 5px;
+}
+
+#colorLegend .legendTitle {
   font-family: 'Open Sans', sans-serif;
   font-weight: bold;
   font-size: 8pt;
   line-height: 18px;
-
-  margin-bottom: .2em;
+  margin-bottom: 1.5em;
 }
-.colorLegend label {
+#colorLegend label {
   font-family: 'Open Sans', sans-serif;
   font-weight: 400;
   font-size: 8pt;
   color: #555;
-
   line-height: 18px;
   margin: 0pt;
 }
-.colorLegend label i {
+#colorLegend label i {
   width: 18px;
   height: 18px;
   float: left;
   padding: 2px 0px;
   margin-right: 8px;
+}
+.colorLegendLabel {
+  font-family: 'Open Sans', sans-serif;
+  font-weight: 400;
+  font-size: 8pt;
+  color: #555;
+  margin: 0px;
+  display: block;
+}
+
+.tickLegend {
+  display: inline-block;
+  position:relative;
+  left: -5px;
+}
+
+.colorbar {
+  width: 18px;
+  display: inline-block;
+  border: 1px solid #000;
+}
+
+#green1 {
+  height: 12px;
+}
+
+#green2 {
+  height: 12px;
+}
+
+#green3 {
+  height: 12px;
+}
+
+#yellow1 {
+  height: 18px;
+}
+
+#yellow2 {
+  height: 18px;
+}
+
+#yellow3 {
+  height: 18px;
+}
+
+#orange1 {
+  height: 16px;
+}
+
+#orange2 {
+  height: 16px;
+}
+
+#orange3 {
+  height: 16px;
+}
+
+#red1 {
+  height: 40px;
+}
+
+#veryUnhealthyRed1 {
+  height: 40px;
+}
+
+#hazardousRed1 {
+  height: 34px;
+}
+
+.dot.dblclickOnMap {
+  background-color: rgb(55, 126, 184);
+}
+
+#PM25level {
+  margin-bottom: 5px;
+}
+
+#tickLegend_0 {
+  bottom: -5px;
+  left: -25px;
+}
+
+#tickLegend_4 {
+  bottom: 11px;
+}
+
+#tickLegend_8 {
+  bottom: 11px;
+}
+
+#tickLegend_12 {
+  bottom: 11px;
+}
+
+#tickLegend_20 {
+  bottom: 17px;
+}
+
+#tickLegend_28 {
+  bottom: 17px;
+}
+
+#tickLegend_35 {
+  bottom: 15px;
+}
+
+#tickLegend_42 {
+  bottom: 15px;
+}
+
+#tickLegend_49 {
+  bottom: 15px;
+}
+
+#tickLegend_55 {
+  bottom: 15px;
+}
+
+#tickLegend_150 {
+  bottom: 39px;
+}
+
+#tickLegend_250 {
+  bottom: 39px;
+}
+
+#tickLegend_350 {
+  bottom: 33px;
 }
 
 .line-style {
@@ -263,12 +576,11 @@ input:valid ~ span:after {
   stroke-linejoin: round;
   stroke-linecap: round;
   stroke-width: 1px;
-  /* shape-rendering: crispEdges; */
 }
 @media(min-width: 992px) {
   .col-md-6 {
     width: 30%;
-    margin-bottom: 120px:
+    margin-bottom: 120px;
   }
 }
 
@@ -276,8 +588,15 @@ input:valid ~ span:after {
   text-align: center;
 }
 
-.navbar{
+.navbar {
   margin-bottom: 0px;
+  padding-top: 5px;
+  padding-bottom: 5px;
+}
+
+.navbar .navbar-nav > li > a {
+  padding-top: 5px;
+  padding-bottom: 5px;
 }
 
 .main-raised{
@@ -297,10 +616,6 @@ input:valid ~ span:after {
   stroke: #000;
 }
 
-/* .focus {
-  z-index: 1000;
-} */
-
 .focus circle {
   fill: none;
   stroke: black;
@@ -314,7 +629,6 @@ input:valid ~ span:after {
 .voronoi path {
   fill: none;
   pointer-events: all;
-  /*stroke: #bada55;*/
 }
 
 #form {
@@ -324,7 +638,7 @@ input:valid ~ span:after {
 }
 
 .tooltip {
-  pointer-events:none; /*let mouse events pass through*/
+  pointer-events:none;
   position: absolute;
   background: #000;
   color: #FFF;
@@ -338,12 +652,22 @@ input:valid ~ span:after {
   border: solid;
   border-color: #000 transparent;
   border-width: 6px 6px 0 6px;
-  top: 110px; /* same as height .tooltip*/
+  top: 110px;
   content: "";
-  /* left: calc(50% - 6px); */
   left: 8px;
   position: absolute;
   z-index: 99;
+}
+
+.tooltip.rightTriangle:before{
+  border-top: 6px solid transparent;
+  border-left: 6px solid black;
+  border-bottom: 6px solid transparent;
+  content: "";
+  position: absolute;
+  z-index: 99;
+  top: 12px;
+  left: 170px;
 }
 
 .tooltipText {
@@ -358,4 +682,8 @@ input:valid ~ span:after {
 
 .tooltip.show {
   opacity: 1;
+}
+
+.hide {
+  display: none;
 }

@@ -1,10 +1,7 @@
 /* global XMLHttpRequest:true */
 /* eslint no-undef: "error" */
 
-
-// TODO move from http to https
-
-var baseURL = 'http://air.eng.utah.edu';
+var baseURL = 'https://air.eng.utah.edu';
 
 
 function generateURL(anEndpoint, route, parameters) { // eslint-disable-line no-unused-vars
@@ -18,9 +15,11 @@ function generateURL(anEndpoint, route, parameters) { // eslint-disable-line no-
   } else if (route === '/lastValue') {
     url = `${baseURL}${anEndpoint}${route}?fieldKey=${parameters.fieldKey}`;
   } else if (route === '/contours') {
-    url = `${baseURL}${anEndpoint}${route}`;
+    url = `${baseURL}${anEndpoint}${route}?start=${parameters.start}&end=${parameters.end}`;
   } else if (route === '/getLatestContour') {
     url = `${baseURL}${anEndpoint}${route}`;
+  } else if (route === '/getEstimatesForLocation') {
+    url = `${baseURL}${anEndpoint}${route}?location_lat=${parameters.location.lat}&location_lng=${parameters.location.lng}&start=${parameters.start}&end=${parameters.end}`;
   }
 
   return url;
@@ -34,20 +33,23 @@ function getDataFromDB(anURL) { // eslint-disable-line no-unused-vars
 
     request.open(method, anURL, async); // true => request is async
 
-    // If the request returns succesfully, then resolve the promise
-    request.onreadystatechange = function processingResponse() {
-      if (request.readyState === 4 && request.status === 200) {
-        const response = JSON.parse(request.responseText);
-        resolve(response);
+    // If the request returns successfully, then resolve the promise
+    request.onreadystatechange = function () {
+      if (request.readyState === 4) {
+        if (request.status === 200) {
+          const response = JSON.parse(request.responseText);
+          resolve(response);
+        } else {
+          console.log(request.responseText)
+          reject(JSON.parse(request.responseText));
+        }
+      } else {
+        console.log("xhr processing going on");
       }
-
-      // If request has an error, then reject the promise
-      request.onerror = function showWarning(e) {
-        console.log('Something went wrong....');
-        reject(e);
-      };
-    };
+    }
 
     request.send();
+
+    console.log("request sent successfully");
   });
 }
