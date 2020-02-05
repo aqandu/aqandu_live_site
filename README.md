@@ -16,7 +16,7 @@ Now, make sure you have pipenv installed using:
 pip install pipenv
 ```
 
-Now let's install the virtualenv and all the dependencies with:
+Now let's install the python environment and all the dependencies with:
 
 ```
 pipenv install
@@ -44,7 +44,7 @@ cp config.production.py config.py
 gcloud app deploy app.yaml
 ```
 
-This will start building the containers that serve the website. You can check for a successful deployment from the app engine versions dashboard in GCP.
+This will start building the containers that serve the website. You can check for a successful deployment from the app engine versions dashboard in GCP. My testing has shown that it takes about 10 minutes to build.
 
 **NOTE**
 
