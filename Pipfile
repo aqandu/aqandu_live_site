@@ -48,3 +48,7 @@ Werkzeug = "==0.15.3"
 
 [requires]
 python_version = "3.7"
+
+[scripts]
+build-assets = "flask assets build"
+serve = "python main.py"
