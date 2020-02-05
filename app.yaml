@@ -38,3 +38,8 @@ beta_settings:
 handlers:
 - url: /static
   static_dir: aqandu/static
+
+
+# https config
+url: .*
+secure: always
