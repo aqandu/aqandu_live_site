@@ -21,7 +21,7 @@ env: flex
 entrypoint: gunicorn -b :$PORT main:app
 
 runtime_config:
-  python_version: 3
+  python_version: 3.7
 
 #[START cloudsql_settings]
 beta_settings:
