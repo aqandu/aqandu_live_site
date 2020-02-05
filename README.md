@@ -1,87 +1,55 @@
 # AQandU
-These are instructions for setting up the Python Virtual Environment and frontend of AQandU on a mac. 
-
-The instructions are inspired by this guide: 
-  https://medium.com/@henriquebastos/the-definitive-guide-to-setup-my-python-workspace-628d68552e14
+These are instructions for setting up the Python Virtual Environment and frontend of AQandU. We use Python 3 at its latest version (on GCP) which, at the time of writing, is 3.7. These instructions assume that you have python 3.7 and pip installed locally.
   
-# Setting Up Virtual Environment
+# Setting up a dev environment
 
-*First, make sure you have homebrew installed. To install, simply paste this into your terminal prompt:*
+First clone the repo locally and copy the example_config.py to config.py
 
-  /usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)" 
+```
+git clone https://github.com/visdesignlab/aqandu.git
+cp example_config.py config.py
+```
 
-*Next, paste the following into your terminal:*
+Now, make sure you have pipenv installed using:
 
-  1. brew install pyenv
-  2. brew install pyenv-virtualenv
-  3. brew install pyenv-virtualenvwrapper
+```
+pip install pipenv
+```
 
-*All virtualenvs will be on...*
+Now let's install the python environment and all the dependencies with:
 
-  4. mkdir ~/.ve 
-  
-*All projects will be on...*
+```
+pipenv install
+```
 
-  5. mkdir ~/workspace
-  
-The last two will intialize your directories, and help you keep your code and your virtual environments seperate. 
-This is so that the code is available in all sessions without needing to activate the virtualenv.
+Next, we need to generate some flask assets with:
 
-*Open your ~/.bashrc file. You can do this using vi or vim like so:*
-
-  6. vim ~/.bashrc 
-
-*Paste the following into your file:*
-
-  1. export WORKON_HOME=~/.ve
-  2. export PROJECT_HOME=~/workspace
-  3. eval "$(pyenv init -)"
-  4. #pyenv virtualenvwrapper_lazy
-  
-*Save and exit the bashrc file, and end your terminal session. Open a new terminal window, then paste this into the prompt:*
-
-  pyenv install 3.6.2 #This installs version 3.6.2
-  
-*Next, paste this:*
-
-  pyenv global 3.6.2 #this establishes path priority, for if you add other virtualenvs later
-  
-*Now uncomment the line #pyenv virtualenvwrapper_lazy on your ~/.bashrc and restart the terminal, exiting and closing its window and opening a new one.*
-
-# You've set up the Python Virtual Environment, now let's set up the frontend
-
-*Set up the the project like so:*
-
-  mkproject aqandu #I named the project aqandu, you can name it whatever you want. 
-  
-*Now, if you want to work on your project, do this:*
-
-  workon aqandu
-  
-You also need to have aqandu on your computer.
-*The easiest way to do this is to clone the repo from git:*
-
-  git clone https://github.com/visdesignlab/aqandu.git
-  
-*There are going to be dependencies missing. To install these, the easiest way is to run main.py:*
-
-  python main.py
-  
-*Now, for each dependency do the following:*
-
-  pip install **name_of_dependency**
-  
-Until you reach the config error. Pascal can send you that, as it's not on github. Just copy/paste it into your aqandu file system, same place as your main.py file. At this point, you should have installed flask. 
-*Do this:*
-
+```
 FLASK_APP=main.py flask assets build
+```
 
-*When you are done with the entire session, use this:*
+Then launch the application with:
 
-flask assets clean
-
-Run main.py again until you reach get a message that tells you that the "Debugger is Active!". Copy and paste the http into your browser. 
-
-# Ta Dah! You should see the AQandU website. 
+```
+pipenv run python main.py
+```
 
 
+# Deploying to GCP
+
+To deploy the application, you have to use the command line and the gcloud tools. Once you have the production config (from Jack or another admin) and you've set up gcloud cli with the correct default project, run the following commands:
+
+```
+cp config.production.py config.py
+gcloud app deploy app.yaml
+```
+
+This will start building the containers that serve the website. You can check for a successful deployment from the app engine versions dashboard in GCP. My testing has shown that it takes about 10 minutes to build.
+
+**NOTE**
+
+If you're getting `Error Response: [4] DEADLINE_EXCEEDED` then you need to increase the timeout for the build using 
+
+```
+gcloud config set app/cloud_build_timeout 1200
+```
