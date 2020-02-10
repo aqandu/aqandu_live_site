@@ -25,7 +25,7 @@ pipenv install
 Next, we need to generate some flask assets with:
 
 ```
-pienv run build-assets
+pipenv run build-assets
 ```
 
 Then launch the application with:
