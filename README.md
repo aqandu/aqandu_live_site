@@ -48,7 +48,7 @@ This will start building the containers that serve the website. You can check fo
 
 **NOTE**
 
-If you're getting `Error Response: [4] DEADLINE_EXCEEDED` then you need to increase the timeout for the build using 
+If you're getting `Error Response: [4] DEADLINE_EXCEEDED` then you need to increase the timeout for the build to 20 minutes using 
 
 ```
 gcloud config set app/cloud_build_timeout 1200

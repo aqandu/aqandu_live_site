@@ -2,7 +2,6 @@ import json
 import os
 from aqandu import app, bq_client
 from dotenv import load_dotenv
-from flask import render_template
 
 load_dotenv()
 SENSOR_TABLE = os.getenv("BIGQ_SENSOR")
