@@ -76,12 +76,6 @@ function startTheWholePage() {
   // shows either the sensors or the contours
   showMapDataVis();
 
-  // Add a layer button to add and remove the individual stations
-  // var overlayMaps = {
-  //   'Show Sensor': sensLayer
-  // };
-  // L.control.layers(null, overlayMaps, {position: 'verticalcentertopleft'}).addTo(theMap);
-
   // preventing click on timeline to generate map event (such as creating dot for getting AQ)
   var timelineDiv = L.DomUtil.get('timeline');
   L.DomEvent.disableClickPropagation(timelineDiv);
@@ -1070,13 +1064,13 @@ function distance(lat1, lon1, lat2, lon2) {
 
 function findDistance(r, mark) {
   var lt = mark.getLatLng().lat;
-  var lng = mark.getLatLng().lng;
+  var lon = mark.getLatLng().lng;
   var closestsensor = null;
   var sensorobject = null;
 
   r.forEach(function (item) {
     if (item['Latitude'] !== null && item['Longitude'] !== null) {
-      var d = distance(lt, lng, parseFloat(item['Latitude']), parseFloat(item['Longitude']));
+      var d = distance(lt, lon, parseFloat(item['Latitude']), parseFloat(item['Longitude']));
       //compare old distance to new distance. Smaller = closestsensor
       if (closestsensor === null) {
         closestsensor = d; //distance
@@ -1443,7 +1437,7 @@ function conversionPM(pm, sensorSource, sensorModel) {
 }
 
 function createNewMarker(location) {
-  var clickLocation = location.latlng;
+  var clickLocation = location.latlon;
 
   // creating the ID for the marker
   var markerID = latestGeneratedID + 1;
@@ -1456,7 +1450,7 @@ function createNewMarker(location) {
   sensorLayerRandomMarker(randomClickMarker)
 
 
-  var estimatesForLocationURL = generateURL('/getEstimatesForLocation', { 'location': { 'lat': clickLocation['lat'], 'lng': clickLocation['lng'] }, 'start': pastDate, 'end': today })
+  var estimatesForLocationURL = generateURL('/getEstimatesForLocation', { 'location': { 'lat': clickLocation['lat'], 'lon': clickLocation['lng'] }, 'start': pastDate, 'end': today })
 
   getDataFromDB(estimatesForLocationURL).then(data => {
     // parse the incoming bilinerar interpolated data

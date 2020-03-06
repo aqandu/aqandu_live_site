@@ -1,25 +1,26 @@
 /* global XMLHttpRequest:true */
 /* eslint no-undef: "error" */
 
-var baseURL = 'https://aqandu.org/api';
+var baseURL = 'http://127.0.0.1:8080/api';
 
 
 function generateURL(route, parameters) {
-  let url = '';
+  let urlRoute = `${baseURL}${route}`;
+  
   if (route === '/rawDataFrom?') {
-    url = `${baseURL}${route}id=${parameters.id}&sensorSource=${parameters.sensorSource}&start=${parameters.start}&end=${parameters.end}&show=${parameters.show}`;
+    url = `${urlRoute}?id=${parameters.id}&sensorSource=${parameters.sensorSource}&start=${parameters.start}&end=${parameters.end}&show=${parameters.show}`;
   } else if (route === '/liveSensors') {
-    url = `${baseURL}${route}/${parameters.type}`;
+    url = `${urlRoute}?sensorType=${parameters.type}`;
   } else if (route === '/processedDataFrom?') {
-    url = `${baseURL}${route}id=${parameters.id}&sensorSource=${parameters.sensorSource}&start=${parameters.start}&end=${parameters.end}&function=${parameters.function}&functionArg=${parameters.functionArg}&timeInterval=${parameters.timeInterval}`;
+    url = `${urlRoute}?id=${parameters.id}&sensorSource=${parameters.sensorSource}&start=${parameters.start}&end=${parameters.end}&function=${parameters.function}&functionArg=${parameters.functionArg}&timeInterval=${parameters.timeInterval}`;
   } else if (route === '/lastValue') {
-    url = `${baseURL}${route}?fieldKey=${parameters.fieldKey}`;
+    url = `${urlRoute}?fieldKey=${parameters.fieldKey}`;
   } else if (route === '/contours') {
-    url = `${baseURL}${route}?start=${parameters.start}&end=${parameters.end}`;
+    url = `${urlRoute}?start=${parameters.start}&end=${parameters.end}`;
   } else if (route === '/getLatestContour') {
-    url = `${baseURL}${route}`;
+    url = `${urlRoute}`;
   } else if (route === '/getEstimatesForLocation') {
-    url = `${baseURL}${route}?location_lat=${parameters.location.lat}&location_lng=${parameters.location.lng}&start=${parameters.start}&end=${parameters.end}`;
+    url = `${urlRoute}?locationLat=${parameters.location.lat}&locationLon=${parameters.location.lng}&start=${parameters.start}&end=${parameters.end}`;
   }
 
   return url;
