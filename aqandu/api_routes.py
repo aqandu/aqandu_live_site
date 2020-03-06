@@ -28,3 +28,31 @@ def test():
                             "VER": row.VER})
     json_sensors = json.dumps(sensor_list, indent=4)
     return json_sensors
+
+@app.route("/api/rawDataFrom")
+def rawDataFrom():
+    pass
+
+@app.route("/api/liveSensors/{sensorType}")
+def liveSensors():
+    pass
+
+@app.route("/api/processedDataFrom")
+def processedDataFrom():
+    pass
+
+@app.route("/api/lastValue")
+def lastValue():
+    pass
+
+@app.route("/api/contours")
+def contours():
+    pass
+
+@app.route("/api/getLatestContour")
+def getLatestContour():
+    pass
+
+@app.route("/api/getEstimatesForLocation")
+def getEstimatesForLocation():
+    pass

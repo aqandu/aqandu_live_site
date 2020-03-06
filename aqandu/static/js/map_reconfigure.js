@@ -42,11 +42,10 @@ let theContours = [];
 let liveSensors = [];
 let liveSensorsData = [];
 
-const dbEndpoint = '/dbapi/api';
-const liveSensorURL_airU = generateURL(dbEndpoint, '/liveSensors', { 'type': 'airU' });
-const liveSensorURL_all = generateURL(dbEndpoint, '/liveSensors', { 'type': 'all' });
-const lastPM25ValueURL = generateURL(dbEndpoint, '/lastValue', { 'fieldKey': 'pm25' });
-const lastContourURL = generateURL(dbEndpoint, '/getLatestContour', null);
+const liveSensorURL_airU = generateURL('/liveSensors', { 'type': 'airU' });
+const liveSensorURL_all = generateURL('/liveSensors', { 'type': 'all' });
+const lastPM25ValueURL = generateURL('/lastValue', { 'fieldKey': 'pm25' });
+const lastContourURL = generateURL('/getLatestContour', null);
 
 
 let theMap;
@@ -909,7 +908,7 @@ function getContourData() {
     anIntermediateDate.setDate(anIntermediateDate.getDate() - i);
     var startDate = anIntermediateDate.toISOString().substr(0, 19) + 'Z';
 
-    var contoursURL = generateURL(dbEndpoint, '/contours', { 'start': startDate, 'end': endDate });
+    var contoursURL = generateURL('/contours', { 'start': startDate, 'end': endDate });
 
     listOfPromises.push(getDataFromDB(contoursURL));
 
@@ -931,7 +930,7 @@ function getAllSensorData() {
     var route = '/rawDataFrom?';
     var parameters = { 'id': aLiveSensor.id, 'sensorSource': aLiveSensor.sensorSource, 'start': pastDate, 'end': today, 'show': 'pm25' };
 
-    var aSensorRawDataURL = generateURL(dbEndpoint, route, parameters)
+    var aSensorRawDataURL = generateURL(route, parameters)
 
     getDataFromDB(aSensorRawDataURL).then(data => {
       liveSensorsData.push({ 'id': data.tags[0]['ID'], 'pmData': data.data, 'sensorModel': data.tags[0]['Sensor Model'], 'sensorSource': data.tags[0]['Sensor Source'] })
@@ -1294,7 +1293,7 @@ function getGraphData(sensorID, sensorSource, aggregation) {
     console.error('Error reaching API');
   }
 
-  var url = generateURL(dbEndpoint, theRoute, parameters);
+  var url = generateURL(theRoute, parameters);
 
   getDataFromDB(url).then(data => {
     preprocessDBData(sensorID, data)
@@ -1316,7 +1315,7 @@ function reGetGraphData(theID, theSensorSource, aggregation) {
     console.error('Failed to get graph data.');
   }
 
-  var url = generateURL(dbEndpoint, theRoute, parameters);
+  var url = generateURL(theRoute, parameters);
   getDataFromDB(url).then(data => {
     preprocessDBData(theID, data)
   }).catch(function (err) {
@@ -1324,14 +1323,6 @@ function reGetGraphData(theID, theSensorSource, aggregation) {
     console.error('Error: ', err)
   });
 
-}
-
-function getData(strng) {
-  return new Promise(function (resolve, reject) { //use a promise as a place holder until a promise is fulfilled (resolve)
-    d3.text(strng, function (data) {
-      resolve(data);
-    });
-  });
 }
 
 function populateGraph() {
@@ -1465,7 +1456,7 @@ function createNewMarker(location) {
   sensorLayerRandomMarker(randomClickMarker)
 
 
-  var estimatesForLocationURL = generateURL(dbEndpoint, '/getEstimatesForLocation', { 'location': { 'lat': clickLocation['lat'], 'lng': clickLocation['lng'] }, 'start': pastDate, 'end': today })
+  var estimatesForLocationURL = generateURL('/getEstimatesForLocation', { 'location': { 'lat': clickLocation['lat'], 'lng': clickLocation['lng'] }, 'start': pastDate, 'end': today })
 
   getDataFromDB(estimatesForLocationURL).then(data => {
     // parse the incoming bilinerar interpolated data
