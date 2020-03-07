@@ -1,6 +1,5 @@
 import assets
 import config
-import logging
 import os
 from dotenv import load_dotenv
 from flask import Flask
@@ -13,7 +12,6 @@ PROJECT_ID = os.getenv("PROJECTID")
 app = Flask(__name__)
 app.config.from_object(config)
 assets.init(app)
-logging.basicConfig(level=logging.INFO)
 
 credentials = service_account.Credentials.from_service_account_file("aqandu/aqandu.json")
 bq_client = bigquery.Client(credentials=credentials, project=PROJECT_ID)

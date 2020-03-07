@@ -1,38 +1,35 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 import json
-import logging
 import os
 from aqandu import app, bq_client
 from dotenv import load_dotenv
-from flask import request
+from flask import request, jsonify
 
 # Load in .env and set the table name
 load_dotenv()
 SENSOR_TABLE = os.getenv("BIGQ_SENSOR")
 
-# Set up logging
-LOGGER = logging.getLogger('aqandu')
-uncaught_LOGGER = logging.getLogger('uncaughtExcpt')
-
 # Set the lookup for better returned variable names
 varNameLookup = {
-    'PM25': '\"pm2.5 (ug/m^3)\"',
+    'DEVICE_ID': 'ID',
+    'PM25': 'pm25',
     'HUM': '\"Humidity (%)\"',
     'LAT': 'Latitude',
     'LON': 'Longitude',
     'VER': '\"Sensor Version\"',
+    'MODEL': '\"Sensor Model\"',
     'TEMP': '\"Temp (*C)\"',
     'PM1': '\"pm1.0 (ug/m^3)\"',
     'PM10': '\"pm10.0 (ug/m^3)\"',
     'CO': 'CO',
-    'NOX': 'NOX'
+    'NOX': 'NOX',
+    'TIMESTAMP': 'time'
 }
 
 @app.route("/api/rawDataFrom", methods = ["GET"])
 def rawDataFrom():
     # Check that the arguments we want exist
     if not validateInputs(['id', 'sensorSource', 'start', 'end', 'show'], request.args):
-        LOGGER.info('missing an id and/or a sensorSource and/or a start and/or an end date and/or a show')
         msg = 'Query string is missing an id and/or a sensorSource and/or a start and/or end date and/or a show'
         return msg, 400
 
@@ -82,28 +79,37 @@ def liveSensors():
 
     # Define the BigQuery query
     query = (
-        "SELECT * "
-        f"FROM `{SENSOR_TABLE}` "
+        "SELECT a.* "
+        f"FROM `{SENSOR_TABLE}` AS a "
+        "INNER JOIN ( "
+            "SELECT DEVICE_ID AS ID, max(TIMESTAMP) AS LATEST_MEASUREMENT "
+            "FROM `aqandu-184820.airu_dataset_iot.airU_sensor` "
+            "GROUP BY DEVICE_ID "
+            ") AS b ON a.DEVICE_ID = b.ID AND a.TIMESTAMP = b.LATEST_MEASUREMENT "
+        "ORDER BY TIMESTAMP DESC "
+        "LIMIT 10 "
     )
 
     # Run the query and collect the result
+    sensor_list = []
     query_job = bq_client.query(query)
     rows = query_job.result()
     for row in rows:
-        sensor_list.append({"DEVICE_ID": str(row.DEVICE_ID),
-                            "LAT": row.LAT,
-                            "LON": row.LON,
-                            "TIMESTAMP": str(row.TIMESTAMP),
-                            "PM1": row.PM1,
-                            "PM25": row.PM25,
-                            "PM10": row.PM10,
-                            "TEMP": row.TEMP,
-                            "HUM": row.HUM,
+        sensor_list.append({"ID": str(row.DEVICE_ID),
+                            "Latitude": row.LAT,
+                            "Longitude": row.LON,
+                            "time": row.TIMESTAMP.timestamp(),
+                            "pm1": row.PM1,
+                            "pm25": row.PM25,
+                            "pm10": row.PM10,
+                            "Temperature": row.TEMP,
+                            "Humidity": row.HUM,
                             "NOX": row.NOX,
                             "CO": row.CO,
-                            "VER": row.VER})
-    json_sensors = json.dumps(sensor_list, indent=4)
-    return json_sensors
+                            "VER": row.VER,
+                            "Sensor Source": "DAQ"})
+
+    return jsonify(sensor_list)
 
 @app.route("/api/processedDataFrom", methods = ["GET"])
 def processedDataFrom():
@@ -148,28 +154,37 @@ def lastValue():
 
     # Define the BigQuery query
     query = (
-        "SELECT * "
-        f"FROM `{SENSOR_TABLE}` "
+        "SELECT a.* "
+        f"FROM `{SENSOR_TABLE}` AS a "
+        "INNER JOIN ( "
+            "SELECT DEVICE_ID AS ID, max(TIMESTAMP) AS LATEST_MEASUREMENT "
+            "FROM `aqandu-184820.airu_dataset_iot.airU_sensor` "
+            "GROUP BY DEVICE_ID "
+            ") AS b ON a.DEVICE_ID = b.ID AND a.TIMESTAMP = b.LATEST_MEASUREMENT "
+        "ORDER BY TIMESTAMP DESC "
+        "LIMIT 10 "
     )
 
     # Run the query and collect the result
+    sensor_list = []
     query_job = bq_client.query(query)
     rows = query_job.result()
     for row in rows:
-        sensor_list.append({"DEVICE_ID": str(row.DEVICE_ID),
-                            "LAT": row.LAT,
-                            "LON": row.LON,
-                            "TIMESTAMP": str(row.TIMESTAMP),
-                            "PM1": row.PM1,
-                            "PM25": row.PM25,
-                            "PM10": row.PM10,
-                            "TEMP": row.TEMP,
-                            "HUM": row.HUM,
+        sensor_list.append({"ID": str(row.DEVICE_ID),
+                            "Latitude": row.LAT,
+                            "Longitude": row.LON,
+                            "time": row.TIMESTAMP.timestamp(),
+                            "pm1": row.PM1,
+                            "pm25": row.PM25,
+                            "pm10": row.PM10,
+                            "Temperature": row.TEMP,
+                            "Humidity": row.HUM,
                             "NOX": row.NOX,
                             "CO": row.CO,
-                            "VER": row.VER})
-    json_sensors = json.dumps(sensor_list, indent=4)
-    return json_sensors
+                            "VER": row.VER,
+                            "Sensor Source": "DAQ"})
+
+    return jsonify(sensor_list)
 
 @app.route("/api/contours", methods = ["GET"])
 def contours():
