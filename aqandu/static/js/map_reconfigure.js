@@ -921,7 +921,7 @@ function getContourData() {
 function getAllSensorData() {
 
   liveSensors.forEach(function (aLiveSensor) {
-    var route = '/rawDataFrom?';
+    var route = '/rawDataFrom';
     var parameters = { 'id': aLiveSensor.id, 'sensorSource': aLiveSensor.sensorSource, 'start': pastDate, 'end': today, 'show': 'pm25' };
 
     var aSensorRawDataURL = generateURL(route, parameters)
@@ -1278,7 +1278,7 @@ function getGraphData(sensorID, sensorSource, aggregation) {
   let theRoute = '';
   let parameters = {};
   if (!aggregation) {
-    theRoute = '/rawDataFrom?';
+    theRoute = '/rawDataFrom';
     parameters = { 'id': sensorID, 'sensorSource': sensorSource, 'start': pastDate, 'end': today, 'show': 'pm25' };
   } else if (aggregation) {
     theRoute = '/processedDataFrom?';
@@ -1300,7 +1300,7 @@ function reGetGraphData(theID, theSensorSource, aggregation) {
   let theRoute = '';
   let parameters = {};
   if (!aggregation) {
-    theRoute = '/rawDataFrom?';
+    theRoute = '/rawDataFrom';
     parameters = { 'id': theID, 'sensorSource': theSensorSource, 'start': pastDate, 'end': today, 'show': 'pm25' };
   } else if (aggregation) {
     theRoute = '/processedDataFrom?';

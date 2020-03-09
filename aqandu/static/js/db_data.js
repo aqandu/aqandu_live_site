@@ -7,7 +7,7 @@ var baseURL = 'http://127.0.0.1:8080/api';
 function generateURL(route, parameters) {
   let urlRoute = `${baseURL}${route}`;
   
-  if (route === '/rawDataFrom?') {
+  if (route === '/rawDataFrom') {
     url = `${urlRoute}?id=${parameters.id}&sensorSource=${parameters.sensorSource}&start=${parameters.start}&end=${parameters.end}&show=${parameters.show}`;
   } else if (route === '/liveSensors') {
     url = `${urlRoute}?sensorType=${parameters.type}`;

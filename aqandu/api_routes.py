@@ -38,7 +38,7 @@ def rawDataFrom():
     sensor_source = request.args.get('sensorSource')
     start = request.args.get('start')
     end = request.args.get('end')
-    show = request.args.get('show')
+    show = request.args.get('show') # Data type (should be pm25)
 
     # Check that the data is formatted correctly
     if not validateDate(start) or not validateDate(end):
@@ -47,30 +47,28 @@ def rawDataFrom():
 
     # Define the BigQuery query
     query = (
-        "SELECT * "
+        "SELECT PM25, TIMESTAMP "
         f"FROM `{SENSOR_TABLE}` "
-        "LIMIT 10"
+        f"WHERE DEVICE_ID = '{id}' "
+        f"AND TIMESTAMP >= '{start}' "
+        f"AND TIMESTAMP <= '{end}' "
     )
 
+    print(query)
+
     # Run the query and collect the result
-    sensor_list = []
+    measurements = []
     query_job = bq_client.query(query)
     rows = query_job.result()
     for row in rows:
-        sensor_list.append({"DEVICE_ID": str(row.DEVICE_ID),
-                            "LAT": row.LAT,
-                            "LON": row.LON,
-                            "TIMESTAMP": str(row.TIMESTAMP),
-                            "PM1": row.PM1,
-                            "PM25": row.PM25,
-                            "PM10": row.PM10,
-                            "TEMP": row.TEMP,
-                            "HUM": row.HUM,
-                            "NOX": row.NOX,
-                            "CO": row.CO,
-                            "VER": row.VER})
-    json_sensors = json.dumps(sensor_list, indent=4)
-    return json_sensors
+        measurements.append({"pm25": row.PM25, "time": row.TIMESTAMP.strftime("%Y-%m-%dT%H:%M:%SZ")})
+    tags = [{
+        "ID": id,
+        "Sensor Source": sensor_source,
+        "SensorModel":"H1.2+S1.0.8",
+        "time": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
+    }]
+    return jsonify({"data": measurements, "tags": tags})
 
 @app.route("/api/liveSensors", methods = ["GET"])
 def liveSensors():
@@ -98,7 +96,7 @@ def liveSensors():
         sensor_list.append({"ID": str(row.DEVICE_ID),
                             "Latitude": row.LAT,
                             "Longitude": row.LON,
-                            "time": row.TIMESTAMP.timestamp(),
+                            "time": row.TIMESTAMP.timestamp() * 1000,
                             "pm1": row.PM1,
                             "pm25": row.PM25,
                             "pm10": row.PM10,
@@ -173,7 +171,7 @@ def lastValue():
         sensor_list.append({"ID": str(row.DEVICE_ID),
                             "Latitude": row.LAT,
                             "Longitude": row.LON,
-                            "time": row.TIMESTAMP.timestamp(),
+                            "time": row.TIMESTAMP.timestamp() * 1000,
                             "pm1": row.PM1,
                             "pm25": row.PM25,
                             "pm10": row.PM10,
@@ -291,8 +289,6 @@ def validateDate(dateString):
     try:
         if dateString != datetime.strptime(dateString, "%Y-%m-%dT%H:%M:%SZ").strftime("%Y-%m-%dT%H:%M:%SZ"):
             raise ValueError
-        LOGGER.info('{} valid date, no value error'.format(dateString))
         return True
     except ValueError:
-        LOGGER.info('{} not a valid date, value error'.format(dateString))
         return False
