@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
 import json
 import os
-from aqandu import app, bq_client
+from aqandu import app, bq_client, bigquery
 from dotenv import load_dotenv
 from flask import request, jsonify
 
@@ -274,6 +274,58 @@ def getEstimatesForLocation():
                             "VER": row.VER})
     json_sensors = json.dumps(sensor_list, indent=4)
     return json_sensors
+
+
+@app.route("/api/request_model_data/", methods=['GET'])
+def request_model_data():
+    query_parameters = request.args
+    lat = query_parameters.get('lat')
+    lon = query_parameters.get('lon')
+    radius = query_parameters.get('radius')
+    start_date = query_parameters.get('start_date').replace('/', ' ') + ' America/Denver'
+    end_date = query_parameters.get('end_date').replace('/', ' ') + ' America/Denver'
+
+    model_data = []
+    # get the latest sensor data from each sensor
+    query = (
+        "SELECT * "
+        f"FROM `{SENSOR_TABLE}` " 
+        "WHERE SQRT(POW(LAT - @lat, 2) + POW(LON - @lon, 2)) <= @radius "
+        "AND TIMESTAMP > @start_date AND TIMESTAMP < @end_date "
+        "ORDER BY TIMESTAMP ASC;"
+    )
+
+    job_config = bigquery.QueryJobConfig(
+        query_parameters=[
+            bigquery.ScalarQueryParameter("lat", "NUMERIC", lat),
+            bigquery.ScalarQueryParameter("lon", "NUMERIC", lon),
+            bigquery.ScalarQueryParameter("radius", "NUMERIC", radius),
+            bigquery.ScalarQueryParameter("start_date", "TIMESTAMP", start_date),
+            bigquery.ScalarQueryParameter("end_date", "TIMESTAMP", end_date),
+        ]
+    )
+
+    query_job = bq_client.query(query, job_config = job_config)
+    print(query_job.query)
+    if query_job.error_result:
+        return "Invalid API call - check documentation."
+    rows = query_job.result()  # Waits for query to finish
+
+    for row in rows:
+        model_data.append({"DEVICE_ID": str(row.DEVICE_ID),
+                            "LAT": row.LAT,
+                            "LON": row.LON,
+                            "TIMESTAMP": str(row.TIMESTAMP),
+                            "PM1": row.PM1,
+                            "PM25": row.PM25,
+                            "PM10": row.PM10,
+                            "TEMP": row.TEMP,
+                            "HUM": row.HUM,
+                            "NOX": row.NOX,
+                            "CO": row.CO,
+                            "VER": row.VER})
+
+    return jsonify(model_data)
 
 
 # Helper function
