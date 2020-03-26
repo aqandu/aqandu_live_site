@@ -154,7 +154,8 @@ def processedDataFrom():
     json_sensors = json.dumps(sensor_list, indent=4)
     return json_sensors
 
-# TODO: Fix this route
+# Example request:
+# 127.0.0.1:8080/api/lastValue?fieldKey=pm25
 @app.route("/api/lastValue", methods = ["GET"])
 def lastValue():
     # Get the arguments from the query string
@@ -169,8 +170,6 @@ def lastValue():
             "FROM `aqandu-184820.airu_dataset_iot.airU_sensor` "
             "GROUP BY DEVICE_ID "
             ") AS b ON a.DEVICE_ID = b.ID AND a.TIMESTAMP = b.LATEST_MEASUREMENT "
-        "ORDER BY TIMESTAMP DESC "
-        "LIMIT 10 "
     )
 
     # Run the query and collect the result
