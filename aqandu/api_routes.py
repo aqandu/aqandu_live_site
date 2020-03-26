@@ -26,6 +26,8 @@ varNameLookup = {
     'TIMESTAMP': 'time'
 }
 
+# Example request:
+# 127.0.0.1:8080/api/rawDataFrom?id=M30AEA4EF9F88&sensorSource=Purple%20Air&start=2020-03-25T00:23:51Z&end=2020-03-26T00:23:51Z&show=pm25
 @app.route("/api/rawDataFrom", methods = ["GET"])
 def rawDataFrom():
     # Check that the arguments we want exist
@@ -49,16 +51,22 @@ def rawDataFrom():
     query = (
         "SELECT PM25, TIMESTAMP "
         f"FROM `{SENSOR_TABLE}` "
-        f"WHERE DEVICE_ID = '{id}' "
-        f"AND TIMESTAMP >= '{start}' "
-        f"AND TIMESTAMP <= '{end}' "
+        f"WHERE DEVICE_ID = @id "
+        f"AND TIMESTAMP >= @start "
+        f"AND TIMESTAMP <= @end "
     )
 
-    print(query)
+    job_config = bigquery.QueryJobConfig(
+        query_parameters=[
+            bigquery.ScalarQueryParameter("id", "STRING", id),
+            bigquery.ScalarQueryParameter("start", "TIMESTAMP", start),
+            bigquery.ScalarQueryParameter("end", "TIMESTAMP", end),
+        ]
+    )
 
     # Run the query and collect the result
     measurements = []
-    query_job = bq_client.query(query)
+    query_job = bq_client.query(query, job_config=job_config)
     rows = query_job.result()
     for row in rows:
         measurements.append({"pm25": row.PM25, "time": row.TIMESTAMP.strftime("%Y-%m-%dT%H:%M:%SZ")})
@@ -70,6 +78,8 @@ def rawDataFrom():
     }]
     return jsonify({"data": measurements, "tags": tags})
 
+# Example request
+# 127.0.0.1:8080/api/liveSensors?sensorType=all
 @app.route("/api/liveSensors", methods = ["GET"])
 def liveSensors():
     # Get the arguments from the query string
@@ -84,8 +94,6 @@ def liveSensors():
             "FROM `aqandu-184820.airu_dataset_iot.airU_sensor` "
             "GROUP BY DEVICE_ID "
             ") AS b ON a.DEVICE_ID = b.ID AND a.TIMESTAMP = b.LATEST_MEASUREMENT "
-        "ORDER BY TIMESTAMP DESC "
-        "LIMIT 10 "
     )
 
     # Run the query and collect the result
@@ -109,6 +117,7 @@ def liveSensors():
 
     return jsonify(sensor_list)
 
+# TODO: Fix this route
 @app.route("/api/processedDataFrom", methods = ["GET"])
 def processedDataFrom():
     # Get the arguments from the query string
@@ -145,6 +154,7 @@ def processedDataFrom():
     json_sensors = json.dumps(sensor_list, indent=4)
     return json_sensors
 
+# TODO: Fix this route
 @app.route("/api/lastValue", methods = ["GET"])
 def lastValue():
     # Get the arguments from the query string
@@ -184,6 +194,7 @@ def lastValue():
 
     return jsonify(sensor_list)
 
+# TODO: Fix this route
 @app.route("/api/contours", methods = ["GET"])
 def contours():
     # Get the arguments from the query string
@@ -215,6 +226,7 @@ def contours():
     json_sensors = json.dumps(sensor_list, indent=4)
     return json_sensors
 
+# TODO: Fix this route
 @app.route("/api/getLatestContour", methods = ["GET"])
 def getLatestContour():
     # Define the BigQuery query
@@ -242,6 +254,7 @@ def getLatestContour():
     json_sensors = json.dumps(sensor_list, indent=4)
     return json_sensors
 
+# TODO: Fix this route
 @app.route("/api/getEstimatesForLocation", methods = ["GET"])
 def getEstimatesForLocation():
     # Get the arguments from the query string
@@ -276,14 +289,16 @@ def getEstimatesForLocation():
     return json_sensors
 
 
+# Example request:
+# 127.0.0.1:8080/api/request_model_data?lat=40.7688&lon=-111.8462&radius=1&start_date=2020-03-10T0:0:0&end_date=2020-03-11T0:0:0
 @app.route("/api/request_model_data/", methods=['GET'])
 def request_model_data():
     query_parameters = request.args
     lat = query_parameters.get('lat')
     lon = query_parameters.get('lon')
     radius = query_parameters.get('radius')
-    start_date = query_parameters.get('start_date').replace('/', ' ') + ' America/Denver'
-    end_date = query_parameters.get('end_date').replace('/', ' ') + ' America/Denver'
+    start_date = f"{query_parameters.get('start_date')} America/Denver"
+    end_date = f"{query_parameters.get('end_date')} America/Denver"
 
     model_data = []
     # get the latest sensor data from each sensor
@@ -306,7 +321,7 @@ def request_model_data():
     )
 
     query_job = bq_client.query(query, job_config = job_config)
-    print(query_job.query)
+
     if query_job.error_result:
         return "Invalid API call - check documentation."
     rows = query_job.result()  # Waits for query to finish
