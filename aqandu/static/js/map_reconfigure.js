@@ -165,7 +165,6 @@ function setUpTimeline() {
 
   // sets the from date for the timeline when the radio button is changed
   $('#timelineControls input[type=radio]').on('change', function () {
-    console.log('changed timerange')
     whichTimeRangeToShow = parseInt($(`[name="timeRange"]:checked`).val());
 
     let newDate = new Date(today);  // use 'today' as the base date
