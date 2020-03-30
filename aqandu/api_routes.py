@@ -8,6 +8,8 @@ from flask import request, jsonify
 # Load in .env and set the table name
 load_dotenv()
 SENSOR_TABLE = os.getenv("BIGQ_SENSOR")
+PROJECTID = os.getenv("PROJECTID")
+POLMONID = os.getenv("POLMONID")
 
 # Set the lookup for better returned variable names
 varNameLookup = {
@@ -91,7 +93,7 @@ def liveSensors():
         f"FROM `{SENSOR_TABLE}` AS a "
         "INNER JOIN ( "
             "SELECT DEVICE_ID AS ID, max(TIMESTAMP) AS LATEST_MEASUREMENT "
-            "FROM `aqandu-184820.airu_dataset_iot.airU_sensor` "
+            f"FROM `{SENSOR_TABLE}` "
             "GROUP BY DEVICE_ID "
             ") AS b ON a.DEVICE_ID = b.ID AND a.TIMESTAMP = b.LATEST_MEASUREMENT "
     )
@@ -167,7 +169,7 @@ def lastValue():
         f"FROM `{SENSOR_TABLE}` AS a "
         "INNER JOIN ( "
             "SELECT DEVICE_ID AS ID, max(TIMESTAMP) AS LATEST_MEASUREMENT "
-            "FROM `aqandu-184820.airu_dataset_iot.airU_sensor` "
+            f"FROM `{SENSOR_TABLE}` "
             "GROUP BY DEVICE_ID "
             ") AS b ON a.DEVICE_ID = b.ID AND a.TIMESTAMP = b.LATEST_MEASUREMENT "
     )
@@ -289,7 +291,7 @@ def getEstimatesForLocation():
 
 
 # Example request:
-# 127.0.0.1:8080/api/request_model_data?lat=40.7688&lon=-111.8462&radius=1&start_date=2020-03-10T0:0:0&end_date=2020-03-11T0:0:0
+# 127.0.0.1:8080/api/request_model_data?lat=40.7688&lon=-111.8462&radius=1&start_date=2020-03-10T0:0:0&end_date=2020-03-10T0:1:0
 @app.route("/api/request_model_data/", methods=['GET'])
 def request_model_data():
     query_parameters = request.args
@@ -303,10 +305,55 @@ def request_model_data():
     # get the latest sensor data from each sensor
     query = (
         "SELECT * "
-        f"FROM `{SENSOR_TABLE}` " 
-        "WHERE SQRT(POW(LAT - @lat, 2) + POW(LON - @lon, 2)) <= @radius "
-        "AND TIMESTAMP > @start_date AND TIMESTAMP < @end_date "
-        "ORDER BY TIMESTAMP ASC;"
+        "FROM ( "
+            "SELECT "
+                "Altitude," 
+                "CO, "
+                "Humidity, "
+                "ID, "
+                "Latitude, "
+                "Longitude, "
+                "PM10, "
+                "PM2_5, "
+                "SensorModel, "
+                "Temperature, "
+                "time, "
+                "'AirU' AS Source "
+            f"FROM `{PROJECTID}.{POLMONID}.airu_stationary` "
+            "UNION ALL "
+            "SELECT "
+                "Altitude," 
+                "CO, "
+                "Humidity, "
+                "ID, "
+                "Latitude, "
+                "Longitude, "
+                "PM10, "
+                "PM2_5, "
+                "NULL AS SensorModel, "
+                "Temperature, "
+                "time, "
+                "'DAQ' AS Source "
+            f"FROM `{PROJECTID}.{POLMONID}.daq` "
+            "UNION ALL "
+            "SELECT "
+                "Altitude, "
+                "NULL AS CO, "
+                "Humidity, "
+                "ID, "
+                "Latitude, "
+                "Longitude, "
+                "PM10, "
+                "PM2_5, "
+                "SensorModel, "
+                "Temperature, "
+                "time, "
+                "'Purple Air' AS Source "
+            f"FROM `{PROJECTID}.{POLMONID}.purpleair` "
+        ") "
+        "WHERE SQRT(POW(Latitude - @lat, 2) + POW(Longitude - @lon, 2)) <= @radius "
+        "AND time > @start_date AND time < @end_date "
+        "ORDER BY time ASC;"
     )
 
     job_config = bigquery.QueryJobConfig(
@@ -322,22 +369,25 @@ def request_model_data():
     query_job = bq_client.query(query, job_config = job_config)
 
     if query_job.error_result:
-        return "Invalid API call - check documentation."
+        print(query_job.error_result)
+        return "Invalid API call - check documentation.", 400
     rows = query_job.result()  # Waits for query to finish
 
     for row in rows:
-        model_data.append({"DEVICE_ID": str(row.DEVICE_ID),
-                            "LAT": row.LAT,
-                            "LON": row.LON,
-                            "TIMESTAMP": str(row.TIMESTAMP),
-                            "PM1": row.PM1,
-                            "PM25": row.PM25,
-                            "PM10": row.PM10,
-                            "TEMP": row.TEMP,
-                            "HUM": row.HUM,
-                            "NOX": row.NOX,
-                            "CO": row.CO,
-                            "VER": row.VER})
+        model_data.append({
+            "Altitude": row.Altitude,
+            "CO": row.CO,
+            "Humidity": row.Humidity,
+            "ID": row.ID,
+            "Latitude": row.Latitude,
+            "Longitude": row.Longitude,
+            "PM10": row.PM10,
+            "PM2_5": row.PM2_5,
+            "SensorModel": row.SensorModel,
+            "Temperature": row.Temperature,
+            "time": row.time,
+            "Source": row.Source,
+        })
 
     return jsonify(model_data)
 
@@ -352,9 +402,4 @@ def validateInputs(neededInputs, inputs):
 
 def validateDate(dateString):
     """Check if date string is valid"""
-    try:
-        if dateString != datetime.strptime(dateString, "%Y-%m-%dT%H:%M:%SZ").strftime("%Y-%m-%dT%H:%M:%SZ"):
-            raise ValueError
-        return True
-    except ValueError:
-        return False
+    return dateString == datetime.strptime(dateString, "%Y-%m-%dT%H:%M:%SZ").strftime("%Y-%m-%dT%H:%M:%SZ")
