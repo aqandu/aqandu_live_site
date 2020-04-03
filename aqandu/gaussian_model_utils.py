@@ -27,7 +27,7 @@ def createTimeVector(sensor_data):
     lowest_bin_number = None
 
     for datum in sensor_data:
-        bin_number = getTimeCoordinateBin(datum['date_time'])
+        bin_number = getTimeCoordinateBin(datum['time'])
         time_coordinates.add(bin_number)
         datum[TIME_COORDINATE_BIN_NUMBER_KEY] = bin_number
 
@@ -50,8 +50,8 @@ def createSpaceVector(sensor_data):
     device_location_map = {}
 
     for datum in sensor_data:
-        if datum['device_id'] not in device_location_map:
-            device_location_map[datum['device_id']] = (datum['utm_x'], datum['utm_y'], datum['elevation'])
+        if datum['ID'] not in device_location_map:
+            device_location_map[datum['ID']] = (datum['utm_x'], datum['utm_y'], datum['Altitude'])
     
     #print(device_location_map)
 
@@ -135,9 +135,9 @@ def setupDataMatrix(sensor_data, space_coordinates, time_coordinates, device_loc
     data_matrix = numpy.zeros(shape=(space_coordinates.shape[0], time_coordinates.shape[0]))
     for datum in sensor_data:
         date_index = numpy.nonzero(time_coordinates == datum[TIME_COORDINATE_BIN_NUMBER_KEY])[0][0]
-        location_index = device_location_map[datum['device_id']]
+        location_index = device_location_map[datum['ID']]
         # bound sensor data below by 0
-        data_matrix[location_index][date_index] = datum['pm25'] if datum['pm25'] >= 0 else 0
+        data_matrix[location_index][date_index] = datum['PM2_5'] if datum['PM2_5'] >= 0 else 0
     
     saveMatrixToFile(data_matrix, '1matrix.txt')
     interpolateZeroElements(data_matrix)
@@ -163,7 +163,7 @@ def createModel(sensor_data, latlon_length_scale, elevation_length_scale, time_l
     # print(data_matrix)
     # print(space_coordinates)
     # print(time_coordinates)
-    model = gaussian_model(space_coordinates, time_coordinates, data_matrix,
+    model = gaussian_model.gaussian_model(space_coordinates, time_coordinates, data_matrix,
              latlong_length_scale=float(latlon_length_scale),
              elevation_length_scale=float(elevation_length_scale),
              time_length_scale=float(time_length_scale),
@@ -193,6 +193,6 @@ def predictUsingModel(model, lat, lon, elevation, query_dates, time_offset):
     yPred = [float(value) for value in yPred[0]]
     yVar = [float(value) for value in yVar[0]]
 
-    predictions = [{'pm25': pred, 'variance':var, 'datetime':date.strftime('%Y-%m-%d %H:%M:%S%z'), 'lat':lat, 'lon':lon, 'elev':elevation} for pred, var, date in zip(yPred, yVar, query_dates)]
+    predictions = [{'PM2_5': pred, 'variance':var, 'datetime':date.strftime('%Y-%m-%d %H:%M:%S%z'), 'Latitude':lat, 'Longitude':lon, 'Altitude':elevation} for pred, var, date in zip(yPred, yVar, query_dates)]
     
     return predictions

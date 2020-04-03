@@ -47,7 +47,7 @@ def removeInvalidSensors(sensor_data):
 
     # TODO NEEDS TESTING!
     # 5003 sensors are invalid if Raw 24-hour average PM2.5 levels are > 5 ug/m3 AND the two sensors differ by more than 16%
-    sensor5003Locations = {datum['ID']: (datum['utm_x', datum['utm_y']]) for datum in sensor_data if datum['type'] == '5003'}
+    sensor5003Locations = {datum['ID']: (datum['utm_x'], datum['utm_y']) for datum in sensor_data if datum['type'] == '5003'}
     sensorMatches = {}
     for sensor in sensor5003Locations:
         for match in sensor5003Locations:
