@@ -5,6 +5,10 @@ from aqandu import app, bq_client, bigquery
 from dotenv import load_dotenv
 from flask import request, jsonify
 
+from aqandu import utils
+from aqandu import elevation_interpolator
+from aqandu import gaussian_model_utils
+
 # Load in .env and set the table name
 load_dotenv()
 SENSOR_TABLE = os.getenv("BIGQ_SENSOR")
@@ -289,18 +293,7 @@ def getEstimatesForLocation():
     json_sensors = json.dumps(sensor_list, indent=4)
     return json_sensors
 
-
-# Example request:
-# 127.0.0.1:8080/api/request_model_data?lat=40.7688&lon=-111.8462&radius=1&start_date=2020-03-10T0:0:0&end_date=2020-03-10T0:1:0
-@app.route("/api/request_model_data/", methods=['GET'])
-def request_model_data():
-    query_parameters = request.args
-    lat = query_parameters.get('lat')
-    lon = query_parameters.get('lon')
-    radius = query_parameters.get('radius')
-    start_date = f"{query_parameters.get('start_date')} America/Denver"
-    end_date = f"{query_parameters.get('end_date')} America/Denver"
-
+def request_model_data_local(lat, lon, radius, start_date, end_date):
     model_data = []
     # get the latest sensor data from each sensor
     query = (
@@ -389,7 +382,183 @@ def request_model_data():
             "Source": row.Source,
         })
 
+    return model_data
+
+# Example request:
+# 127.0.0.1:8080/api/request_model_data?lat=40.7688&lon=-111.8462&radius=1&start_date=2020-03-10T0:0:0&end_date=2020-03-10T0:1:0
+@app.route("/api/request_model_data/", methods=['GET'])
+def request_model_data():
+    query_parameters = request.args
+    lat = query_parameters.get('lat')
+    lon = query_parameters.get('lon')
+    radius = query_parameters.get('radius')
+    start_date = f"{query_parameters.get('start_date')} America/Denver"
+    end_date = f"{query_parameters.get('end_date')} America/Denver"
+
+    model_data = request_model_data_local(lat, lon, radius, start_date, end_date)
     return jsonify(model_data)
+
+@app.route("/api/oleks_request/", methods=['GET'])
+def oleks_request():
+    # step 0, parse query parameters
+    query_parameters = request.args
+    query_lat = float(query_parameters.get('lat'))
+    query_lon = float(query_parameters.get('lon'))
+    query_start_datetime = utils.parseDateTimeParameter(query_parameters.get('start_date'))
+    query_end_datetime = utils.parseDateTimeParameter(query_parameters.get('end_date'))
+    query_frequency = float(query_parameters.get('frequency'))
+
+    if not query_start_datetime or not query_end_datetime:
+        response = jsonify(f'400 Bad Request: Unable to parse start_date or end_date. Required format: %Y-%m-%d/%H:%M:%S%z')
+        response.status_code = 400
+        return response
+
+    print(f'Query parameters: lat={query_lat} lon={query_lon} start_date={query_start_datetime} end_date={query_end_datetime} frequency={query_frequency}')
+
+    # step 0, load up the bounding box from file and check that request is within it
+    import csv
+    boundingBoxFileName = 'bounding_box.csv'
+    with open(boundingBoxFileName) as csv_file:
+        csv_reader = csv.reader(csv_file, delimiter=',')
+        rows = [row for row in csv_reader][1:]
+        bounding_box_vertices = [(index, float(row[1]), float(row[2])) for row, index in zip(rows, range(len(rows)))]
+
+    print(f'Loaded {len(bounding_box_vertices)} bounding box vertices from {boundingBoxFileName}')
+    if not utils.isQueryInBoundingBox(bounding_box_vertices, query_lat, query_lon):
+        response = jsonify(f'400 Bad Request: The query location is outside of the bounding box.')
+        response.status_code = 400
+        return response
+
+    # step 1, load up correction factors from file
+    correctionFactorFileName = 'correction_factors.csv'
+    with open(correctionFactorFileName) as csv_file:
+        csv_reader = csv.reader(csv_file, delimiter=',')
+        rows = [row for row in csv_reader]
+        header = rows[0]
+        rows = rows[1:]
+        correction_factors = []
+        for row in rows:
+            rowDict = {name: elem for elem, name in zip(row, header)}
+            rowDict['start_date'] = utils.parseDateTimeParameter(rowDict['start_date'])
+            rowDict['end_date'] = utils.parseDateTimeParameter(rowDict['end_date'])
+            correction_factors.append(rowDict)
+    print(f'Loaded {len(correction_factors)} correction factors from {correctionFactorFileName}.')
+
+    # step 2, load up length scales from the firestore
+    lengthScaleFileName = 'length_scales.csv'
+    with open(lengthScaleFileName) as csv_file:
+        csv_reader = csv.reader(csv_file, delimiter=',')
+        rows = [row for row in csv_reader]
+        header = rows[0]
+        rows = rows[1:]
+        print(rows)
+        length_scales = []
+        for row in rows:
+            rowDict = {name: elem for elem, name in zip(row, header)}
+            rowDict['start_date'] = utils.parseDateTimeParameter(rowDict['start_date'])
+            rowDict['end_date'] = utils.parseDateTimeParameter(rowDict['end_date'])
+            length_scales.append(rowDict)
+    print(f'Loaded {len(length_scales)} length scales from {lengthScaleFileName}.')
+
+    print('Loaded length scales:', length_scales, '\n')
+    length_scales = utils.getScalesInTimeRange(length_scales, query_start_datetime, query_end_datetime)
+    if len(length_scales) < 1:
+        response = jsonify(f'400 Bad Request: Incorrent number of length scales({len(length_scales)}) found in between {query_start_datetime} and {query_end_datetime}')
+        response.status_code = 400
+        return response
+    
+    latlon_length_scale = length_scales[0]['latlon']
+    elevation_length_scale = length_scales[0]['elevation']
+    time_length_scale = length_scales[0]['time']
+
+    print(f'Using length scales: latlon={latlon_length_scale} elevation={elevation_length_scale} time={time_length_scale}')
+
+    # step 3, query relevent data
+
+    # takes data in length scale radius around the query
+    radius = 50000000
+    NUM_MILES_PER_LATLON = 70
+    # Take data before and after the requested times by 1 length scale
+    sensor_data = request_model_data_local(
+                    lat=query_lat, 
+                    lon=query_lon, 
+                    radius=radius, 
+                    start_date=query_start_datetime, 
+                    end_date=query_end_datetime)
+    # NUM_METERS_IN_MILE = 1609.34
+    # radius = latlon_length_scale/NUM_METERS_IN_MILE # convert meters to miles for db query
+    # sensor_data = request_model_data_local(
+    #                 lat=query_lat, 
+    #                 lon=query_lon, 
+    #                 radius=radius, 
+    #                 start_date=query_start_datetime - timedelta(hours=time_length_scale), 
+    #                 end_date=query_end_datetime + timedelta(hours=time_length_scale))
+    unique_sensors = {datum['ID'] for datum in sensor_data}
+    print(f'Loaded {len(sensor_data)} data points for {len(unique_sensors)} unique devices from bgquery.')
+
+    # step 3.5, convert lat/lon to UTM coordinates
+    try:
+        utils.convertLatLonToUTM(sensor_data)
+    except ValueError as err:
+        response = jsonify(f'400 Bad Request: {str(err)}')
+        response.status_code = 400
+        return response
+
+    sensor_data = [datum for datum in sensor_data if datum['zone_num'] ==12]
+
+    unique_sensors = {datum['ID'] for datum in sensor_data}
+    print(f'After removing points with zone num != 12: {len(sensor_data)} data points for {len(unique_sensors)} unique devices.')
+
+    # Step 4, parse sensor type from the version
+    sensor_source_to_type = {'AirU': '3003', 'Purple Air': '5003'}
+    for datum in sensor_data:
+        datum['type'] = sensor_source_to_type[datum['Source']]
+            
+    print(f'Fields: {sensor_data[0].keys()}')
+
+    # step 4.5, Data Screening TODO NEEDS TESTING
+    print('Screening data')
+    sensor_data = utils.removeInvalidSensors(sensor_data)
+
+    # step 5, apply correction factors to the data!
+    for datum in sensor_data:
+        datum['PM2_5'] = utils.applyCorrectionFactor(correction_factors, datum['time'], datum['PM2_5'], datum['type'])
+
+    # step 6, add elevation values to the data!
+    for datum in sensor_data:
+        if 'Altitude' not in datum:
+            datum['Altitude'] = elevation_interpolator([datum['Latitude']], [datum['Longitude']])[0]
+
+    # # TEMP save the data to a file
+    # def myconverter(o):
+    #     if isinstance(o, datetime):
+    #         return o.strftime('%Y-%m-%d %H:%M:%S%z')
+
+    # filename = f"{query_start_datetime.strftime('%Y-%m-%d')}_{query_end_datetime.strftime('%Y-%m-%d')}.txt"
+    # with open(filename, 'w') as outfile:
+    #     json.dump(sensor_data, outfile, default = myconverter)
+
+    # devices = {datum['device_id'] for datum in sensor_data}
+    # print(devices)
+    # return 'Saved Data'
+
+    # step 7, Create Model
+    model, time_offset = gaussian_model_utils.createModel(sensor_data, latlon_length_scale, elevation_length_scale, time_length_scale)
+
+    
+    # latlon_length_scale, elevation_length_scale, time_length_scale = model.getLengthScales()
+    # print(f'before training scales: latlon {latlon_length_scale}, elev {elevation_length_scale}, time {time_length_scale}')
+    # model.train_adam(5,0.1)    #optimize hyperparameter using adam optimizer
+    # latlon_length_scale, elevation_length_scale, time_length_scale = model.getLengthScales()
+    # print(f'after training scales: latlon {latlon_length_scale}, elev {elevation_length_scale}, time {time_length_scale}')
+
+
+    # step 8, get predictions from model
+    query_dates = utils.interpolateQueryDates(query_start_datetime, query_end_datetime, query_frequency)
+    query_elevation = elevation_interpolator([query_lat], [query_lon])[0]
+    predictions = gaussian_model_utils.predictUsingModel(model, query_lat, query_lon, query_elevation, query_dates, time_offset)
+
+    return jsonify(predictions)
 
 
 # Helper function
