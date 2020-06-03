@@ -1,13 +1,9 @@
 from datetime import datetime, timedelta
 import json
 import os
-from aqandu import app, bq_client, bigquery
+from aqandu import app, bq_client, bigquery, utils, elevation_interpolator, gaussian_model_utils
 from dotenv import load_dotenv
 from flask import request, jsonify
-
-from aqandu import utils
-from aqandu import elevation_interpolator
-from aqandu import gaussian_model_utils
 
 # Load in .env and set the table name
 load_dotenv()
