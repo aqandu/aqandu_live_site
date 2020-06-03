@@ -425,44 +425,12 @@ def oleks_request():
         return response
 
     # step 1, load up correction factors from file
-    correctionFactorFileName = 'correction_factors.csv'
-    with open(correctionFactorFileName) as csv_file:
-        csv_reader = csv.reader(csv_file, delimiter=',')
-        rows = [row for row in csv_reader]
-        header = rows[0]
-        rows = rows[1:]
-        correction_factors = []
-        for row in rows:
-            rowDict = {name: elem for elem, name in zip(row, header)}
-            rowDict['start_date'] = utils.parseDateTimeParameter(rowDict['start_date'])
-            rowDict['end_date'] = utils.parseDateTimeParameter(rowDict['end_date'])
-            rowDict['1003_slope'] = float(rowDict['1003_slope'])
-            rowDict['1003_intercept'] = float(rowDict['1003_intercept'])
-            rowDict['3003_slope'] = float(rowDict['3003_slope'])
-            rowDict['3003_intercept'] = float(rowDict['3003_intercept'])
-            rowDict['5003_slope'] = float(rowDict['5003_slope'])
-            rowDict['5003_intercept'] = float(rowDict['5003_intercept'])
-            correction_factors.append(rowDict)
-    print(f'Loaded {len(correction_factors)} correction factors from {correctionFactorFileName}.')
+    correction_factors = utils.loadCorrectionFactors('correction_factors.csv')
+    print(f'Loaded {len(correction_factors)} correction factors.')
 
-    # step 2, load up length scales from the firestore
-    lengthScaleFileName = 'length_scales.csv'
-    with open(lengthScaleFileName) as csv_file:
-        csv_reader = csv.reader(csv_file, delimiter=',')
-        rows = [row for row in csv_reader]
-        header = rows[0]
-        rows = rows[1:]
-        print(rows)
-        length_scales = []
-        for row in rows:
-            rowDict = {name: elem for elem, name in zip(row, header)}
-            rowDict['start_date'] = utils.parseDateTimeParameter(rowDict['start_date'])
-            rowDict['end_date'] = utils.parseDateTimeParameter(rowDict['end_date'])
-            rowDict['latlon'] = float(rowDict['latlon'])
-            rowDict['elevation'] = float(rowDict['elevation'])
-            rowDict['time'] = float(rowDict['time'])
-            length_scales.append(rowDict)
-    print(f'Loaded {len(length_scales)} length scales from {lengthScaleFileName}.')
+    # step 2, load up length scales from file
+    length_scales = utils.loadLengthScales('length_scales.csv')
+    print(f'Loaded {len(length_scales)} length scales.')
 
     print('Loaded length scales:', length_scales, '\n')
     length_scales = utils.getScalesInTimeRange(length_scales, query_start_datetime, query_end_datetime)
