@@ -397,12 +397,11 @@ def request_model_data():
 @app.route("/api/oleks_request/", methods=['GET'])
 def oleks_request():
     # step 0, parse query parameters
-    query_parameters = request.args
-    query_lat = float(query_parameters.get('lat'))
-    query_lon = float(query_parameters.get('lon'))
-    query_start_datetime = utils.parseDateTimeParameter(query_parameters.get('start_date'))
-    query_end_datetime = utils.parseDateTimeParameter(query_parameters.get('end_date'))
-    query_frequency = float(query_parameters.get('frequency'))
+    query_lat = float(request.args.get('lat'))
+    query_lon = float(request.args.get('lon'))
+    query_start_datetime = utils.parseDateTimeParameter(request.args.get('start_date'))
+    query_end_datetime = utils.parseDateTimeParameter(request.args.get('end_date'))
+    query_frequency = float(request.args.get('frequency'))
 
     if not query_start_datetime or not query_end_datetime:
         response = jsonify(f'400 Bad Request: Unable to parse start_date or end_date. Required format: %Y-%m-%d/%H:%M:%S%z')
