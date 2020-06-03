@@ -443,23 +443,24 @@ def oleks_request():
     # step 3, query relevent data
 
     # takes data in length scale radius around the query
-    radius = 50000000
-    NUM_MILES_PER_LATLON = 70
-    # Take data before and after the requested times by 1 length scale
-    sensor_data = request_model_data_local(
-                    lat=query_lat, 
-                    lon=query_lon, 
-                    radius=radius, 
-                    start_date=query_start_datetime, 
-                    end_date=query_end_datetime)
-    # NUM_METERS_IN_MILE = 1609.34
-    # radius = latlon_length_scale/NUM_METERS_IN_MILE # convert meters to miles for db query
+    # radius = 50000000
+    # NUM_MILES_PER_LATLON = 70
+    # # Take data before and after the requested times by 1 length scale
     # sensor_data = request_model_data_local(
     #                 lat=query_lat, 
     #                 lon=query_lon, 
     #                 radius=radius, 
-    #                 start_date=query_start_datetime - timedelta(hours=time_length_scale), 
-    #                 end_date=query_end_datetime + timedelta(hours=time_length_scale))
+    #                 start_date=query_start_datetime, 
+    #                 end_date=query_end_datetime)
+    NUM_METERS_IN_MILE = 1609.34
+    radius = latlon_length_scale/NUM_METERS_IN_MILE # convert meters to miles for db query
+    sensor_data = request_model_data_local(
+                    lat=query_lat, 
+                    lon=query_lon, 
+                    radius=radius, 
+                    start_date=query_start_datetime - timedelta(hours=time_length_scale), 
+                    end_date=query_end_datetime + timedelta(hours=time_length_scale))
+
     unique_sensors = {datum['ID'] for datum in sensor_data}
     print(f'Loaded {len(sensor_data)} data points for {len(unique_sensors)} unique devices from bgquery.')
 
@@ -477,7 +478,7 @@ def oleks_request():
     print(f'After removing points with zone num != 12: {len(sensor_data)} data points for {len(unique_sensors)} unique devices.')
 
     # Step 4, parse sensor type from the version
-    sensor_source_to_type = {'AirU': '3003', 'Purple Air': '5003'}
+    sensor_source_to_type = {'AirU': '3003', 'Purple Air': '5003', 'DAQ': '5003'}
     for datum in sensor_data:
         datum['type'] = sensor_source_to_type[datum['Source']]
             
@@ -487,11 +488,11 @@ def oleks_request():
     print('Screening data')
     sensor_data = utils.removeInvalidSensors(sensor_data)
 
-    # step 5, apply correction factors to the data!
+    # step 5, apply correction factors to the data
     for datum in sensor_data:
         datum['PM2_5'] = utils.applyCorrectionFactor(correction_factors, datum['time'], datum['PM2_5'], datum['type'])
 
-    # step 6, add elevation values to the data!
+    # step 6, add elevation values to the data
     for datum in sensor_data:
         if 'Altitude' not in datum:
             datum['Altitude'] = elevation_interpolator([datum['Latitude']], [datum['Longitude']])[0]
@@ -505,20 +506,12 @@ def oleks_request():
     # with open(filename, 'w') as outfile:
     #     json.dump(sensor_data, outfile, default = myconverter)
 
-    # devices = {datum['device_id'] for datum in sensor_data}
-    # print(devices)
+    # # devices = {datum['device_id'] for datum in sensor_data}
+    # # print(devices)
     # return 'Saved Data'
 
     # step 7, Create Model
     model, time_offset = gaussian_model_utils.createModel(sensor_data, latlon_length_scale, elevation_length_scale, time_length_scale)
-
-    
-    # latlon_length_scale, elevation_length_scale, time_length_scale = model.getLengthScales()
-    # print(f'before training scales: latlon {latlon_length_scale}, elev {elevation_length_scale}, time {time_length_scale}')
-    # model.train_adam(5,0.1)    #optimize hyperparameter using adam optimizer
-    # latlon_length_scale, elevation_length_scale, time_length_scale = model.getLengthScales()
-    # print(f'after training scales: latlon {latlon_length_scale}, elev {elevation_length_scale}, time {time_length_scale}')
-
 
     # step 8, get predictions from model
     query_dates = utils.interpolateQueryDates(query_start_datetime, query_end_datetime, query_frequency)
