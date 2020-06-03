@@ -411,14 +411,9 @@ def oleks_request():
     print(f'Query parameters: lat={query_lat} lon={query_lon} start_date={query_start_datetime} end_date={query_end_datetime} frequency={query_frequency}')
 
     # step 0, load up the bounding box from file and check that request is within it
-    import csv
-    boundingBoxFileName = 'bounding_box.csv'
-    with open(boundingBoxFileName) as csv_file:
-        csv_reader = csv.reader(csv_file, delimiter=',')
-        rows = [row for row in csv_reader][1:]
-        bounding_box_vertices = [(index, float(row[1]), float(row[2])) for row, index in zip(rows, range(len(rows)))]
+    bounding_box_vertices = utils.loadBoundingBox('bounding_box.csv')
+    print(f'Loaded {len(bounding_box_vertices)} bounding box vertices.')
 
-    print(f'Loaded {len(bounding_box_vertices)} bounding box vertices from {boundingBoxFileName}')
     if not utils.isQueryInBoundingBox(bounding_box_vertices, query_lat, query_lon):
         response = jsonify(f'400 Bad Request: The query location is outside of the bounding box.')
         response.status_code = 400
@@ -476,7 +471,7 @@ def oleks_request():
         response.status_code = 400
         return response
 
-    sensor_data = [datum for datum in sensor_data if datum['zone_num'] ==12]
+    sensor_data = [datum for datum in sensor_data if datum['zone_num'] == 12]
 
     unique_sensors = {datum['ID'] for datum in sensor_data}
     print(f'After removing points with zone num != 12: {len(sensor_data)} data points for {len(unique_sensors)} unique devices.')

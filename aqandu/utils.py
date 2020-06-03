@@ -6,6 +6,7 @@ import scipy
 import numpy as np
 from scipy import interpolate
 from scipy.io import loadmat
+import csv
 
 # Load up elevation grid
 def setupElevationInterpolator(filename):
@@ -14,6 +15,14 @@ def setupElevationInterpolator(filename):
     gridLongs = data['gridLongs']
     gridLats = data['gridLats']
     return interpolate.interp2d(gridLongs,gridLats,elevation_grid,kind='cubic')
+
+
+def loadBoundingBox(filename):
+    with open(filename) as csv_file:
+        csv_reader = csv.reader(csv_file, delimiter=',')
+        rows = [row for row in csv_reader][1:]
+        bounding_box_vertices = [(index, float(row[1]), float(row[2])) for row, index in zip(rows, range(len(rows)))]
+        return bounding_box_vertices
 
 
 def loadCorrectionFactors(filename):
