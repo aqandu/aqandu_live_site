@@ -16,23 +16,8 @@ assets.init(app)
 credentials = service_account.Credentials.from_service_account_file("aqandu/aqandu.json")
 bq_client = bigquery.Client(credentials=credentials, project=PROJECT_ID)
 
-
-# Load up elevation grid
-import scipy
-import numpy as np
-from scipy import interpolate
-from scipy.io import loadmat
-
-def setupElevationInterpolator(filename):
-    data = loadmat(filename)
-    elevation_grid = data['elevs']
-    gridLongs = data['gridLongs']
-    gridLats = data['gridLats']
-    return interpolate.interp2d(gridLongs,gridLats,elevation_grid,kind='cubic')
-
-elevation_interpolator = setupElevationInterpolator('elevation_map.mat')
-
-
+from aqandu import utils
+elevation_interpolator = utils.setupElevationInterpolator('elevation_map.mat')
 
 from aqandu import basic_routes
 from aqandu import api_routes

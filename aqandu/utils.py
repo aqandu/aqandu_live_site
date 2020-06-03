@@ -2,6 +2,18 @@ from datetime import datetime, timedelta
 import pytz
 import utm
 from matplotlib.path import Path
+import scipy
+import numpy as np
+from scipy import interpolate
+from scipy.io import loadmat
+
+# Load up elevation grid
+def setupElevationInterpolator(filename):
+    data = loadmat(filename)
+    elevation_grid = data['elevs']
+    gridLongs = data['gridLongs']
+    gridLats = data['gridLats']
+    return interpolate.interp2d(gridLongs,gridLats,elevation_grid,kind='cubic')
 
 def isQueryInBoundingBox(bounding_box_vertices, query_lat, query_lon):
     verts = [(0, 0)] * len(bounding_box_vertices)
