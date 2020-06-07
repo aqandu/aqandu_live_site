@@ -12,7 +12,7 @@ TIME_COORDINATE_BIN_NUMBER_KEY = 'time_coordinate_bin_number'
 
 def getTimeCoordinateBin(datetime, time_offset = 0):
     delta = datetime - JANUARY1ST
-    NUM_MINUTES_PER_BIN = 10
+    NUM_MINUTES_PER_BIN = 60
     bin_number = float(int(delta.total_seconds() / 60 / NUM_MINUTES_PER_BIN) / 60 * NUM_MINUTES_PER_BIN)
     return bin_number - time_offset
 

@@ -45,8 +45,8 @@ def rawDataFrom():
     show = request.args.get('show') # Data type (should be pm25)
 
     # Check that the data is formatted correctly
-    if not validateDate(start) or not validateDate(end):
-        resp = jsonify({'message': "Incorrect date format, should be %Y-%m-%dT%H:%M:%SZ, e.g.: 2018-01-03T20:00:00Z"})
+    if not utils.validateDate(start) or not utils.validateDate(end):
+        resp = jsonify({'message': f"Incorrect date format, should be {utils.DATETIME_FORMAT}, e.g.: 2018-01-03T20:00:00Z"})
         return resp, 400
 
     # Define the BigQuery query
@@ -71,12 +71,12 @@ def rawDataFrom():
     query_job = bq_client.query(query, job_config=job_config)
     rows = query_job.result()
     for row in rows:
-        measurements.append({"pm25": row.PM25, "time": row.TIMESTAMP.strftime("%Y-%m-%dT%H:%M:%SZ")})
+        measurements.append({"pm25": row.PM25, "time": row.TIMESTAMP.strftime(utils.DATETIME_FORMAT)})
     tags = [{
         "ID": id,
         "Sensor Source": sensor_source,
         "SensorModel":"H1.2+S1.0.8",
-        "time": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
+        "time": datetime.utcnow().strftime(utils.DATETIME_FORMAT)
     }]
     return jsonify({"data": measurements, "tags": tags})
 
@@ -394,19 +394,22 @@ def request_model_data():
     model_data = request_model_data_local(lat, lon, radius, start_date, end_date)
     return jsonify(model_data)
 
-@app.route("/api/oleks_request/", methods=['GET'])
-def oleks_request():
+@app.route("/api/getPredictionsForLocation/", methods=['GET'])
+def getPredictionsForLocation():
     # step 0, parse query parameters
     query_lat = float(request.args.get('lat'))
     query_lon = float(request.args.get('lon'))
-    query_start_datetime = utils.parseDateTimeParameter(request.args.get('start_date'))
-    query_end_datetime = utils.parseDateTimeParameter(request.args.get('end_date'))
     query_frequency = float(request.args.get('frequency'))
+    query_start_date = request.args.get('start_date')
+    query_end_date = request.args.get('end_date')
 
-    if not query_start_datetime or not query_end_datetime:
-        response = jsonify(f'400 Bad Request: Unable to parse start_date or end_date. Required format: %Y-%m-%d/%H:%M:%S%z')
-        response.status_code = 400
-        return response
+    # Check that the data is formatted correctly
+    if not utils.validateDate(query_start_date) or not utils.validateDate(query_end_date):
+        resp = jsonify({'message': f"Incorrect date format, should be {utils.DATETIME_FORMAT}, e.g.: 2018-01-03T20:00:00Z"})
+        return resp, 400
+
+    query_start_datetime = utils.parseDateString(query_start_date)
+    query_end_datetime = utils.parseDateString(query_end_date)
 
     print(f'Query parameters: lat={query_lat} lon={query_lon} start_date={query_start_datetime} end_date={query_end_datetime} frequency={query_frequency}')
 
@@ -454,6 +457,8 @@ def oleks_request():
     #                 end_date=query_end_datetime)
     NUM_METERS_IN_MILE = 1609.34
     radius = latlon_length_scale/NUM_METERS_IN_MILE # convert meters to miles for db query
+
+    radius = latlon_length_scale / 70000
     sensor_data = request_model_data_local(
                     lat=query_lat, 
                     lon=query_lon, 
@@ -484,7 +489,7 @@ def oleks_request():
             
     print(f'Fields: {sensor_data[0].keys()}')
 
-    # step 4.5, Data Screening TODO NEEDS TESTING
+    # step 4.5, Data Screening
     print('Screening data')
     sensor_data = utils.removeInvalidSensors(sensor_data)
 
@@ -529,6 +534,3 @@ def validateInputs(neededInputs, inputs):
             return False
     return True
 
-def validateDate(dateString):
-    """Check if date string is valid"""
-    return dateString == datetime.strptime(dateString, "%Y-%m-%dT%H:%M:%SZ").strftime("%Y-%m-%dT%H:%M:%SZ")

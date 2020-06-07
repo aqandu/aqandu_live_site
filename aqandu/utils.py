@@ -8,6 +8,20 @@ from scipy import interpolate
 from scipy.io import loadmat
 import csv
 
+
+DATETIME_FORMAT = "%Y-%m-%dT%H:%M:%SZ"
+
+
+def validateDate(dateString):
+    """Check if date string is valid"""
+    return dateString == datetime.strptime(dateString, DATETIME_FORMAT).strftime(DATETIME_FORMAT)
+
+
+def parseDateString(datetime_string):
+    """Parse date string into a datetime object"""
+    return datetime.strptime(datetime_string, DATETIME_FORMAT).astimezone(pytz.timezone('US/Mountain'))
+    
+
 # Load up elevation grid
 def setupElevationInterpolator(filename):
     data = loadmat(filename)
@@ -34,8 +48,8 @@ def loadCorrectionFactors(filename):
         correction_factors = []
         for row in rows:
             rowDict = {name: elem for elem, name in zip(row, header)}
-            rowDict['start_date'] = utils.parseDateTimeParameter(rowDict['start_date'])
-            rowDict['end_date'] = utils.parseDateTimeParameter(rowDict['end_date'])
+            rowDict['start_date'] = parseDateString(rowDict['start_date'])
+            rowDict['end_date'] = parseDateString(rowDict['end_date'])
             rowDict['1003_slope'] = float(rowDict['1003_slope'])
             rowDict['1003_intercept'] = float(rowDict['1003_intercept'])
             rowDict['3003_slope'] = float(rowDict['3003_slope'])
@@ -55,8 +69,8 @@ def loadLengthScales(filename):
         length_scales = []
         for row in rows:
             rowDict = {name: elem for elem, name in zip(row, header)}
-            rowDict['start_date'] = utils.parseDateTimeParameter(rowDict['start_date'])
-            rowDict['end_date'] = utils.parseDateTimeParameter(rowDict['end_date'])
+            rowDict['start_date'] = parseDateString(rowDict['start_date'])
+            rowDict['end_date'] = parseDateString(rowDict['end_date'])
             rowDict['latlon'] = float(rowDict['latlon'])
             rowDict['elevation'] = float(rowDict['elevation'])
             rowDict['time'] = float(rowDict['time'])
@@ -165,19 +179,6 @@ def getScalesInTimeRange(scales, start_time, end_time):
         if start_time < scale_end and end_time >= scale_start:
             relevantScales.append(scale)
     return relevantScales
-
-
-def parseDateTimeParameter(datetime_string):
-    datetime_string = datetime_string.replace('/', ' ')
-    # datetime.strptime(datetime_string, '%Y-%m-%d %H:%M:%S').astimezone(pytz.timezone('US/Mountain'))
-    try:
-        return datetime.strptime(datetime_string, '%Y-%m-%d %H:%M:%S%z').astimezone(pytz.timezone('US/Mountain'))
-    except:
-        try:
-            # assume mountain time if no time zone provided
-            return datetime.strptime(datetime_string, '%Y-%m-%d %H:%M:%S').astimezone(pytz.timezone('US/Mountain'))
-        except:
-            return None
 
 
 def interpolateQueryDates(start_datetime, end_datetime, frequency):
