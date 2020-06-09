@@ -444,17 +444,6 @@ def getPredictionsForLocation():
     print(f'Using length scales: latlon={latlon_length_scale} elevation={elevation_length_scale} time={time_length_scale}')
 
     # step 3, query relevent data
-
-    # takes data in length scale radius around the query
-    # radius = 50000000
-    # NUM_MILES_PER_LATLON = 70
-    # # Take data before and after the requested times by 1 length scale
-    # sensor_data = request_model_data_local(
-    #                 lat=query_lat, 
-    #                 lon=query_lon, 
-    #                 radius=radius, 
-    #                 start_date=query_start_datetime, 
-    #                 end_date=query_end_datetime)
     NUM_METERS_IN_MILE = 1609.34
     radius = latlon_length_scale/NUM_METERS_IN_MILE # convert meters to miles for db query
 
@@ -501,19 +490,6 @@ def getPredictionsForLocation():
     for datum in sensor_data:
         if 'Altitude' not in datum:
             datum['Altitude'] = elevation_interpolator([datum['Latitude']], [datum['Longitude']])[0]
-
-    # # TEMP save the data to a file
-    # def myconverter(o):
-    #     if isinstance(o, datetime):
-    #         return o.strftime('%Y-%m-%d %H:%M:%S%z')
-
-    # filename = f"{query_start_datetime.strftime('%Y-%m-%d')}_{query_end_datetime.strftime('%Y-%m-%d')}.txt"
-    # with open(filename, 'w') as outfile:
-    #     json.dump(sensor_data, outfile, default = myconverter)
-
-    # # devices = {datum['device_id'] for datum in sensor_data}
-    # # print(devices)
-    # return 'Saved Data'
 
     # step 7, Create Model
     model, time_offset = gaussian_model_utils.createModel(sensor_data, latlon_length_scale, elevation_length_scale, time_length_scale)
