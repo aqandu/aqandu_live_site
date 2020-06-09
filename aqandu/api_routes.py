@@ -428,9 +428,7 @@ def getPredictionsForLocation():
     print(f'Loaded {len(bounding_box_vertices)} bounding box vertices.')
 
     if not utils.isQueryInBoundingBox(bounding_box_vertices, query_lat, query_lon):
-        response = jsonify(f'400 Bad Request: The query location is outside of the bounding box.')
-        response.status_code = 400
-        return response
+        return 'The query location is outside of the bounding box.', 400
 
     # step 1, load up correction factors from file
     correction_factors = utils.loadCorrectionFactors('correction_factors.csv')
@@ -443,9 +441,7 @@ def getPredictionsForLocation():
     print('Loaded length scales:', length_scales, '\n')
     length_scales = utils.getScalesInTimeRange(length_scales, query_start_datetime, query_end_datetime)
     if len(length_scales) < 1:
-        response = jsonify(f'400 Bad Request: Incorrent number of length scales({len(length_scales)}) found in between {query_start_datetime} and {query_end_datetime}')
-        response.status_code = 400
-        return response
+        return f'Incorrent number of length scales({len(length_scales)}) found in between {query_start_datetime} and {query_end_datetime}', 400
     
     latlon_length_scale = length_scales[0]['latlon']
     elevation_length_scale = length_scales[0]['elevation']
@@ -472,9 +468,7 @@ def getPredictionsForLocation():
     try:
         utils.convertLatLonToUTM(sensor_data)
     except ValueError as err:
-        response = jsonify(f'400 Bad Request: {str(err)}')
-        response.status_code = 400
-        return response
+        return f'{str(err)}', 400
 
     sensor_data = [datum for datum in sensor_data if datum['zone_num'] == 12]
 
