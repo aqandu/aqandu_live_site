@@ -202,7 +202,3 @@ def convertLatLonToUTM(sensor_data):
     provided_utm_zones = set()
     for datum in sensor_data:
         datum['utm_x'], datum['utm_y'], datum['zone_num'], zone_let = latlonToUTM(datum['Latitude'], datum['Longitude'])
-    #     provided_utm_zones.add(zone_num)
-
-    # if len(provided_utm_zones) is not 1:
-    #     raise ValueError(f'The Provided data must fall into the same UTM zone but it does not! UTM zones provided: {provided_utm_zones}')

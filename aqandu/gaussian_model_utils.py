@@ -36,11 +36,9 @@ def createTimeVector(sensor_data):
 
     for datum in sensor_data:
         datum[TIME_COORDINATE_BIN_NUMBER_KEY] -= lowest_bin_number
-        #print(f"{datum['date_time']} -> {datum[TIME_COORDINATE_BIN_NUMBER_KEY]}") 
 
     time_coordinates = [bin_number - lowest_bin_number for bin_number in time_coordinates]
     time_coordinates.sort()
-    #print(time_coordinates)
     time_coordinates = numpy.expand_dims(numpy.asarray(time_coordinates), axis=1)
 
     return time_coordinates, lowest_bin_number
@@ -53,9 +51,6 @@ def createSpaceVector(sensor_data):
         if datum['ID'] not in device_location_map:
             device_location_map[datum['ID']] = (datum['utm_x'], datum['utm_y'], datum['Altitude'])
     
-    #print(device_location_map)
-
-    #print('SPACE COORDS')
     space_coordinates = numpy.ndarray(shape=(0, 3), dtype=float)
     for key in device_location_map.keys():
         loc = device_location_map[key]
@@ -64,9 +59,6 @@ def createSpaceVector(sensor_data):
         space_coordinates = numpy.append(space_coordinates, toadd, axis=0)
         device_location_map[key] = space_coordinates.shape[0] - 1
     
-    # print(device_location_map)
-    # print(space_coordinates)
-    # print(space_coordinates.shape)
     return space_coordinates, device_location_map
 
 
@@ -159,10 +151,6 @@ def createModel(sensor_data, latlon_length_scale, elevation_length_scale, time_l
     time_coordinates = torch.tensor(time_coordinates)   #convert data to pytorch tensor
     data_matrix = torch.tensor(data_matrix)   #convert data to pytorch tensor
 
-    # print(f'space_coordinates: {space_coordinates.shape}, time_coordinates: {time_coordinates.shape}, data: {data_matrix.shape}')
-    # print(data_matrix)
-    # print(space_coordinates)
-    # print(time_coordinates)
     model = gaussian_model.gaussian_model(space_coordinates, time_coordinates, data_matrix,
              latlong_length_scale=float(latlon_length_scale),
              elevation_length_scale=float(elevation_length_scale),

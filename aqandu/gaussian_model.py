@@ -13,6 +13,9 @@ import numpy as np
 import math
 from matplotlib import pyplot as plt
 
+
+JITTER = 1e-1
+
 # from KroneckerProduct import KroneckerProduct
 
 def kronecker(A, B):
@@ -37,9 +40,6 @@ def combinations(A, B):
     B1 = B.repeat(A.size(0), 1)
     # B1 = B.unsqueeze(0).expand(A.size(0),B.size(0), B.size(1)).reshape(A.size(0)*B.size(0), B.size(1)) Equivalent
     return torch.cat((A1, B1), dim=1)
-
-
-JITTER = 1e-1
 
 
 class gaussian_model(nn.Module):
