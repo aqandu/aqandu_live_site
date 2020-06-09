@@ -14,7 +14,10 @@ DATETIME_FORMAT = "%Y-%m-%dT%H:%M:%SZ"
 
 def validateDate(dateString):
     """Check if date string is valid"""
-    return dateString == datetime.strptime(dateString, DATETIME_FORMAT).strftime(DATETIME_FORMAT)
+    try:
+        return dateString == datetime.strptime(dateString, DATETIME_FORMAT).strftime(DATETIME_FORMAT)
+    except ValueError:
+        return False
 
 
 def parseDateString(datetime_string):
