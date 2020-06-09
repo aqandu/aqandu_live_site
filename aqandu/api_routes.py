@@ -394,12 +394,22 @@ def request_model_data():
     model_data = request_model_data_local(lat, lon, radius, start_date, end_date)
     return jsonify(model_data)
 
+# Example request:
+# 127.0.0.1:8080/api/getPredictionsForLocation?lat=40.7688&lon=-111.8462&predictionsperhour=1&start_date=2020-03-10T00:00:00&end_date=2020-03-11T00:00:00
 @app.route("/api/getPredictionsForLocation/", methods=['GET'])
 def getPredictionsForLocation():
-    # step 0, parse query parameters
-    query_lat = float(request.args.get('lat'))
-    query_lon = float(request.args.get('lon'))
-    query_frequency = float(request.args.get('frequency'))
+    # Check that the arguments we want exist
+    if not validateInputs(['lat', 'lon', 'predictionsperhour', 'start_date', 'end_date'], request.args):
+        return 'Query string is missing one or more of lat, lon, predictionsperhour, start_date, end_date', 400
+
+    # step -1, parse query parameters
+    try:
+        query_lat = float(request.args.get('lat'))
+        query_lon = float(request.args.get('lon'))
+        query_frequency = float(request.args.get('predictionsperhour'))
+    except ValueError:
+        return 'lat, lon, predictionsperhour must be floats.', 400
+
     query_start_date = request.args.get('start_date')
     query_end_date = request.args.get('end_date')
 
