@@ -13,10 +13,7 @@ import numpy as np
 import math
 from matplotlib import pyplot as plt
 
-
 JITTER = 1e-1
-
-# from KroneckerProduct import KroneckerProduct
 
 def kronecker(A, B):
     AB = torch.einsum("ab,cd->acbd", A, B)
@@ -38,7 +35,6 @@ def tile(a, dim, n_tile):
 def combinations(A, B):
     A1 = tile(A, 0, B.size(0))
     B1 = B.repeat(A.size(0), 1)
-    # B1 = B.unsqueeze(0).expand(A.size(0),B.size(0), B.size(1)).reshape(A.size(0)*B.size(0), B.size(1)) Equivalent
     return torch.cat((A1, B1), dim=1)
 
 
@@ -54,11 +50,6 @@ class gaussian_model(nn.Module):
         self.space_coordinates = torch.tensor(space_coordinates)
         self.time_coordinates = torch.tensor(time_coordinates)
         self.stData = torch.tensor(stData)
-
-        # print(space_length_scale)
-        # a = space_length_scale * torch.ones(1)
-        # print(a)
-        # self.log_space_length_scale = nn.Parameter(torch.log( torch.tensor(space_length_scale) ))
         self.log_latlong_length_scale = nn.Parameter(torch.log(torch.tensor(latlong_length_scale)))
         self.log_elevation_length_scale = nn.Parameter(torch.log(torch.tensor(elevation_length_scale)))
         self.log_time_length_scale = nn.Parameter(torch.log(torch.tensor(time_length_scale)))
@@ -81,7 +72,6 @@ class gaussian_model(nn.Module):
         # compute effective distance
         K = -2.0 * X @ X2.t() + X_norm2.expand(X.size(0), X2.size(0)) + X2_norm2.t().expand(X.size(0), X2.size(0))
         K = torch.exp(-K) * 1.0
-        # K = self.log_scale.exp() * torch.exp(-K)
         return K
 
     def update(self):
@@ -102,18 +92,10 @@ class gaussian_model(nn.Module):
         eigen_value_st = kronecker(eigen_value_t.view(-1, 1), eigen_value_s.view(-1, 1)).view(-1)
         eigen_value_st_plus_noise_inverse = 1. / (eigen_value_st + torch.exp(self.log_noise_variance))
 
-        # eigen_value_st_inverse = kronecker(torch.diag_embed(1/eigen_value_t), torch.diag_embed(1/eigen_value_s))
-        # eigen_value_st_inverse += torch.eye(ndata) * 1/torch.exp(self.log_noise_variance)
-        # eigen_value_st_inverse += torch.eye(ndata) * JITTER
-
         sigma_inverse = eigen_vector_st @ eigen_value_st_plus_noise_inverse.diag_embed() @ eigen_vector_st.transpose(-2,
                                                                                                                      -1)
 
         self.K = eigen_vector_st @ eigen_value_st.diag_embed() @ eigen_vector_st.transpose(-2, -1)
-        # use .transpose(-2,-1) to be competible with batch data. Not necessary here.
-        #
-        # self.sigma1 = eigen_vector_st @ (eigen_value_st + torch.exp(self.log_noise_variance)).diag_embed()  @ eigen_vector_st.transpose(-2,-1)
-        # self.sigma2 = self.K + torch.eye(ndata) * torch.exp(self.log_noise_variance)
         self.sigma_inverse = sigma_inverse
         self.alpha = sigma_inverse @ self.stData.transpose(-2, -1).reshape(-1, 1)
         self.eigen_value_st = eigen_value_st
@@ -134,11 +116,9 @@ class gaussian_model(nn.Module):
 
             yVar = torch.zeros(test_st_kernel.size(0))
             for i in range(test_st_kernel.size(0)):
-                yVar[i] = self.log_signal_variance.exp() - test_st_kernel[i:i + 1,
-                                                           :] @ self.sigma_inverse @ test_st_kernel[i:i + 1, :].t()
+                yVar[i] = self.log_signal_variance.exp() - test_st_kernel[i:i + 1, :] @ self.sigma_inverse @ test_st_kernel[i:i + 1, :].t()
 
             yPred = yPred.view(test_time_coordinates.size(0), test_space_coordinates.size(0)).transpose(-2, -1)
-            # yPred = yPred.view(test_space_coordinates.size(0),test_time_coordinates.size(0))
             yVar = yVar.view(test_time_coordinates.size(0), test_space_coordinates.size(0)).transpose(-2, -1)
             return yPred, yVar
 
@@ -146,26 +126,21 @@ class gaussian_model(nn.Module):
         nll = 0
         nll += 0.5 * (self.eigen_value_st + torch.exp(self.log_noise_variance)).log().sum()
         nll += 0.5 * (self.stData.transpose(-2, -1).reshape(1, -1) @ self.alpha).sum()
-        # nll += 0.5 * self.stData.transpose(-2,-1).reshape(-1,1).t() @ self.sigma_inverse @ self.stData.transpose(-2,-1).reshape(-1,1)
         return nll
 
     def train_bfgs(self, niteration, lr=0.001):
         # LBFGS optimizer
         optimizer = torch.optim.LBFGS(self.parameters(), lr=lr)  # lr is very important, lr>0.1 lead to failure
+        # LBFGS
+        def closure():
+            optimizer.zero_grad()
+            self.update()
+            loss = self.negative_log_likelihood()
+            loss.backward()
+            print('nll:', loss.item())
+            return loss
         for i in range(niteration):
-            # optimizer.zero_grad()
-            # LBFGS
-            def closure():
-                optimizer.zero_grad()
-                self.update()
-                loss = self.negative_log_likelihood()
-                loss.backward()
-                print('nll:', loss.item())
-                return loss
-
-            # optimizer.zero_grad()
             optimizer.step(closure)
-            # print('loss:', loss.item())
 
     def train_adam(self, niteration, lr=0.001):
         # adam optimizer
