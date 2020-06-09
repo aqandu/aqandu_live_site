@@ -184,12 +184,12 @@ def getScalesInTimeRange(scales, start_time, end_time):
     return relevantScales
 
 
-def interpolateQueryDates(start_datetime, end_datetime, frequency):
+def interpolateQueryDates(start_datetime, end_datetime, period):
     query_dates = []
     query_date = start_datetime
     while query_date <= end_datetime:
         query_dates.append(query_date)
-        query_date = query_date + timedelta(hours=frequency)
+        query_date = query_date + timedelta(hours=period)
 
     return query_dates
 

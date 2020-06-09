@@ -406,7 +406,7 @@ def getPredictionsForLocation():
     try:
         query_lat = float(request.args.get('lat'))
         query_lon = float(request.args.get('lon'))
-        query_frequency = float(request.args.get('predictionsperhour'))
+        query_period = float(request.args.get('predictionsperhour'))
     except ValueError:
         return 'lat, lon, predictionsperhour must be floats.', 400
 
@@ -421,7 +421,7 @@ def getPredictionsForLocation():
     query_start_datetime = utils.parseDateString(query_start_date)
     query_end_datetime = utils.parseDateString(query_end_date)
 
-    print(f'Query parameters: lat={query_lat} lon={query_lon} start_date={query_start_datetime} end_date={query_end_datetime} frequency={query_frequency}')
+    print(f'Query parameters: lat={query_lat} lon={query_lon} start_date={query_start_datetime} end_date={query_end_datetime} predictionsperhour={query_period}')
 
     # step 0, load up the bounding box from file and check that request is within it
     bounding_box_vertices = utils.loadBoundingBox('bounding_box.csv')
@@ -505,7 +505,7 @@ def getPredictionsForLocation():
     model, time_offset = gaussian_model_utils.createModel(sensor_data, latlon_length_scale, elevation_length_scale, time_length_scale)
 
     # step 8, get predictions from model
-    query_dates = utils.interpolateQueryDates(query_start_datetime, query_end_datetime, query_frequency)
+    query_dates = utils.interpolateQueryDates(query_start_datetime, query_end_datetime, query_period)
     query_elevation = elevation_interpolator([query_lat], [query_lon])[0]
     predictions = gaussian_model_utils.predictUsingModel(model, query_lat, query_lon, query_elevation, query_dates, time_offset)
 
