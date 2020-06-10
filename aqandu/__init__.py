@@ -16,5 +16,8 @@ assets.init(app)
 credentials = service_account.Credentials.from_service_account_file("aqandu/aqandu.json")
 bq_client = bigquery.Client(credentials=credentials, project=PROJECT_ID)
 
+from aqandu import utils
+elevation_interpolator = utils.setupElevationInterpolator('elevation_map.mat')
+
 from aqandu import basic_routes
 from aqandu import api_routes
