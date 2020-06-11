@@ -51,15 +51,39 @@ $(function () {
 });
 
 function startTheWholePage() {
+  // TODO: Find a better place for this
+  // sets the from date for the timeline when the radio button is changed
+  $('#timelineControls input[type=radio]').on('change', function () {
+    whichTimeRangeToShow = parseInt($(`[name="timeRange"]:checked`).val());
+
+    // Update the pastDate and update the timeline axis
+    pastDate = new Date(todaysDate - whichTimeRangeToShow * 86400000);
+    x = d3.scaleTime().domain([pastDate, todaysDate]);
+
+    clearData(true)
+
+    // TODO: Fix how the data is retrieve and pushed to the lineArray
+    lineArray.forEach((d) => {
+      lineArray.splice(lineArray.indexOf(d), 1);
+      getGraphData(d.id, d.sensorSource, getAggregation(whichTimeRangeToShow));
+    });
+
+
+    if (!showSensors) {
+      getContourData();
+    } else {
+      // need to do the same for the sensors TODO
+    }
+
+    setUpTimeline();
+  });
+
   setUpTimeline();
   window.onresize = setUpTimeline;
 
   theMap = setupMap();
-
   sensLayer.addTo(theMap);
-
-  // from https://github.com/aratcliffe/Leaflet.contextmenu/issues/37
-  slcMap.contextmenu.disable();
+  slcMap.contextmenu.disable(); // from https://github.com/aratcliffe/Leaflet.contextmenu/issues/37
 
   // shows either the sensors or the contours
   showMapDataVis();
@@ -143,31 +167,6 @@ function getClosest(aDate, contourArray) {
 // Set up the timeline view
 function setUpTimeline() {
   // TIMELINE UI
-
-  // sets the from date for the timeline when the radio button is changed
-  $('#timelineControls input[type=radio]').on('change', function () {
-    whichTimeRangeToShow = parseInt($(`[name="timeRange"]:checked`).val());
-
-    // Update the pastDate and update the timeline axis
-    pastDate = new Date(todaysDate - whichTimeRangeToShow * 86400000);
-    x = d3.scaleTime().domain([pastDate, todaysDate]);
-
-
-    clearData(true);
-
-    lineArray.forEach((d) => {
-      getGraphData(d.id, d.sensorSource, getAggregation(whichTimeRangeToShow));
-    });
-
-
-    if (!showSensors) {
-      getContourData();
-    } else {
-      // need to do the same for the sensors TODO
-    }
-
-    setUpTimeline();  // TODO is there a better way than this circular calling? Watchers maybe?
-  });
 
   // Add the submit event
   $('#sensorDataSearchForm').on('submit', function (e) {
@@ -1111,7 +1110,7 @@ function preprocessDBData(id, sensorData) {
     };
   });
 
-  var present = false;
+  let present = false;
   for (var i = 0; i < lineArray.length; i++) {
     if (lineArray[i].id === sanitizedID) {
       present = true;
@@ -1310,7 +1309,7 @@ function populateGraph() {
 
 function clearData(changingTimeRange) {
   // lineArray.forEach( // TODO clear the markers from the map )
-  lineArray = []; //this empties line array so that new lines can now be added
+  // lineArray = []; //this empties line array so that new lines can now be added
   d3.selectAll('#lines').html('');  // in theory, we should just call drawChart again
   d3.selectAll('.voronoi').html('');
 
