@@ -83,6 +83,7 @@ def rawDataFrom():
     }]
     return jsonify({"data": measurements, "tags": tags})
 
+
 # Example request
 # 127.0.0.1:8080/api/liveSensors?sensorType=all
 @app.route("/api/liveSensors", methods = ["GET"])
@@ -122,7 +123,8 @@ def liveSensors():
 
     return jsonify(sensor_list)
 
-# TODO: Fix this route
+# Example request
+# 127.0.0.1:8080/api/timeAggregatedDataFrom?id=M3C71BF153448&sensorSource=Purple%20Air&start=2020-06-08T16:21:56Z&end=2020-06-11T16:21:56Z&function=mean&functionArg=pm25&timeInterval=5m
 @app.route("/api/timeAggregatedDataFrom", methods = ["GET"])
 def timeAggregatedDataFrom():
     # Get the arguments from the query string
@@ -134,30 +136,69 @@ def timeAggregatedDataFrom():
     functionArg = request.args.get('functionArg')
     timeInterval = request.args.get('timeInterval')
 
+    SQL_FUNCTIONS = {
+        "mean": "AVG",
+        "min": "MIN",
+        "max": "MAX",
+    }
+
+    # Check that the arguments we want exist and in the right form
+    if not validateInputs(['id', 'sensorSource', 'start', 'end', 'function', 'functionArg', 'timeInterval'], request.args):
+        msg = 'Query string is missing an id and/or a sensorSource and/or a start and/or end date and/or a function and/or a functionArg and/or a timeInterval'
+        return msg, 400
+
+    if not function in SQL_FUNCTIONS:
+        msg = 'function is not in {SQL_FUNCTIONS.keys()}'
+        return msg, 400
+
+    # Check that the data is formatted correctly
+    if not utils.validateDate(start) or not utils.validateDate(end):
+        resp = jsonify({'message': f"Incorrect date format, should be {utils.DATETIME_FORMAT}, e.g.: 2018-01-03T20:00:00Z"})
+        return resp, 400
+
     # Define the BigQuery query
-    query = (
-        "SELECT * "
-        f"FROM `{SENSOR_TABLE}` "
+    query = f"""
+        WITH 
+            intervals AS (
+                SELECT 
+                    TIMESTAMP_ADD(@start, INTERVAL 5 * num MINUTE) AS lower,
+                    TIMESTAMP_ADD(@start, INTERVAL 5 * 60* (1 + num) - 1 SECOND) AS upper
+                FROM UNNEST(GENERATE_ARRAY(0,  DIV(TIMESTAMP_DIFF(@end, @start, MINUTE) , 5))) AS num
+            )
+        SELECT 
+            CASE WHEN {SQL_FUNCTIONS.get(function)}(PM25) IS NOT NULL THEN {SQL_FUNCTIONS.get(function)}(PM25) ELSE 0 END AS PM25,
+            upper
+        FROM intervals 
+            JOIN `{SENSOR_TABLE}`
+               ON `{SENSOR_TABLE}`.TIMESTAMP BETWEEN intervals.lower AND intervals.upper
+        WHERE DEVICE_ID = @id
+        GROUP BY upper
+        ORDER BY upper
+    """
+
+    job_config = bigquery.QueryJobConfig(
+        query_parameters=[
+            bigquery.ScalarQueryParameter("id", "STRING", id),
+            bigquery.ScalarQueryParameter("start", "TIMESTAMP", start),
+            bigquery.ScalarQueryParameter("end", "TIMESTAMP", end),
+        ]
     )
 
     # Run the query and collect the result
-    query_job = bq_client.query(query)
+    measurements = []
+    query_job = bq_client.query(query, job_config=job_config)
     rows = query_job.result()
     for row in rows:
-        sensor_list.append({"DEVICE_ID": str(row.DEVICE_ID),
-                            "LAT": row.LAT,
-                            "LON": row.LON,
-                            "TIMESTAMP": str(row.TIMESTAMP),
-                            "PM1": row.PM1,
-                            "PM25": row.PM25,
-                            "PM10": row.PM10,
-                            "TEMP": row.TEMP,
-                            "HUM": row.HUM,
-                            "NOX": row.NOX,
-                            "CO": row.CO,
-                            "VER": row.VER})
-    json_sensors = json.dumps(sensor_list, indent=4)
-    return json_sensors
+        measurements.append({"pm25": row.PM25, "time": row.upper.strftime(utils.DATETIME_FORMAT)})
+
+    tags = [{
+        "ID": id,
+        "Sensor Source": sensor_source,
+        "SensorModel":"H1.2+S1.0.8",
+        "time": datetime.utcnow().strftime(utils.DATETIME_FORMAT)
+    }]
+    return jsonify({"data": measurements, "tags": tags})
+
 
 # Example request:
 # 127.0.0.1:8080/api/lastValue?fieldKey=pm25
@@ -198,6 +239,7 @@ def lastValue():
 
     return jsonify(sensor_list)
 
+
 # TODO: Fix this route
 @app.route("/api/contours", methods = ["GET"])
 def contours():
@@ -230,6 +272,7 @@ def contours():
     json_sensors = json.dumps(sensor_list, indent=4)
     return json_sensors
 
+
 # TODO: Fix this route
 @app.route("/api/getLatestContour", methods = ["GET"])
 def getLatestContour():
@@ -257,6 +300,7 @@ def getLatestContour():
                             "VER": row.VER})
     json_sensors = json.dumps(sensor_list, indent=4)
     return json_sensors
+
 
 # TODO: Fix this route
 @app.route("/api/getEstimatesForLocation", methods = ["GET"])
@@ -291,6 +335,7 @@ def getEstimatesForLocation():
                             "VER": row.VER})
     json_sensors = json.dumps(sensor_list, indent=4)
     return json_sensors
+
 
 def request_model_data_local(lat, lon, radius, start_date, end_date):
     model_data = []
@@ -383,6 +428,7 @@ def request_model_data_local(lat, lon, radius, start_date, end_date):
 
     return model_data
 
+
 # Example request:
 # 127.0.0.1:8080/api/request_model_data?lat=40.7688&lon=-111.8462&radius=1&start_date=2020-03-10T0:0:0&end_date=2020-03-10T0:1:0
 @app.route("/api/request_model_data/", methods=['GET'])
@@ -396,6 +442,7 @@ def request_model_data():
 
     model_data = request_model_data_local(lat, lon, radius, start_date, end_date)
     return jsonify(model_data)
+
 
 # Example request:
 # 127.0.0.1:8080/api/getPredictionsForLocation?lat=40.7688&lon=-111.8462&predictionsperhour=1&start_date=2020-03-10T00:00:00&end_date=2020-03-11T00:00:00

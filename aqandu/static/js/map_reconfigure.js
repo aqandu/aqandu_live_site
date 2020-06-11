@@ -148,12 +148,9 @@ function setUpTimeline() {
   $('#timelineControls input[type=radio]').on('change', function () {
     whichTimeRangeToShow = parseInt($(`[name="timeRange"]:checked`).val());
 
+    // Update the pastDate and update the timeline axis
     pastDate = new Date(todaysDate - whichTimeRangeToShow * 86400000);
-    
-
-    // refresh x
     x = d3.scaleTime().domain([pastDate, todaysDate]);
-    setUpTimeline();  // TODO is there a better way than this circular calling? Watchers maybe?
 
 
     clearData(true);
@@ -169,6 +166,7 @@ function setUpTimeline() {
       // need to do the same for the sensors TODO
     }
 
+    setUpTimeline();  // TODO is there a better way than this circular calling? Watchers maybe?
   });
 
   // Add the submit event
@@ -1233,9 +1231,7 @@ function drawChart() {
     d3.select('.dateFocus rect').attr('height', null)
   }
 
-  var listOfLists = lineArray.map(function (d) {
-    return d.sensorData;
-  });
+  var listOfLists = lineArray.map((d) => d.sensorData);
   var listOfPoints = d3.merge(listOfLists);
   var voronoiPolygons = voronoi.polygons(listOfPoints);
 
@@ -1269,10 +1265,10 @@ function getGraphData(sensorID, sensorSource, aggregation) {
   var url = generateURL(route, parameters);
 
   getDataFromDB(url)
-    .then(data => {
+    .then((data) => {
       preprocessDBData(sensorID, data)
     })
-    .catch(function (err) {
+    .catch((err) => {
       console.error('Error: ', err)
     });
 }
