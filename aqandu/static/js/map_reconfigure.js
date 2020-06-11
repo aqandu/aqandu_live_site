@@ -1,20 +1,12 @@
-/* global d3 L:true */
-/* eslint no-undef: 'error' */
-/* eslint no-mixed-operators: ['error', {'allowSamePrecedence': true}] */
-
-// Set dates for timeline and for ajax calls
-const todayDate = new Date();
-const today = todayDate.toISOString().substr(0, 19) + 'Z';
-const date = new Date();
-date.setDate(date.getDate() - 1);
-let pastDate = date.toISOString().substr(0, 19) + 'Z';
-
-// the axis transformation
-let x = d3.scaleTime().domain([new Date(pastDate), new Date(today)]);
-const y = d3.scaleLinear().domain([0.0, 150.0]);
-
-let showSensors = true;
-
+// Set global variables
+const sensLayer = L.layerGroup();
+const epaColors = ['green', 'yellow', 'orange', 'red', 'veryUnhealthyRed', 'hazardousRed', 'noColor'];
+const margin = {
+  top: 10,
+  right: 50,
+  bottom: 40,
+  left: 50,
+};
 const slcMap = L.map('SLC-map', {
   center: [40.748808, -111.8896],
   zoom: 13,
@@ -25,28 +17,10 @@ const slcMap = L.map('SLC-map', {
     callback: createNewMarker
   }]
 });
-
-const sensLayer = L.layerGroup();
-
-const epaColors = ['green', 'yellow', 'orange', 'red', 'veryUnhealthyRed', 'hazardousRed', 'noColor'];
-
-const margin = {
-  top: 10,
-  right: 50,
-  bottom: 40,
-  left: 50,
-};
-
-let lineArray = [];
-let theContours = [];
-let liveSensors = [];
-let liveSensorsData = [];
-
 const liveSensorURL_airU = generateURL('/liveSensors', { 'type': 'airU' });
 const liveSensorURL_all = generateURL('/liveSensors', { 'type': 'all' });
 const lastPM25ValueURL = generateURL('/lastValue', { 'fieldKey': 'pm25' });
 const lastContourURL = generateURL('/getLatestContour', null);
-
 
 let theMap;
 let liveAirUSensors = [];
@@ -56,6 +30,20 @@ let latestGeneratedID = -1;
 let dotsUpdateID;
 let sensorUpdateID;
 let contourUpdateID;
+let showSensors = true;
+let lineArray = [];
+let theContours = [];
+let liveSensors = [];
+let liveSensorsData = [];
+
+// Set dates for timeline and for ajax calls
+const todaysDate = new Date();
+let pastDate = new Date(todaysDate - whichTimeRangeToShow * 86400000);
+
+// Timeline axis definitions
+let x = d3.scaleTime().domain([pastDate, todaysDate]);
+const y = d3.scaleLinear().domain([0.0, 150.0]);
+
 
 // function run when page has finished loading all DOM elements and they are ready to use
 $(function () {
@@ -77,15 +65,15 @@ function startTheWholePage() {
   showMapDataVis();
 
   // preventing click on timeline to generate map event (such as creating dot for getting AQ)
-  var timelineDiv = L.DomUtil.get('timeline');
+  const timelineDiv = L.DomUtil.get('timeline');
   L.DomEvent.disableClickPropagation(timelineDiv);
   L.DomEvent.on(timelineDiv, 'mousewheel', L.DomEvent.stopPropagation);
 
-  var legendDiv = L.DomUtil.get('legend');
+  const legendDiv = L.DomUtil.get('legend');
   L.DomEvent.disableClickPropagation(legendDiv);
   L.DomEvent.on(legendDiv, 'mousewheel', L.DomEvent.stopPropagation);
 
-  var reappearingButtonDiv = L.DomUtil.get('openLegendButton');
+  const reappearingButtonDiv = L.DomUtil.get('openLegendButton');
   L.DomEvent.disableClickPropagation(reappearingButtonDiv);
   L.DomEvent.on(reappearingButtonDiv, 'mousewheel', L.DomEvent.stopPropagation);
 
@@ -160,28 +148,20 @@ function setUpTimeline() {
   $('#timelineControls input[type=radio]').on('change', function () {
     whichTimeRangeToShow = parseInt($(`[name="timeRange"]:checked`).val());
 
-    let newDate = new Date(today);  // use 'today' as the base date
-    newDate.setDate(newDate.getDate() - whichTimeRangeToShow);
-    pastDate = newDate.toISOString().substr(0, 19) + 'Z';
+    pastDate = new Date(todaysDate - whichTimeRangeToShow * 86400000);
+    
 
     // refresh x
-    x = d3.scaleTime().domain([new Date(pastDate), new Date(today)]);
-    setUpTimeline();  // TODO is there a better way than this circular calling: yes, let's move this outside the function
+    x = d3.scaleTime().domain([pastDate, todaysDate]);
+    setUpTimeline();  // TODO is there a better way than this circular calling? Watchers maybe?
 
-
-    // which IDs are there
-    let lineData = [];
-    lineArray.forEach(function (aLine) {
-      let theAggregation = getAggregation(whichTimeRangeToShow);
-
-      lineData.push({ id: aLine.id, sensorSource: aLine.sensorSource, aggregation: theAggregation })
-    });
 
     clearData(true);
 
-    lineData.forEach(function (aLine) {
-      reGetGraphData(aLine.id, aLine.sensorSource, aLine.aggregation);
+    lineArray.forEach((d) => {
+      getGraphData(d.id, d.sensorSource, getAggregation(whichTimeRangeToShow));
     });
+
 
     if (!showSensors) {
       getContourData();
@@ -198,7 +178,7 @@ function setUpTimeline() {
     let data = $('#sensorDataSearchForm :input').serializeArray();
 
     let anAggregation = getAggregation(whichTimeRangeToShow);
-    reGetGraphData(data[0].value, 'airu', anAggregation);
+    getGraphData(data[0].value, 'airu', anAggregation);
 
     // If the sensor is visible on the map, mark it as selected
     sensLayer.eachLayer(function (layer) {
@@ -210,22 +190,22 @@ function setUpTimeline() {
 
   // TIMELINE
 
-  var timelineDIV = d3.select('#timeline');
-  var bounds = timelineDIV.node().getBoundingClientRect();
-  var svgWidth = bounds.width;
-  var svgHeight = bounds.height;
-  var width = svgWidth - margin.left - margin.right;
-  var height = svgHeight - margin.top - margin.bottom - 18;
-  var svg = timelineDIV.select('svg') // Set size of svgContainer
+  const timelineDIV = d3.select('#timeline');
+  const bounds = timelineDIV.node().getBoundingClientRect();
+  const svgWidth = bounds.width;
+  const svgHeight = bounds.height;
+  const width = svgWidth - margin.left - margin.right;
+  const height = svgHeight - margin.top - margin.bottom - 18;
+  const svg = timelineDIV.select('svg') // Set size of svgContainer
 
-  var formatSliderDate = d3.timeFormat('%a %d %I %p');
-  var formatSliderHandler = d3.timeFormat('%a %m/%d %I:%M%p');
+  const formatSliderDate = d3.timeFormat('%a %d %I %p');
+  const formatSliderHandler = d3.timeFormat('%a %m/%d %I:%M%p');
 
   x.range([0, width]);
   y.range([height, 0]);
 
   // adding the slider
-  var slider = d3.select('#slider')
+  const slider = d3.select('#slider')
     .attr('transform', 'translate(50, 10)');
 
   slider.selectAll('line').remove();
@@ -240,7 +220,7 @@ function setUpTimeline() {
     .attr('class', 'track-overlay')
     .call(d3.drag()
       .on('start.interrupt', function () { slider.interrupt(); })
-      .on('start drag', function (d) {
+      .on('start drag', (d) => {
         var currentDate = x.invert(d3.event.x);
         var upperAndLowerBound = getClosest(currentDate, theContours);
         var roundedDate
@@ -265,7 +245,7 @@ function setUpTimeline() {
     .enter().append('text')
     .attr('x', x)
     .attr('text-anchor', 'middle')
-    .text(function (d) { return formatSliderDate(d); });
+    .text((d) => formatSliderDate(d));
 
   slider.select('circle').remove();
   slider.select('#contourTime').remove();
@@ -277,7 +257,7 @@ function setUpTimeline() {
     .attr('class', 'handle')
     .attr('r', 9);
 
-  sliderHandle.attr('cx', x(todayDate));
+  sliderHandle.attr('cx', x(todaysDate));
 
   if (showSensors) {
     hideSlider();
@@ -890,22 +870,24 @@ function getContourData() {
   $('#SLC-map').LoadingOverlay('show');
 
   // get difference between the dates in displays
-  var diffDays = Math.ceil((new Date(today) - new Date(pastDate)) / (1000 * 60 * 60 * 24));
+  var diffDays = Math.ceil((todaysDate - pastDate) / (1000 * 60 * 60 * 24));
+  console.log(diffDays)
 
   // if more than 1 day, load each day separately
-  var contoursURL = '';
-  var endDate = today;
+  let endDate = todaysDate;
   var listOfPromises = [];
+
   for (let i = 1; i <= diffDays; i++) {
+    // Get the startDate
+    let startDate = new Date(todaysDate - i * 86400000);
 
-    var anIntermediateDate = new Date(today);
-    anIntermediateDate.setDate(anIntermediateDate.getDate() - i);
-    var startDate = anIntermediateDate.toISOString().substr(0, 19) + 'Z';
+    // Get the URL
+    let contoursURL = generateURL('/contours', { 'start': formatDateTime(startDate), 'end': formatDateTime(endDate) });
 
-    var contoursURL = generateURL('/contours', { 'start': startDate, 'end': endDate });
-
+    // Make a promise and push it to the list of promises
     listOfPromises.push(getDataFromDB(contoursURL));
 
+    // Update endDate
     endDate = startDate
   }
 
@@ -921,10 +903,10 @@ function getContourData() {
 function getAllSensorData() {
 
   liveSensors.forEach(function (aLiveSensor) {
-    var route = '/rawDataFrom';
-    var parameters = { 'id': aLiveSensor.id, 'sensorSource': aLiveSensor.sensorSource, 'start': pastDate, 'end': today, 'show': 'pm25' };
+    let route = '/rawDataFrom';
+    let parameters = { 'id': aLiveSensor.id, 'sensorSource': aLiveSensor.sensorSource, 'start': formatDateTime(pastDate), 'end': formatDateTime(todaysDate), 'show': 'pm25' };
 
-    var aSensorRawDataURL = generateURL(route, parameters)
+    let aSensorRawDataURL = generateURL(route, parameters)
 
     getDataFromDB(aSensorRawDataURL).then(data => {
       liveSensorsData.push({ 'id': data.tags[0]['ID'], 'pmData': data.data, 'sensorModel': data.tags[0]['Sensor Model'], 'sensorSource': data.tags[0]['Sensor Source'] })
@@ -993,28 +975,30 @@ function updateContour() {
 }
 
 
-function displaySensor(aSensorSource, timePassedSinceLastDataValue, aCurrentValue) {
+function displaySensor(aSensorSource, minutesPassedSinceLastDataValue, aCurrentValue) {
   let theColor = 'noColor';
   let calculatedColor = getColor(aCurrentValue);
 
   if (aSensorSource === 'airu' || aSensorSource === 'Purple Air') {
-    if (timePassedSinceLastDataValue <= 10.0) {
+    if (minutesPassedSinceLastDataValue <= 10.0) {
       theColor = calculatedColor;
     }
   } else if (aSensorSource === 'DAQ') {
 
-    if (timePassedSinceLastDataValue <= 180.0) {
+    if (minutesPassedSinceLastDataValue <= 180.0) {
       theColor = calculatedColor;
     }
   } else if (aSensorSource === 'Mesowest') {
 
-    if (timePassedSinceLastDataValue <= 20.0) {
+    if (minutesPassedSinceLastDataValue <= 20.0) {
       theColor = calculatedColor;
     }
   } else {
     console.error('displaySensor: forgotten a case!!');
   }
 
+  // TODO: Remove this line, currently hacks to last value regardless of timestamp
+  theColor = calculatedColor;
   return theColor;
 }
 
@@ -1142,6 +1126,8 @@ function preprocessDBData(id, sensorData) {
 
     // pushes data for this specific line to an array so that there can be multiple lines updated dynamically on Click
     lineArray.push(newLine)
+    console.log('lineArray pushed 2', lineArray)
+
 
     drawChart();
   }
@@ -1275,83 +1261,53 @@ function drawChart() {
 }
 
 function getGraphData(sensorID, sensorSource, aggregation) {
-  let theRoute = '';
-  let parameters = {};
-  if (!aggregation) {
-    theRoute = '/rawDataFrom';
-    parameters = { 'id': sensorID, 'sensorSource': sensorSource, 'start': pastDate, 'end': today, 'show': 'pm25' };
-  } else if (aggregation) {
-    theRoute = '/processedDataFrom?';
-    parameters = { 'id': sensorID, 'sensorSource': sensorSource, 'start': pastDate, 'end': today, 'function': 'mean', 'functionArg': 'pm25', 'timeInterval': '5m' }; // 60m
-  } else {
-    console.error('Error reaching API');
-  }
+  let route = aggregation ? '/timeAggregatedDataFrom' : '/rawDataFrom';
+  let parameters = aggregation ? 
+    { 'id': sensorID, 'sensorSource': sensorSource, 'start': formatDateTime(pastDate), 'end': formatDateTime(todaysDate), 'function': 'mean', 'functionArg': 'pm25', 'timeInterval': '5m' } // 60m
+    : { 'id': sensorID, 'sensorSource': sensorSource, 'start': formatDateTime(pastDate), 'end': formatDateTime(todaysDate), 'show': 'pm25' };
 
-  var url = generateURL(theRoute, parameters);
+  var url = generateURL(route, parameters);
 
-  getDataFromDB(url).then(data => {
-    preprocessDBData(sensorID, data)
-  }).catch(function (err) {
-    console.error('Error: ', err)
-  });
-}
-
-function reGetGraphData(theID, theSensorSource, aggregation) {
-  let theRoute = '';
-  let parameters = {};
-  if (!aggregation) {
-    theRoute = '/rawDataFrom';
-    parameters = { 'id': theID, 'sensorSource': theSensorSource, 'start': pastDate, 'end': today, 'show': 'pm25' };
-  } else if (aggregation) {
-    theRoute = '/processedDataFrom?';
-    parameters = { 'id': theID, 'sensorSource': theSensorSource, 'start': pastDate, 'end': today, 'function': 'mean', 'functionArg': 'pm25', 'timeInterval': '5m' }; // 60min
-  } else {
-    console.error('Failed to get graph data.');
-  }
-
-  var url = generateURL(theRoute, parameters);
-  getDataFromDB(url).then(data => {
-    preprocessDBData(theID, data)
-  }).catch(function (err) {
-    $('#errorInformation').html(err['message'])
-    console.error('Error: ', err)
-  });
-
+  getDataFromDB(url)
+    .then(data => {
+      preprocessDBData(sensorID, data)
+    })
+    .catch(function (err) {
+      console.error('Error: ', err)
+    });
 }
 
 function populateGraph() {
-  // unclick the sensor type legend
+  // unclick the sensor source legend and update the dot highlights (airu, PurpleAir, etc.)
+  console.log(currentlySelectedDataSource)
   if (currentlySelectedDataSource != 'none') {
-    d3.select('.clickedLegendElement').classed('clickedLegendElement', false)
-    // remove notPartOfGroup class
-    // remove colored-border-selected class
+    d3.select('.clickedLegendElement').classed('clickedLegendElement', false) // TODO: Fix bug with dot still showing in legend
     d3.select('#SLC-map').selectAll('.dot:not(noColor)').classed('notPartOfGroup', false);
     d3.select('#SLC-map').selectAll('.dot:not(noColor)').classed('partOfGroup-border', false);
   }
 
 
   if (d3.select(this._icon).classed('sensor-selected')) {
-    // if dot already selected
+    // If the dot is already selected get the id and remove from the line array
     let clickedDotID = this.id.split(' ').join('_');
-    // d3.select('#line_' + clickedDotID).remove();
     lineArray = lineArray.filter(line => line.id != clickedDotID);
+
+    // Re-render the line charts and set the dot to unselected
     drawChart();
     d3.select(this._icon).classed('sensor-selected', false);
 
   } else {
-    // only add the timeline if dot has usable data
+    // Else the dot is not already selected. Check it has a color (thus usable data) before continuing
     if (!d3.select(this._icon).classed('noColor')) {
+      // Set the dot to selected
       d3.select(this._icon).classed('sensor-selected', true);
 
+      // Check whether we need to aggregate the data
       let aggregation = getAggregation(whichTimeRangeToShow);
 
-      // get the sensor source
-
-      if (d3.select(this._icon).attr('class').split(' ').includes('airu')) {
-        getGraphData(this.id, 'airu', aggregation);
-      } else {
-        getGraphData(this.id, 'Purple Air', aggregation);
-      }
+      // Get the sensorType and pass it through to getGraphData
+      const sensorType = d3.select(this._icon).attr('class').split(' ').includes('airu') ? 'airu' : 'Purple Air';
+      getGraphData(this.id, sensorType, aggregation);
     }
   }
 }
@@ -1450,7 +1406,7 @@ function createNewMarker(location) {
   sensorLayerRandomMarker(randomClickMarker)
 
 
-  var estimatesForLocationURL = generateURL('/getEstimatesForLocation', { 'location': { 'lat': clickLocation['lat'], 'lon': clickLocation['lng'] }, 'start': pastDate, 'end': today })
+  var estimatesForLocationURL = generateURL('/getEstimatesForLocation', { 'location': { 'lat': clickLocation['lat'], 'lon': clickLocation['lng'] }, 'start': formatDateTime(pastDate), 'end': formatDateTime(todaysDate) })
 
   getDataFromDB(estimatesForLocationURL).then(data => {
     // parse the incoming bilinerar interpolated data
@@ -1510,4 +1466,8 @@ function hideSlider() {
 
 function showSlider() {
   d3.select('#slider').classed('hide', false);
+}
+
+function formatDateTime(dateTime) {
+  return `${dateTime.toISOString().substr(0, 19)}Z`
 }

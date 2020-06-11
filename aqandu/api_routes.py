@@ -50,13 +50,16 @@ def rawDataFrom():
         return resp, 400
 
     # Define the BigQuery query
-    query = (
-        "SELECT PM25, TIMESTAMP "
-        f"FROM `{SENSOR_TABLE}` "
-        f"WHERE DEVICE_ID = @id "
-        f"AND TIMESTAMP >= @start "
-        f"AND TIMESTAMP <= @end "
-    )
+    query = f"""
+        SELECT 
+            PM25,
+            TIMESTAMP
+        FROM `{SENSOR_TABLE}`
+        WHERE DEVICE_ID = @id
+            AND TIMESTAMP >= @start
+            AND TIMESTAMP <= @end
+        ORDER BY TIMESTAMP
+    """
 
     job_config = bigquery.QueryJobConfig(
         query_parameters=[
@@ -88,15 +91,15 @@ def liveSensors():
     sensor_type = request.args.get('sensorType')
 
     # Define the BigQuery query
-    query = (
-        "SELECT a.* "
-        f"FROM `{SENSOR_TABLE}` AS a "
-        "INNER JOIN ( "
-            "SELECT DEVICE_ID AS ID, max(TIMESTAMP) AS LATEST_MEASUREMENT "
-            f"FROM `{SENSOR_TABLE}` "
-            "GROUP BY DEVICE_ID "
-            ") AS b ON a.DEVICE_ID = b.ID AND a.TIMESTAMP = b.LATEST_MEASUREMENT "
-    )
+    query = f"""
+        SELECT a.* 
+        FROM `{SENSOR_TABLE}` AS a 
+        INNER JOIN ( 
+            SELECT DEVICE_ID AS ID, max(TIMESTAMP) AS LATEST_MEASUREMENT 
+            FROM `{SENSOR_TABLE}` 
+            GROUP BY DEVICE_ID 
+        ) AS b ON a.DEVICE_ID = b.ID AND a.TIMESTAMP = b.LATEST_MEASUREMENT 
+    """
 
     # Run the query and collect the result
     sensor_list = []
@@ -120,8 +123,8 @@ def liveSensors():
     return jsonify(sensor_list)
 
 # TODO: Fix this route
-@app.route("/api/processedDataFrom", methods = ["GET"])
-def processedDataFrom():
+@app.route("/api/timeAggregatedDataFrom", methods = ["GET"])
+def timeAggregatedDataFrom():
     # Get the arguments from the query string
     id = request.args.get('id')
     sensor_source = request.args.get('sensorSource')

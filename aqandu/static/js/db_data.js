@@ -1,7 +1,7 @@
 /* global XMLHttpRequest:true */
 /* eslint no-undef: "error" */
 
-var baseURL = 'http://127.0.0.1:8080/api';
+var baseURL = '/api';
 
 
 function generateURL(route, parameters) {
@@ -11,7 +11,7 @@ function generateURL(route, parameters) {
     url = `${urlRoute}?id=${parameters.id}&sensorSource=${parameters.sensorSource}&start=${parameters.start}&end=${parameters.end}&show=${parameters.show}`;
   } else if (route === '/liveSensors') {
     url = `${urlRoute}?sensorType=${parameters.type}`;
-  } else if (route === '/processedDataFrom?') {
+  } else if (route === '/timeAggregatedDataFrom') {
     url = `${urlRoute}?id=${parameters.id}&sensorSource=${parameters.sensorSource}&start=${parameters.start}&end=${parameters.end}&function=${parameters.function}&functionArg=${parameters.functionArg}&timeInterval=${parameters.timeInterval}`;
   } else if (route === '/lastValue') {
     url = `${urlRoute}?fieldKey=${parameters.fieldKey}`;

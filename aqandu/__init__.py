@@ -13,8 +13,8 @@ app = Flask(__name__)
 app.config.from_object(config)
 assets.init(app)
 
-credentials = service_account.Credentials.from_service_account_file("aqandu/aqandu.json")
-bq_client = bigquery.Client(credentials=credentials, project=PROJECT_ID)
+os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "aqandu/aqandu.json"
+bq_client = bigquery.Client(project=PROJECT_ID)
 
 from aqandu import utils
 elevation_interpolator = utils.setupElevationInterpolator('elevation_map.mat')
