@@ -1259,7 +1259,7 @@ function drawChart() {
 function getGraphData(sensorID, sensorSource, aggregation) {
   let route = aggregation ? '/timeAggregatedDataFrom' : '/rawDataFrom';
   let parameters = aggregation ? 
-    { 'id': sensorID, 'sensorSource': sensorSource, 'start': formatDateTime(pastDate), 'end': formatDateTime(todaysDate), 'function': 'mean', 'functionArg': 'pm25', 'timeInterval': '5m' } // 60m
+    { 'id': sensorID, 'sensorSource': sensorSource, 'start': formatDateTime(pastDate), 'end': formatDateTime(todaysDate), 'function': 'mean', 'functionArg': 'pm25', 'timeInterval': '5' }
     : { 'id': sensorID, 'sensorSource': sensorSource, 'start': formatDateTime(pastDate), 'end': formatDateTime(todaysDate), 'show': 'pm25' };
 
   var url = generateURL(route, parameters);

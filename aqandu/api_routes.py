@@ -124,7 +124,7 @@ def liveSensors():
     return jsonify(sensor_list)
 
 # Example request
-# 127.0.0.1:8080/api/timeAggregatedDataFrom?id=M3C71BF153448&sensorSource=Purple%20Air&start=2020-06-08T16:21:56Z&end=2020-06-11T16:21:56Z&function=mean&functionArg=pm25&timeInterval=5m
+# 127.0.0.1:8080/api/timeAggregatedDataFrom?id=M3C71BF153448&sensorSource=Purple%20Air&start=2020-06-08T16:21:56Z&end=2020-06-11T16:21:56Z&function=mean&functionArg=pm25&timeInterval=5
 @app.route("/api/timeAggregatedDataFrom", methods = ["GET"])
 def timeAggregatedDataFrom():
     # Get the arguments from the query string
@@ -134,7 +134,7 @@ def timeAggregatedDataFrom():
     end = request.args.get('end')
     function = request.args.get('function')
     functionArg = request.args.get('functionArg')
-    timeInterval = request.args.get('timeInterval')
+    timeInterval = request.args.get('timeInterval') # Time interval in minutes
 
     SQL_FUNCTIONS = {
         "mean": "AVG",
@@ -161,9 +161,9 @@ def timeAggregatedDataFrom():
         WITH 
             intervals AS (
                 SELECT 
-                    TIMESTAMP_ADD(@start, INTERVAL 5 * num MINUTE) AS lower,
-                    TIMESTAMP_ADD(@start, INTERVAL 5 * 60* (1 + num) - 1 SECOND) AS upper
-                FROM UNNEST(GENERATE_ARRAY(0,  DIV(TIMESTAMP_DIFF(@end, @start, MINUTE) , 5))) AS num
+                    TIMESTAMP_ADD(@start, INTERVAL @interval * num MINUTE) AS lower,
+                    TIMESTAMP_ADD(@start, INTERVAL @interval * 60* (1 + num) - 1 SECOND) AS upper
+                FROM UNNEST(GENERATE_ARRAY(0,  DIV(TIMESTAMP_DIFF(@end, @start, MINUTE) , @interval))) AS num
             )
         SELECT 
             CASE WHEN {SQL_FUNCTIONS.get(function)}(PM25) IS NOT NULL THEN {SQL_FUNCTIONS.get(function)}(PM25) ELSE 0 END AS PM25,
@@ -181,6 +181,7 @@ def timeAggregatedDataFrom():
             bigquery.ScalarQueryParameter("id", "STRING", id),
             bigquery.ScalarQueryParameter("start", "TIMESTAMP", start),
             bigquery.ScalarQueryParameter("end", "TIMESTAMP", end),
+            bigquery.ScalarQueryParameter("interval", "INT64", timeInterval),
         ]
     )
 
