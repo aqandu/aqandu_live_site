@@ -156,6 +156,26 @@ def timeAggregatedDataFrom():
         resp = jsonify({'message': f"Incorrect date format, should be {utils.DATETIME_FORMAT}, e.g.: 2018-01-03T20:00:00Z"})
         return resp, 400
 
+    SQL_FUNCTIONS = {
+        "mean": "AVG",
+        "min": "MIN",
+        "max": "MAX",
+    }
+
+    # Check that the arguments we want exist and in the right form
+    if not validateInputs(['id', 'sensorSource', 'start', 'end', 'function', 'functionArg', 'timeInterval'], request.args):
+        msg = 'Query string is missing an id and/or a sensorSource and/or a start and/or end date and/or a function and/or a functionArg and/or a timeInterval'
+        return msg, 400
+
+    if not function in SQL_FUNCTIONS:
+        msg = 'function is not in {SQL_FUNCTIONS.keys()}'
+        return msg, 400
+
+    # Check that the data is formatted correctly
+    if not utils.validateDate(start) or not utils.validateDate(end):
+        resp = jsonify({'message': f"Incorrect date format, should be {utils.DATETIME_FORMAT}, e.g.: 2018-01-03T20:00:00Z"})
+        return resp, 400
+
     # Define the BigQuery query
     query = f"""
         WITH 
