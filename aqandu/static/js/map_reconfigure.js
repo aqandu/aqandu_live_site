@@ -17,10 +17,10 @@ const slcMap = L.map('SLC-map', {
     callback: createNewMarker
   }]
 });
-const liveSensorURL_airU = generateURL('/liveSensors', { 'type': 'airU' });
+const liveSensorURL_AirU = generateURL('/liveSensors', { 'type': 'AirU' });
 const liveSensorURL_all = generateURL('/liveSensors', { 'type': 'all' });
-const lastPM25ValueURL = generateURL('/lastValue', { 'fieldKey': 'pm25' });
-const lastContourURL = generateURL('/getLatestContour', null);
+const lastValueURL = generateURL('/lastValue');
+const lastContourURL = generateURL('/getLatestContour');
 
 let theMap;
 let liveAirUSensors = [];
@@ -175,7 +175,7 @@ function setUpTimeline() {
     let data = $('#sensorDataSearchForm :input').serializeArray();
 
     let anAggregation = getAggregation(whichTimeRangeToShow);
-    getGraphData(data[0].value, 'airu', anAggregation);
+    getGraphData(data[0].value, 'AirU', anAggregation);
 
     // If the sensor is visible on the map, mark it as selected
     sensLayer.eachLayer(function (layer) {
@@ -478,7 +478,7 @@ function setupMap() {
       .attr('class', 'legendTitle')
       .html('Data sources:');
 
-    var dataLabel = ['airu', 'PurpleAir', 'Mesowest', 'DAQ'];
+    var dataLabel = ['AirU', 'PurpleAir', 'Mesowest', 'DAQ'];
     var labels = d3div.selectAll('label').data(dataLabel);
     labels.exit().remove();
     var labelsEnter = labels.enter()
@@ -687,11 +687,11 @@ function drawSensorOnMap() {
   $('#SLC-map').LoadingOverlay('show');
 
   getDataFromDB(liveSensorURL_all).then((data) => {
-    var numberOfPurpleAir = data.filter(sensor => sensor['Sensor Source'] === 'Purple Air').length;
+    var numberOfPurpleAir = data.filter(sensor => sensor['Sensor Source'] === 'PurpleAir').length;
     $('#numberof_PurpleAir').html(numberOfPurpleAir);
 
-    var numberOfAirU = data.filter(sensor => sensor['Sensor Source'] === 'airu').length;
-    $('#numberof_airu').html(numberOfAirU);
+    var numberOfAirU = data.filter(sensor => sensor['Sensor Source'] === 'AirU').length;
+    $('#numberof_AirU').html(numberOfAirU);
 
     var numberOfMesowest = data.filter(sensor => sensor['Sensor Source'] === 'Mesowest').length;
     $('#numberof_Mesowest').html(numberOfMesowest);
@@ -772,7 +772,7 @@ function createMarker(markerData) {
     ).addTo(sensLayer);
 
     mark.id = markerData['ID'];
-    if (sensorSource == 'airu') {
+    if (sensorSource == 'AirU') {
       liveAirUSensors.push(markerData.ID)
     }
 
@@ -915,24 +915,30 @@ function getAllSensorData() {
 
 
 function updateDots() {
-  getDataFromDB(lastPM25ValueURL).then((data) => {
+  getDataFromDB(lastValueURL).then((data) => {
     // apply conversion for purple air
     Object.keys(data).forEach(function (key) {
       let sensorModel = data[key]['Sensor Model'];
       let sensorSource = data[key]['Sensor Source'];
-      data[key]['last'] = conversionPM(data[key]['last'], sensorSource, sensorModel);
+      data[key]['pm25'] = conversionPM(data[key]['pm25'], sensorSource, sensorModel);
     });
 
     sensLayer.eachLayer(function (layer) {
-      if (data[layer.id] !== undefined) {
-        let currentTime = new Date().getTime()
-        let timeLastMeasurement = new Date(data[layer.id].time).getTime();
-        let minutesINBetween = (currentTime - timeLastMeasurement) / (1000 * 60);
+      // Find the updated value for a specific sensor id
+      const updatedValue = data.find(latestValue => {
+        return latestValue.ID === layer.id
+      })
 
-        let currentPM25 = data[layer.id].last;
-        let theSensorSource = data[layer.id]['Sensor Source']
+      if (updatedValue) {
+        const currentTime = new Date().getTime()
+        const timeLastMeasurement = new Date(updatedValue.time).getTime();
+        const minutesINBetween = (currentTime - timeLastMeasurement) / (1000 * 60);
 
-        let theColor = displaySensor(theSensorSource, minutesINBetween, currentPM25)
+        const currentPM25 = updatedValue.last;
+        const theSensorSource = updatedValue['Sensor Source']
+
+        const theColor = displaySensor(theSensorSource, minutesINBetween, currentPM25)
+        console.log(theColor)
         $(layer._icon).removeClass(epaColors.join(' '))
         $(layer._icon).addClass(theColor)
       }
@@ -946,7 +952,7 @@ function updateDots() {
 function updateSensors() {
   getDataFromDB(liveSensorURL_airU).then((data) => {
     var numberOfAirUOut = data.length;
-    $('#numberof_airu').html(numberOfAirUOut);
+    $('#numberof_AirU').html(numberOfAirUOut);
 
     const response = data.filter((d) => {
       if (!liveAirUSensors.includes(d.ID)) {
@@ -976,7 +982,7 @@ function displaySensor(aSensorSource, minutesPassedSinceLastDataValue, aCurrentV
   let theColor = 'noColor';
   let calculatedColor = getColor(aCurrentValue);
 
-  if (aSensorSource === 'airu' || aSensorSource === 'Purple Air') {
+  if (aSensorSource === 'AirU' || aSensorSource === 'PurpleAir') {
     if (minutesPassedSinceLastDataValue <= 10.0) {
       theColor = calculatedColor;
     }
@@ -1273,7 +1279,7 @@ function getGraphData(sensorID, sensorSource, aggregation) {
 }
 
 function populateGraph() {
-  // unclick the sensor source legend and update the dot highlights (airu, PurpleAir, etc.)
+  // Un-click the sensor source legend and update the dot highlights (AirU, PurpleAir, etc.)
   console.log(currentlySelectedDataSource)
   if (currentlySelectedDataSource != 'none') {
     d3.select('.clickedLegendElement').classed('clickedLegendElement', false) // TODO: Fix bug with dot still showing in legend
@@ -1301,7 +1307,7 @@ function populateGraph() {
       let aggregation = getAggregation(whichTimeRangeToShow);
 
       // Get the sensorType and pass it through to getGraphData
-      const sensorType = d3.select(this._icon).attr('class').split(' ').includes('airu') ? 'airu' : 'Purple Air';
+      const sensorType = d3.select(this._icon).attr('class').split(' ').includes('AirU') ? 'AirU' : 'PurpleAir';
       getGraphData(this.id, sensorType, aggregation);
     }
   }
@@ -1349,7 +1355,7 @@ function conversionPM(pm, sensorSource, sensorModel) {
   var pmv = null;
   if (pm != null) {
     // if pm is null keep it null
-    if (sensorSource != 'airu') {
+    if (sensorSource != 'AirU') {
 
       let model = null;
       if (sensorModel != null) {

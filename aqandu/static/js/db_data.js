@@ -14,7 +14,7 @@ function generateURL(route, parameters) {
   } else if (route === '/timeAggregatedDataFrom') {
     url = `${urlRoute}?id=${parameters.id}&sensorSource=${parameters.sensorSource}&start=${parameters.start}&end=${parameters.end}&function=${parameters.function}&functionArg=${parameters.functionArg}&timeInterval=${parameters.timeInterval}`;
   } else if (route === '/lastValue') {
-    url = `${urlRoute}?fieldKey=${parameters.fieldKey}`;
+    url = `${urlRoute}`;
   } else if (route === '/contours') {
     url = `${urlRoute}?start=${parameters.start}&end=${parameters.end}`;
   } else if (route === '/getLatestContour') {

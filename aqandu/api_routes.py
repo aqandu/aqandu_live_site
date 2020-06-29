@@ -7,42 +7,37 @@ from flask import request, jsonify
 
 # Load in .env and set the table name
 load_dotenv()
-SENSOR_TABLE = os.getenv("BIGQ_SENSOR")
-PROJECTID = os.getenv("PROJECTID")
-POLMONID = os.getenv("POLMONID")
-
-# Set the lookup for better returned variable names
-varNameLookup = {
-    'DEVICE_ID': 'ID',
-    'PM25': 'pm25',
-    'HUM': '\"Humidity (%)\"',
-    'LAT': 'Latitude',
-    'LON': 'Longitude',
-    'VER': '\"Sensor Version\"',
-    'MODEL': '\"Sensor Model\"',
-    'TEMP': '\"Temp (*C)\"',
-    'PM1': '\"pm1.0 (ug/m^3)\"',
-    'PM10': '\"pm10.0 (ug/m^3)\"',
-    'CO': 'CO',
-    'NOX': 'NOX',
-    'TIMESTAMP': 'time'
+AIRU_TABLE_ID = os.getenv("AIRU_TABLE_ID")
+PURPLEAIR_TABLE_ID = os.getenv("PURPLEAIR_TABLE_ID")
+DAQ_TABLE_ID = os.getenv("DAQ_TABLE_ID")
+SOURCE_TABLE_MAP = {
+    "AirU": AIRU_TABLE_ID,
+    "PurpleAir": PURPLEAIR_TABLE_ID,
+    "DAQ": DAQ_TABLE_ID,
 }
+VALID_SENSOR_TYPES = ["AirU", "PurpleAir", "DAQ", "all"]
 
 # Example request:
 # 127.0.0.1:8080/api/rawDataFrom?id=M30AEA4EF9F88&sensorSource=Purple%20Air&start=2020-03-25T00:23:51Z&end=2020-03-26T00:23:51Z&show=pm25
 @app.route("/api/rawDataFrom", methods = ["GET"])
 def rawDataFrom():
-    # Check that the arguments we want exist
-    if not validateInputs(['id', 'sensorSource', 'start', 'end', 'show'], request.args):
-        msg = 'Query string is missing an id and/or a sensorSource and/or a start and/or end date and/or a show'
-        return msg, 400
-
     # Get the arguments from the query string
     id = request.args.get('id')
     sensor_source = request.args.get('sensorSource')
     start = request.args.get('start')
     end = request.args.get('end')
     show = request.args.get('show') # Data type (should be pm25)
+
+    # Check that the arguments we want exist
+    if not sensor_source in VALID_SENSOR_TYPES:
+        msg = f"sensor_source is invalid. It must be one of {VALID_SENSOR_TYPES}"
+        return msg, 400
+
+    # if not validateInputs(['id', 'sensorSource', 'start', 'end', 'show'], request.args):
+    #     msg = 'Query string is missing an id and/or a sensorSource and/or a start and/or end date and/or a show'
+    #     return msg, 400
+
+    
 
     # Check that the data is formatted correctly
     if not utils.validateDate(start) or not utils.validateDate(end):
@@ -52,13 +47,13 @@ def rawDataFrom():
     # Define the BigQuery query
     query = f"""
         SELECT 
-            PM25,
-            TIMESTAMP
-        FROM `{SENSOR_TABLE}`
-        WHERE DEVICE_ID = @id
-            AND TIMESTAMP >= @start
-            AND TIMESTAMP <= @end
-        ORDER BY TIMESTAMP
+            PM2_5,
+            time
+        FROM `{SOURCE_TABLE_MAP[sensor_source]}`
+        WHERE ID = @id
+            AND time >= @start
+            AND time <= @end
+        ORDER BY time
     """
 
     job_config = bigquery.QueryJobConfig(
@@ -74,7 +69,7 @@ def rawDataFrom():
     query_job = bq_client.query(query, job_config=job_config)
     rows = query_job.result()
     for row in rows:
-        measurements.append({"pm25": row.PM25, "time": row.TIMESTAMP.strftime(utils.DATETIME_FORMAT)})
+        measurements.append({"pm25": row.PM2_5, "time": row.time.strftime(utils.DATETIME_FORMAT)})
     tags = [{
         "ID": id,
         "Sensor Source": sensor_source,
@@ -91,15 +86,44 @@ def liveSensors():
     # Get the arguments from the query string
     sensor_type = request.args.get('sensorType')
 
+    # Check that sensor_type is valid
+    if not sensor_type in VALID_SENSOR_TYPES:
+        msg = f"sensor_type is invalid. It must be one of {VALID_SENSOR_TYPES}"
+        return msg, 400
+
+    # TODO: Can we limit the amount of data processed for each call here
+    # TODO: Allow the sensor_type to have an effect on the query
     # Define the BigQuery query
     query = f"""
-        SELECT a.* 
-        FROM `{SENSOR_TABLE}` AS a 
+    (
+        SELECT a.ID, time, PM2_5, Latitude, Longitude, 'AirU' as source
+        FROM `{AIRU_TABLE_ID}` as a
         INNER JOIN ( 
-            SELECT DEVICE_ID AS ID, max(TIMESTAMP) AS LATEST_MEASUREMENT 
-            FROM `{SENSOR_TABLE}` 
-            GROUP BY DEVICE_ID 
-        ) AS b ON a.DEVICE_ID = b.ID AND a.TIMESTAMP = b.LATEST_MEASUREMENT 
+            SELECT ID, max(time) AS LATEST_MEASUREMENT 
+            FROM `{AIRU_TABLE_ID}` 
+            GROUP BY ID 
+        ) AS b ON a.ID = b.ID AND a.time = b.LATEST_MEASUREMENT 
+    )
+    UNION ALL
+    (
+        SELECT a.ID, time, PM2_5, Latitude, Longitude, 'PurpleAir' as source
+        FROM `{PURPLEAIR_TABLE_ID}` as a
+        INNER JOIN ( 
+            SELECT ID, max(time) AS LATEST_MEASUREMENT 
+            FROM `{PURPLEAIR_TABLE_ID}` 
+            GROUP BY ID 
+        ) AS b ON a.ID = b.ID AND a.time = b.LATEST_MEASUREMENT 
+    )
+    UNION ALL
+    (
+        SELECT a.ID, time, PM2_5, Latitude, Longitude, 'DAQ' as source
+        FROM `{DAQ_TABLE_ID}` as a
+        INNER JOIN ( 
+            SELECT ID, max(time) AS LATEST_MEASUREMENT 
+            FROM `{DAQ_TABLE_ID}` 
+            GROUP BY ID 
+        ) AS b ON a.ID = b.ID AND a.time = b.LATEST_MEASUREMENT 
+    )
     """
 
     # Run the query and collect the result
@@ -107,19 +131,12 @@ def liveSensors():
     query_job = bq_client.query(query)
     rows = query_job.result()
     for row in rows:
-        sensor_list.append({"ID": str(row.DEVICE_ID),
-                            "Latitude": row.LAT,
-                            "Longitude": row.LON,
-                            "time": row.TIMESTAMP.timestamp() * 1000,
-                            "pm1": row.PM1,
-                            "pm25": row.PM25,
-                            "pm10": row.PM10,
-                            "Temperature": row.TEMP,
-                            "Humidity": row.HUM,
-                            "NOX": row.NOX,
-                            "CO": row.CO,
-                            "VER": row.VER,
-                            "Sensor Source": "DAQ"})
+        sensor_list.append({"ID": str(row.ID),
+                            "Latitude": row.Latitude,
+                            "Longitude": row.Longitude,
+                            "time": row.time,
+                            "pm25": row.PM2_5,
+                            "Sensor Source": row.source})
 
     return jsonify(sensor_list)
 
