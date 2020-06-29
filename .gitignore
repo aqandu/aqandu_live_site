@@ -1,7 +1,8 @@
 # Sensitive info
 config.py
 config.production.py
-aqandu/.env
+.env
+.env.prod
 aqandu/aqandu.json
 
 # Auto generated files
