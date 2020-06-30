@@ -187,12 +187,27 @@ def timeAggregatedDataFrom():
                 FROM UNNEST(GENERATE_ARRAY(0,  DIV(TIMESTAMP_DIFF(@end, @start, MINUTE) , @interval))) AS num
             )
         SELECT 
-            CASE WHEN {SQL_FUNCTIONS.get(function)}(PM25) IS NOT NULL THEN {SQL_FUNCTIONS.get(function)}(PM25) ELSE 0 END AS PM25,
+            CASE WHEN {SQL_FUNCTIONS.get(function)}(PM2_5) IS NOT NULL THEN {SQL_FUNCTIONS.get(function)}(PM2_5) ELSE 0 END AS PM2_5,
             upper
         FROM intervals 
-            JOIN `{SENSOR_TABLE}`
-               ON `{SENSOR_TABLE}`.TIMESTAMP BETWEEN intervals.lower AND intervals.upper
-        WHERE DEVICE_ID = @id
+            JOIN (
+                (
+                SELECT ID, time, PM2_5, Latitude, Longitude, SensorModel, 'AirU' as SensorSource
+                FROM `{AIRU_TABLE_ID}`
+            )
+            UNION ALL
+            (
+                SELECT ID, time, PM2_5, Latitude, Longitude, '' as SensorModel, 'PurpleAir' as SensorSource
+                FROM `{PURPLEAIR_TABLE_ID}`
+            )
+            UNION ALL
+            (
+                SELECT ID, time, PM2_5, Latitude, Longitude, '' as SensorModel, 'DAQ' as SensorSource
+                FROM `{DAQ_TABLE_ID}`
+            )
+        ) sensors
+            ON sensors.time BETWEEN intervals.lower AND intervals.upper
+        WHERE ID = @id
         GROUP BY upper
         ORDER BY upper
     """
@@ -211,7 +226,7 @@ def timeAggregatedDataFrom():
     query_job = bq_client.query(query, job_config=job_config)
     rows = query_job.result()
     for row in rows:
-        measurements.append({"pm25": row.PM25, "time": row.upper.strftime(utils.DATETIME_FORMAT)})
+        measurements.append({"PM2_5": row.PM2_5, "time": row.upper.strftime(utils.DATETIME_FORMAT)})
 
     tags = [{
         "ID": id,
