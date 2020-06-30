@@ -18,7 +18,7 @@ SOURCE_TABLE_MAP = {
 VALID_SENSOR_TYPES = ["AirU", "PurpleAir", "DAQ", "all"]
 
 # Example request:
-# 127.0.0.1:8080/api/rawDataFrom?id=M30AEA4EF9F88&sensorSource=Purple%20Air&start=2020-03-25T00:23:51Z&end=2020-03-26T00:23:51Z&show=pm25
+# 127.0.0.1:8080/api/rawDataFrom?id=M30AEA4EF9F88&sensorSource=Purple%20Air&start=2020-03-25T00:23:51Z&end=2020-03-26T00:23:51Z&show=PM2_5
 @app.route("/api/rawDataFrom", methods = ["GET"])
 def rawDataFrom():
     # Get the arguments from the query string
@@ -26,19 +26,16 @@ def rawDataFrom():
     sensor_source = request.args.get('sensorSource')
     start = request.args.get('start')
     end = request.args.get('end')
-    show = request.args.get('show') # Data type (should be pm25)
+    show = request.args.get('show') # Data type (should be PM2_5)
 
     # Check that the arguments we want exist
     if not sensor_source in VALID_SENSOR_TYPES:
         msg = f"sensor_source is invalid. It must be one of {VALID_SENSOR_TYPES}"
         return msg, 400
 
-    # if not validateInputs(['id', 'sensorSource', 'start', 'end', 'show'], request.args):
-    #     msg = 'Query string is missing an id and/or a sensorSource and/or a start and/or end date and/or a show'
-    #     return msg, 400
+    # TODO: fix argument
 
     
-
     # Check that the data is formatted correctly
     if not utils.validateDate(start) or not utils.validateDate(end):
         resp = jsonify({'message': f"Incorrect date format, should be {utils.DATETIME_FORMAT}, e.g.: 2018-01-03T20:00:00Z"})
@@ -69,10 +66,10 @@ def rawDataFrom():
     query_job = bq_client.query(query, job_config=job_config)
     rows = query_job.result()
     for row in rows:
-        measurements.append({"pm25": row.PM2_5, "time": row.time.strftime(utils.DATETIME_FORMAT)})
+        measurements.append({"PM2_5": row.PM2_5, "time": row.time.strftime(utils.DATETIME_FORMAT)})
     tags = [{
         "ID": id,
-        "Sensor Source": sensor_source,
+        "SensorSource": sensor_source,
         "SensorModel":"H1.2+S1.0.8",
         "time": datetime.utcnow().strftime(utils.DATETIME_FORMAT)
     }]
@@ -96,7 +93,7 @@ def liveSensors():
     # Define the BigQuery query
     query = f"""
     (
-        SELECT a.ID, time, PM2_5, Latitude, Longitude, 'AirU' as source
+        SELECT a.ID, time, PM2_5, Latitude, Longitude, SensorModel, 'AirU' as SensorSource
         FROM `{AIRU_TABLE_ID}` as a
         INNER JOIN ( 
             SELECT ID, max(time) AS LATEST_MEASUREMENT 
@@ -106,7 +103,7 @@ def liveSensors():
     )
     UNION ALL
     (
-        SELECT a.ID, time, PM2_5, Latitude, Longitude, 'PurpleAir' as source
+        SELECT a.ID, time, PM2_5, Latitude, Longitude, '' as SensorModel, 'PurpleAir' as SensorSource
         FROM `{PURPLEAIR_TABLE_ID}` as a
         INNER JOIN ( 
             SELECT ID, max(time) AS LATEST_MEASUREMENT 
@@ -116,7 +113,7 @@ def liveSensors():
     )
     UNION ALL
     (
-        SELECT a.ID, time, PM2_5, Latitude, Longitude, 'DAQ' as source
+        SELECT a.ID, time, PM2_5, Latitude, Longitude, '' as SensorModel, 'DAQ' as SensorSource
         FROM `{DAQ_TABLE_ID}` as a
         INNER JOIN ( 
             SELECT ID, max(time) AS LATEST_MEASUREMENT 
@@ -135,13 +132,15 @@ def liveSensors():
                             "Latitude": row.Latitude,
                             "Longitude": row.Longitude,
                             "time": row.time,
-                            "pm25": row.PM2_5,
-                            "Sensor Source": row.source})
+                            "PM2_5": row.PM2_5,
+                            "SensorModel": row.SensorModel,
+                            "SensorSource": row.SensorSource})
 
     return jsonify(sensor_list)
 
+
 # Example request
-# 127.0.0.1:8080/api/timeAggregatedDataFrom?id=M3C71BF153448&sensorSource=Purple%20Air&start=2020-06-08T16:21:56Z&end=2020-06-11T16:21:56Z&function=mean&functionArg=pm25&timeInterval=5
+# 127.0.0.1:8080/api/timeAggregatedDataFrom?id=M3C71BF153448&sensorSource=Purple%20Air&start=2020-06-08T16:21:56Z&end=2020-06-11T16:21:56Z&function=mean&functionArg=PM2_5&timeInterval=5
 @app.route("/api/timeAggregatedDataFrom", methods = ["GET"])
 def timeAggregatedDataFrom():
     # Get the arguments from the query string
@@ -159,13 +158,11 @@ def timeAggregatedDataFrom():
         "max": "MAX",
     }
 
+    # TODO: fix argument
     # Check that the arguments we want exist and in the right form
-    if not validateInputs(['id', 'sensorSource', 'start', 'end', 'function', 'functionArg', 'timeInterval'], request.args):
-        msg = 'Query string is missing an id and/or a sensorSource and/or a start and/or end date and/or a function and/or a functionArg and/or a timeInterval'
-        return msg, 400
 
     if not function in SQL_FUNCTIONS:
-        msg = 'function is not in {SQL_FUNCTIONS.keys()}'
+        msg = f"function is not in {SQL_FUNCTIONS.keys()}"
         return msg, 400
 
     # Check that the data is formatted correctly
@@ -179,20 +176,7 @@ def timeAggregatedDataFrom():
         "max": "MAX",
     }
 
-    # Check that the arguments we want exist and in the right form
-    if not validateInputs(['id', 'sensorSource', 'start', 'end', 'function', 'functionArg', 'timeInterval'], request.args):
-        msg = 'Query string is missing an id and/or a sensorSource and/or a start and/or end date and/or a function and/or a functionArg and/or a timeInterval'
-        return msg, 400
-
-    if not function in SQL_FUNCTIONS:
-        msg = 'function is not in {SQL_FUNCTIONS.keys()}'
-        return msg, 400
-
-    # Check that the data is formatted correctly
-    if not utils.validateDate(start) or not utils.validateDate(end):
-        resp = jsonify({'message': f"Incorrect date format, should be {utils.DATETIME_FORMAT}, e.g.: 2018-01-03T20:00:00Z"})
-        return resp, 400
-
+    # TODO: reduce the processed data size in bq
     # Define the BigQuery query
     query = f"""
         WITH 

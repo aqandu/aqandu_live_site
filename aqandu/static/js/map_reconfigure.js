@@ -19,7 +19,6 @@ const slcMap = L.map('SLC-map', {
 });
 const liveSensorURL_AirU = generateURL('/liveSensors', { 'type': 'AirU' });
 const liveSensorURL_all = generateURL('/liveSensors', { 'type': 'all' });
-const lastValueURL = generateURL('/lastValue');
 const lastContourURL = generateURL('/getLatestContour');
 
 let theMap;
@@ -116,7 +115,7 @@ function showMapDataVis() {
     hideSlider();
 
     // Update the vis every 60 seconds
-    dotsUpdateID = setInterval('updateDots()', 60000);  // 60,000 miliseconds = 1 min
+    dotsUpdateID = setInterval('updateDots()', 60000);  // 60,000 milliseconds = 1 min
     sensorUpdateID = setInterval('updateSensors()', 300000); // update every 5min
 
   } else {
@@ -687,20 +686,20 @@ function drawSensorOnMap() {
   $('#SLC-map').LoadingOverlay('show');
 
   getDataFromDB(liveSensorURL_all).then((data) => {
-    var numberOfPurpleAir = data.filter(sensor => sensor['Sensor Source'] === 'PurpleAir').length;
+    var numberOfPurpleAir = data.filter(sensor => sensor['SensorSource'] === 'PurpleAir').length;
     $('#numberof_PurpleAir').html(numberOfPurpleAir);
 
-    var numberOfAirU = data.filter(sensor => sensor['Sensor Source'] === 'AirU').length;
+    var numberOfAirU = data.filter(sensor => sensor['SensorSource'] === 'AirU').length;
     $('#numberof_AirU').html(numberOfAirU);
 
-    var numberOfMesowest = data.filter(sensor => sensor['Sensor Source'] === 'Mesowest').length;
+    var numberOfMesowest = data.filter(sensor => sensor['SensorSource'] === 'Mesowest').length;
     $('#numberof_Mesowest').html(numberOfMesowest);
 
-    var numberOfDAQ = data.filter(sensor => sensor['Sensor Source'] === 'DAQ').length;
+    var numberOfDAQ = data.filter(sensor => sensor['SensorSource'] === 'DAQ').length;
     $('#numberof_DAQ').html(numberOfDAQ);
 
     const response = data.map((d) => {
-      d.pm25 = conversionPM(d.pm25, d['Sensor Source'], d['Sensor Model']);
+      d.PM2_5 = conversionPM(d.PM2_5, d['SensorSource'], d['SensorModel']);
 
       return d
     });
@@ -708,7 +707,7 @@ function drawSensorOnMap() {
     sensorLayer(response);
 
     data.forEach(function (aSensor) {
-      liveSensors.push({ 'id': aSensor.ID.split(' ').join('_'), 'sensorSource': aSensor['Sensor Source'] });
+      liveSensors.push({ 'id': aSensor.ID.split(' ').join('_'), 'sensorSource': aSensor['SensorSource'] });
     });
 
     $('#SLC-map').LoadingOverlay('hide');
@@ -747,11 +746,11 @@ function createMarker(markerData) {
     html: ''
   };
 
-  let sensorSource = markerData['Sensor Source'];
+  let sensorSource = markerData['SensorSource'];
 
   if (markerData.Latitude !== null && markerData.Longitude !== null) {
     let classList = 'dot';
-    let currentPM25 = markerData.pm25;
+    let currentPM25 = markerData.PM2_5;
 
     let currentTime = new Date().getTime();
     let timeLastMeasurement = markerData.time;
@@ -845,7 +844,7 @@ function createRandomClickMarker(markerData) {
     mark.id = markerData['ID'];
 
     mark.bindPopup(
-      L.popup({ closeButton: false, className: 'sensorInformationPopup' }).setContent('<span class="popup">' + markerData['Sensor Source'] + ': ' + markerData.ID + '</span>'));
+      L.popup({ closeButton: false, className: 'sensorInformationPopup' }).setContent('<span class="popup">' + markerData['SensorSource'] + ': ' + markerData.ID + '</span>'));
 
     // set the border of created marker to selected
     d3.select(mark._icon).classed('sensor-selected', true);
@@ -901,12 +900,12 @@ function getAllSensorData() {
 
   liveSensors.forEach(function (aLiveSensor) {
     let route = '/rawDataFrom';
-    let parameters = { 'id': aLiveSensor.id, 'sensorSource': aLiveSensor.sensorSource, 'start': formatDateTime(pastDate), 'end': formatDateTime(todaysDate), 'show': 'pm25' };
+    let parameters = { 'id': aLiveSensor.id, 'sensorSource': aLiveSensor.sensorSource, 'start': formatDateTime(pastDate), 'end': formatDateTime(todaysDate), 'show': 'PM2_5' };
 
     let aSensorRawDataURL = generateURL(route, parameters)
 
     getDataFromDB(aSensorRawDataURL).then(data => {
-      liveSensorsData.push({ 'id': data.tags[0]['ID'], 'pmData': data.data, 'sensorModel': data.tags[0]['Sensor Model'], 'sensorSource': data.tags[0]['Sensor Source'] })
+      liveSensorsData.push({ 'id': data.tags[0]['ID'], 'pmData': data.data, 'sensorModel': data.tags[0]['SensorModel'], 'sensorSource': data.tags[0]['SensorSource'] })
     }).catch(function (err) {
       console.error('Error: ', err)
     });
@@ -915,15 +914,15 @@ function getAllSensorData() {
 
 
 function updateDots() {
-  getDataFromDB(lastValueURL).then((data) => {
+  getDataFromDB(liveSensorURL_all).then((data) => {
     // apply conversion for purple air
     Object.keys(data).forEach(function (key) {
-      let sensorModel = data[key]['Sensor Model'];
-      let sensorSource = data[key]['Sensor Source'];
-      data[key]['pm25'] = conversionPM(data[key]['pm25'], sensorSource, sensorModel);
+      let sensorModel = data[key]['SensorModel'];
+      let sensorSource = data[key]['SensorSource'];
+      data[key]['PM2_5'] = conversionPM(data[key]['PM2_5'], sensorSource, sensorModel);
     });
 
-    sensLayer.eachLayer(function (layer) {
+    sensLayer.eachLayer(layer => {
       // Find the updated value for a specific sensor id
       const updatedValue = data.find(latestValue => {
         return latestValue.ID === layer.id
@@ -934,11 +933,10 @@ function updateDots() {
         const timeLastMeasurement = new Date(updatedValue.time).getTime();
         const minutesINBetween = (currentTime - timeLastMeasurement) / (1000 * 60);
 
-        const currentPM25 = updatedValue.last;
-        const theSensorSource = updatedValue['Sensor Source']
+        const currentPM25 = updatedValue.PM2_5;
+        const theSensorSource = updatedValue.SensorSource
 
         const theColor = displaySensor(theSensorSource, minutesINBetween, currentPM25)
-        console.log(theColor)
         $(layer._icon).removeClass(epaColors.join(' '))
         $(layer._icon).addClass(theColor)
       }
@@ -1104,15 +1102,15 @@ function preprocessDBData(id, sensorData) {
   let sanitizedID = id.split(' ').join('_')
 
   let tags = sensorData['tags'][0];
-  let sensorSource = tags['Sensor Source'];
-  let sensorModel = tags['Sensor Model'];
+  let sensorSource = tags['SensorSource'];
+  let sensorModel = tags['SensorModel'];
 
   let processedSensorData = sensorData['data'].map((d) => {
     return {
       id: sanitizedID,  // make out of id 'Rose Park', 'Rose_Park'
       time: new Date(d.time),
-      // pm25: d['pm25']
-      pm25: conversionPM(d.pm25, sensorSource, sensorModel)
+      // PM2_5: d['PM2_5']
+      PM2_5: conversionPM(d.PM2_5, sensorSource, sensorModel)
     };
   });
 
@@ -1150,18 +1148,18 @@ function drawChart() {
   var pmFormat = d3.format(s);
 
   // Scale the range of the data
-  var valueline = d3.line().defined(function (d) { return d.pm25; })
+  var valueline = d3.line().defined(function (d) { return d.PM2_5; })
     .x(function (d) {
       return x(d.time);
     })
     .y(function (d) {
-      return y(d.pm25);
+      return y(d.PM2_5);
     });
 
   //mike bostock's code
   var voronoi = d3.voronoi()
     .x(function (d) { return x(d.time); })
-    .y(function (d) { return y(d.pm25); })
+    .y(function (d) { return y(d.PM2_5); })
     .extent([[-margin.left, -margin.top], [width + margin.right, height + margin.bottom]]);
 
   // adds the svg attributes to container
@@ -1195,8 +1193,8 @@ function drawChart() {
     // in SVG land, this means that hoveredLine will jump to the foreground
     //.node() gets the dom element (line element), then when you append child to the parent that it already has, it bumps updated child to the front
     hoveredLine.node().parentNode.appendChild(hoveredLine.node());
-    focus.attr('transform', 'translate(' + (x(d.data.time) + margin.left) + ',' + (y(d.data.pm25) + margin.top) + ')'); //x and y gets coordinates from values, which we can then change with margin
-    focus.select('text').text(pmFormat(d.data.pm25) + ' µg/m\u00B3');
+    focus.attr('transform', 'translate(' + (x(d.data.time) + margin.left) + ',' + (y(d.data.PM2_5) + margin.top) + ')'); //x and y gets coordinates from values, which we can then change with margin
+    focus.select('text').text(pmFormat(d.data.PM2_5) + ' µg/m\u00B3');
 
     // date focus
     dateFocus.attr('transform', 'translate(' + (x(d.data.time) + margin.left) + ',' + (y(2) + margin.top) + ')');
@@ -1264,8 +1262,8 @@ function drawChart() {
 function getGraphData(sensorID, sensorSource, aggregation) {
   let route = aggregation ? '/timeAggregatedDataFrom' : '/rawDataFrom';
   let parameters = aggregation ? 
-    { 'id': sensorID, 'sensorSource': sensorSource, 'start': formatDateTime(pastDate), 'end': formatDateTime(todaysDate), 'function': 'mean', 'functionArg': 'pm25', 'timeInterval': '5' }
-    : { 'id': sensorID, 'sensorSource': sensorSource, 'start': formatDateTime(pastDate), 'end': formatDateTime(todaysDate), 'show': 'pm25' };
+    { 'id': sensorID, 'sensorSource': sensorSource, 'start': formatDateTime(pastDate), 'end': formatDateTime(todaysDate), 'function': 'mean', 'functionArg': 'PM2_5', 'timeInterval': '5' }
+    : { 'id': sensorID, 'sensorSource': sensorSource, 'start': formatDateTime(pastDate), 'end': formatDateTime(todaysDate), 'show': 'PM2_5' };
 
   var url = generateURL(route, parameters);
 
@@ -1403,7 +1401,7 @@ function createNewMarker(location) {
 
 
   // create Dot
-  var randomClickMarker = [{ 'ID': markerID, 'Sensor Source': 'sensorLayerRandomMarker', 'Latitude': String(clickLocation['lat']), 'Longitude': String(clickLocation['lng']) }]
+  var randomClickMarker = [{ 'ID': markerID, 'SensorSource': 'sensorLayerRandomMarker', 'Latitude': String(clickLocation['lat']), 'Longitude': String(clickLocation['lng']) }]
   sensorLayerRandomMarker(randomClickMarker)
 
 
@@ -1415,11 +1413,11 @@ function createNewMarker(location) {
       return {
         id: markerID,
         time: new Date(d.time),
-        pm25: d.pm25,
+        PM2_5: d.PM2_5,
         contour: d.contour          // DO I NEED THIS TODO
       };
     }).filter((d) => {
-      return d.pm25 === 0 || !!d.pm25; // forces NaN, null, undefined to be false, all other values to be true
+      return d.PM2_5 === 0 || !!d.PM2_5; // forces NaN, null, undefined to be false, all other values to be true
     });
 
     var newLine = { id: markerID, sensorSource: 'sensorLayerRandomMarker', sensorData: processedData };
