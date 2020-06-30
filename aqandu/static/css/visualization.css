@@ -294,10 +294,6 @@ input:valid ~ span.validity:after {
   padding-left: 10px;
 }
 
-#numberof_Mesowest {
-  padding-left: 10px;
-}
-
 #numberof_DAQ{
   padding-left: 10px;
 }

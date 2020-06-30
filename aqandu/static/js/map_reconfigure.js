@@ -477,7 +477,7 @@ function setupMap() {
       .attr('class', 'legendTitle')
       .html('Data sources:');
 
-    var dataLabel = ['AirU', 'PurpleAir', 'Mesowest', 'DAQ'];
+    var dataLabel = ['AirU', 'PurpleAir', 'DAQ'];
     var labels = d3div.selectAll('label').data(dataLabel);
     labels.exit().remove();
     var labelsEnter = labels.enter()
@@ -691,9 +691,6 @@ function drawSensorOnMap() {
 
     var numberOfAirU = data.filter(sensor => sensor['SensorSource'] === 'AirU').length;
     $('#numberof_AirU').html(numberOfAirU);
-
-    var numberOfMesowest = data.filter(sensor => sensor['SensorSource'] === 'Mesowest').length;
-    $('#numberof_Mesowest').html(numberOfMesowest);
 
     var numberOfDAQ = data.filter(sensor => sensor['SensorSource'] === 'DAQ').length;
     $('#numberof_DAQ').html(numberOfDAQ);
@@ -987,11 +984,6 @@ function displaySensor(aSensorSource, minutesPassedSinceLastDataValue, aCurrentV
   } else if (aSensorSource === 'DAQ') {
 
     if (minutesPassedSinceLastDataValue <= 180.0) {
-      theColor = calculatedColor;
-    }
-  } else if (aSensorSource === 'Mesowest') {
-
-    if (minutesPassedSinceLastDataValue <= 20.0) {
       theColor = calculatedColor;
     }
   } else {
