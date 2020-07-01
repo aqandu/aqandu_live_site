@@ -19,8 +19,8 @@ function generateURL(route, parameters) {
     url = `https://air.eng.utah.edu/dbapi/api/contours?start=${parameters.start}&end=${parameters.end}`;
   } else if (route === '/getLatestContour') {
     url = `https://air.eng.utah.edu/dbapi/api/getLatestContour`;
-  } else if (route === '/getEstimatesForLocation') {
-    url = `${urlRoute}?locationLat=${parameters.location.lat}&locationLon=${parameters.location.lng}&start=${parameters.start}&end=${parameters.end}`;
+  } else if (route === '/getPredictionsForLocation') {
+    url = `${urlRoute}?lat=${parameters.location.lat}&lon=${parameters.location.lon}&start_date=${parameters.start}&end_date=${parameters.end}&predictionsperhour=${parameters.predictionsperhour}`;
   }
 
   return url;

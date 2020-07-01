@@ -1376,27 +1376,23 @@ function conversionPM(pm, sensorSource, sensorModel) {
 }
 
 function createNewMarker(location) {
-  var clickLocation = location.latlon;
-
   // creating the ID for the marker
-  var markerID = latestGeneratedID + 1;
+  let markerID = latestGeneratedID + 1;
   latestGeneratedID = markerID;
   markerID = 'personalMarker_' + markerID;
 
-
   // create Dot
-  var randomClickMarker = [{ 'ID': markerID, 'SensorSource': 'sensorLayerRandomMarker', 'Latitude': String(clickLocation['lat']), 'Longitude': String(clickLocation['lng']) }]
+  const randomClickMarker = [{ 'ID': markerID, 'SensorSource': 'sensorLayerRandomMarker', 'Latitude': String(location.latlng.lat), 'Longitude': String(location.latlng.lng) }]
   sensorLayerRandomMarker(randomClickMarker)
 
+  const predictionsForLocationURL = generateURL('/getPredictionsForLocation', { 'location': { 'lat':  String(location.latlng.lat), 'lon': String(location.latlng.lng) }, 'start': formatDateTime(pastDate), 'end': formatDateTime(todaysDate), 'predictionsperhour': 1 })
 
-  var estimatesForLocationURL = generateURL('/getEstimatesForLocation', { 'location': { 'lat': clickLocation['lat'], 'lon': clickLocation['lng'] }, 'start': formatDateTime(pastDate), 'end': formatDateTime(todaysDate) })
-
-  getDataFromDB(estimatesForLocationURL).then(data => {
+  getDataFromDB(predictionsForLocationURL).then(data => {
     // parse the incoming bilinear interpolated data
     var processedData = data.map((d) => {
       return {
         id: markerID,
-        time: new Date(d.time),
+        time: new Date(d.datetime),
         PM2_5: d.PM2_5,
         contour: d.contour          // DO I NEED THIS TODO
       };
@@ -1408,6 +1404,7 @@ function createNewMarker(location) {
 
     // pushes data for this specific line to an array so that there can be multiple lines updated dynamically on Click
     lineArray.push(newLine)
+    console.log(lineArray)
 
     drawChart();
   }).catch((err) => {

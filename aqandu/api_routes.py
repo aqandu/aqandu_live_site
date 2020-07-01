@@ -241,41 +241,6 @@ def timeAggregatedDataFrom():
     return jsonify({"data": measurements, "tags": tags})
 
 
-# TODO: Fix this route
-# @app.route("/api/getEstimatesForLocation", methods = ["GET"])
-# def getEstimatesForLocation():
-#     # Get the arguments from the query string
-#     location_lat = request.args.get('locationLat')
-#     location_lon = request.args.get('locationLon')
-#     start = request.args.get('start')
-#     end = request.args.get('end')
-
-#     # Define the BigQuery query
-#     query = (
-#         "SELECT * "
-#         f"FROM `{SENSOR_TABLE}` "
-#     )
-
-#     # Run the query and collect the result
-#     query_job = bq_client.query(query)
-#     rows = query_job.result()
-#     for row in rows:
-#         sensor_list.append({"DEVICE_ID": str(row.DEVICE_ID),
-#                             "LAT": row.LAT,
-#                             "LON": row.LON,
-#                             "TIMESTAMP": str(row.TIMESTAMP),
-#                             "PM1": row.PM1,
-#                             "PM2_5": row.PM2_5,
-#                             "PM10": row.PM10,
-#                             "TEMP": row.TEMP,
-#                             "HUM": row.HUM,
-#                             "NOX": row.NOX,
-#                             "CO": row.CO,
-#                             "VER": row.VER})
-#     json_sensors = json.dumps(sensor_list, indent=4)
-#     return json_sensors
-
-
 def request_model_data_local(lat, lon, radius, start_date, end_date):
     model_data = []
     # get the latest sensor data from each sensor
