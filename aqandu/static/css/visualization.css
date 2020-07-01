@@ -349,7 +349,7 @@ input:valid ~ span.validity:after {
   fill: #c00;
 }
 
-.leaflet-verticalCenterTop {
+.leaflet-verticalcentertop {
   position: absolute;
   z-index: 1000;
   top: 6%;
@@ -357,11 +357,11 @@ input:valid ~ span.validity:after {
   padding-top: 10px;
 }
 
-.leaflet-verticalCenterTop .leaflet-control {
+.leaflet-verticalcentertop .leaflet-control {
   margin-bottom: 10px;
 }
 
-.leaflet-verticalCenterBottom {
+.leaflet-verticalcenterbottom {
   position: absolute;
   z-index: 1000;
   top: 50%;
@@ -369,7 +369,7 @@ input:valid ~ span.validity:after {
   padding-top: 10px;
 }
 
-.leaflet-verticalCenterBottom .leaflet-control {
+.leaflet-verticalcenterbottom .leaflet-control {
   margin-bottom: 10px;
 }
 
