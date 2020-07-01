@@ -35,7 +35,7 @@ def rawDataFrom():
 
     # TODO: fix argument
 
-    
+
     # Check that the data is formatted correctly
     if not utils.validateDate(start) or not utils.validateDate(end):
         resp = jsonify({'message': f"Incorrect date format, should be {utils.DATETIME_FORMAT}, e.g.: 2018-01-03T20:00:00Z"})
@@ -128,13 +128,17 @@ def liveSensors():
     query_job = bq_client.query(query)
     rows = query_job.result()
     for row in rows:
-        sensor_list.append({"ID": str(row.ID),
-                            "Latitude": row.Latitude,
-                            "Longitude": row.Longitude,
-                            "time": row.time,
-                            "PM2_5": row.PM2_5,
-                            "SensorModel": row.SensorModel,
-                            "SensorSource": row.SensorSource})
+        sensor_list.append(
+            {
+                "ID": str(row.ID),
+                "Latitude": row.Latitude,
+                "Longitude": row.Longitude,
+                "time": row.time,
+                "PM2_5": row.PM2_5,
+                "SensorModel": row.SensorModel,
+                "SensorSource": row.SensorSource,
+            }
+        )
 
     return jsonify(sensor_list)
 
@@ -191,7 +195,7 @@ def timeAggregatedDataFrom():
             upper
         FROM intervals 
             JOIN (
-                (
+            (
                 SELECT ID, time, PM2_5, Latitude, Longitude, SensorModel, 'AirU' as SensorSource
                 FROM `{AIRU_TABLE_ID}`
             )
@@ -230,205 +234,74 @@ def timeAggregatedDataFrom():
 
     tags = [{
         "ID": id,
-        "Sensor Source": sensor_source,
+        "SensorSource": sensor_source,
         "SensorModel":"H1.2+S1.0.8",
         "time": datetime.utcnow().strftime(utils.DATETIME_FORMAT)
     }]
     return jsonify({"data": measurements, "tags": tags})
 
 
-# Example request:
-# 127.0.0.1:8080/api/lastValue?fieldKey=pm25
-@app.route("/api/lastValue", methods = ["GET"])
-def lastValue():
-    # Get the arguments from the query string
-    field_key = request.args.get('fieldKey')
-
-    # Define the BigQuery query
-    query = (
-        "SELECT a.* "
-        f"FROM `{SENSOR_TABLE}` AS a "
-        "INNER JOIN ( "
-            "SELECT DEVICE_ID AS ID, max(TIMESTAMP) AS LATEST_MEASUREMENT "
-            f"FROM `{SENSOR_TABLE}` "
-            "GROUP BY DEVICE_ID "
-            ") AS b ON a.DEVICE_ID = b.ID AND a.TIMESTAMP = b.LATEST_MEASUREMENT "
-    )
-
-    # Run the query and collect the result
-    sensor_list = []
-    query_job = bq_client.query(query)
-    rows = query_job.result()
-    for row in rows:
-        sensor_list.append({"ID": str(row.DEVICE_ID),
-                            "Latitude": row.LAT,
-                            "Longitude": row.LON,
-                            "time": row.TIMESTAMP.timestamp() * 1000,
-                            "pm1": row.PM1,
-                            "pm25": row.PM25,
-                            "pm10": row.PM10,
-                            "Temperature": row.TEMP,
-                            "Humidity": row.HUM,
-                            "NOX": row.NOX,
-                            "CO": row.CO,
-                            "VER": row.VER,
-                            "Sensor Source": "DAQ"})
-
-    return jsonify(sensor_list)
-
-
 # TODO: Fix this route
-@app.route("/api/contours", methods = ["GET"])
-def contours():
-    # Get the arguments from the query string
-    start = request.args.get('start')
-    end = request.args.get('end')
+# @app.route("/api/getEstimatesForLocation", methods = ["GET"])
+# def getEstimatesForLocation():
+#     # Get the arguments from the query string
+#     location_lat = request.args.get('locationLat')
+#     location_lon = request.args.get('locationLon')
+#     start = request.args.get('start')
+#     end = request.args.get('end')
 
-    # Define the BigQuery query
-    query = (
-        "SELECT * "
-        f"FROM `{SENSOR_TABLE}` "
-    )
+#     # Define the BigQuery query
+#     query = (
+#         "SELECT * "
+#         f"FROM `{SENSOR_TABLE}` "
+#     )
 
-    # Run the query and collect the result
-    query_job = bq_client.query(query)
-    rows = query_job.result()
-    for row in rows:
-        sensor_list.append({"DEVICE_ID": str(row.DEVICE_ID),
-                            "LAT": row.LAT,
-                            "LON": row.LON,
-                            "TIMESTAMP": str(row.TIMESTAMP),
-                            "PM1": row.PM1,
-                            "PM25": row.PM25,
-                            "PM10": row.PM10,
-                            "TEMP": row.TEMP,
-                            "HUM": row.HUM,
-                            "NOX": row.NOX,
-                            "CO": row.CO,
-                            "VER": row.VER})
-    json_sensors = json.dumps(sensor_list, indent=4)
-    return json_sensors
-
-
-# TODO: Fix this route
-@app.route("/api/getLatestContour", methods = ["GET"])
-def getLatestContour():
-    # Define the BigQuery query
-    query = (
-        "SELECT * "
-        f"FROM `{SENSOR_TABLE}` "
-    )
-
-    # Run the query and collect the result
-    query_job = bq_client.query(query)
-    rows = query_job.result()
-    for row in rows:
-        sensor_list.append({"DEVICE_ID": str(row.DEVICE_ID),
-                            "LAT": row.LAT,
-                            "LON": row.LON,
-                            "TIMESTAMP": str(row.TIMESTAMP),
-                            "PM1": row.PM1,
-                            "PM25": row.PM25,
-                            "PM10": row.PM10,
-                            "TEMP": row.TEMP,
-                            "HUM": row.HUM,
-                            "NOX": row.NOX,
-                            "CO": row.CO,
-                            "VER": row.VER})
-    json_sensors = json.dumps(sensor_list, indent=4)
-    return json_sensors
-
-
-# TODO: Fix this route
-@app.route("/api/getEstimatesForLocation", methods = ["GET"])
-def getEstimatesForLocation():
-    # Get the arguments from the query string
-    location_lat = request.args.get('locationLat')
-    location_lon = request.args.get('locationLon')
-    start = request.args.get('start')
-    end = request.args.get('end')
-
-    # Define the BigQuery query
-    query = (
-        "SELECT * "
-        f"FROM `{SENSOR_TABLE}` "
-    )
-
-    # Run the query and collect the result
-    query_job = bq_client.query(query)
-    rows = query_job.result()
-    for row in rows:
-        sensor_list.append({"DEVICE_ID": str(row.DEVICE_ID),
-                            "LAT": row.LAT,
-                            "LON": row.LON,
-                            "TIMESTAMP": str(row.TIMESTAMP),
-                            "PM1": row.PM1,
-                            "PM25": row.PM25,
-                            "PM10": row.PM10,
-                            "TEMP": row.TEMP,
-                            "HUM": row.HUM,
-                            "NOX": row.NOX,
-                            "CO": row.CO,
-                            "VER": row.VER})
-    json_sensors = json.dumps(sensor_list, indent=4)
-    return json_sensors
+#     # Run the query and collect the result
+#     query_job = bq_client.query(query)
+#     rows = query_job.result()
+#     for row in rows:
+#         sensor_list.append({"DEVICE_ID": str(row.DEVICE_ID),
+#                             "LAT": row.LAT,
+#                             "LON": row.LON,
+#                             "TIMESTAMP": str(row.TIMESTAMP),
+#                             "PM1": row.PM1,
+#                             "PM2_5": row.PM2_5,
+#                             "PM10": row.PM10,
+#                             "TEMP": row.TEMP,
+#                             "HUM": row.HUM,
+#                             "NOX": row.NOX,
+#                             "CO": row.CO,
+#                             "VER": row.VER})
+#     json_sensors = json.dumps(sensor_list, indent=4)
+#     return json_sensors
 
 
 def request_model_data_local(lat, lon, radius, start_date, end_date):
     model_data = []
     # get the latest sensor data from each sensor
-    query = (
-        "SELECT * "
-        "FROM ( "
-            "SELECT "
-                "Altitude," 
-                "CO, "
-                "Humidity, "
-                "ID, "
-                "Latitude, "
-                "Longitude, "
-                "PM10, "
-                "PM2_5, "
-                "SensorModel, "
-                "Temperature, "
-                "time, "
-                "'AirU' AS Source "
-            f"FROM `{PROJECTID}.{POLMONID}.airu_stationary` "
-            "UNION ALL "
-            "SELECT "
-                "Altitude," 
-                "CO, "
-                "Humidity, "
-                "ID, "
-                "Latitude, "
-                "Longitude, "
-                "PM10, "
-                "PM2_5, "
-                "NULL AS SensorModel, "
-                "Temperature, "
-                "time, "
-                "'DAQ' AS Source "
-            f"FROM `{PROJECTID}.{POLMONID}.daq` "
-            "UNION ALL "
-            "SELECT "
-                "Altitude, "
-                "NULL AS CO, "
-                "Humidity, "
-                "ID, "
-                "Latitude, "
-                "Longitude, "
-                "PM10, "
-                "PM2_5, "
-                "SensorModel, "
-                "Temperature, "
-                "time, "
-                "'Purple Air' AS Source "
-            f"FROM `{PROJECTID}.{POLMONID}.purpleair` "
-        ") "
-        "WHERE SQRT(POW(Latitude - @lat, 2) + POW(Longitude - @lon, 2)) <= @radius "
-        "AND time > @start_date AND time < @end_date "
-        "ORDER BY time ASC;"
+    query = f"""
+    SELECT * 
+    FROM
+    (
+        (
+            SELECT ID, time, PM2_5, Latitude, Longitude, SensorModel, 'AirU' as SensorSource
+            FROM `{AIRU_TABLE_ID}`
+        )
+        UNION ALL
+        (
+            SELECT ID, time, PM2_5, Latitude, Longitude, '' as SensorModel, 'PurpleAir' as SensorSource
+            FROM `{PURPLEAIR_TABLE_ID}`
+        )
+        UNION ALL
+        (
+            SELECT ID, time, PM2_5, Latitude, Longitude, '' as SensorModel, 'DAQ' as SensorSource
+            FROM `{DAQ_TABLE_ID}`
+        )
     )
+    WHERE SQRT(POW(Latitude - @lat, 2) + POW(Longitude - @lon, 2)) <= @radius
+    AND time > @start_date AND time < @end_date
+    ORDER BY time ASC
+    """
 
     job_config = bigquery.QueryJobConfig(
         query_parameters=[
@@ -449,25 +322,20 @@ def request_model_data_local(lat, lon, radius, start_date, end_date):
 
     for row in rows:
         model_data.append({
-            "Altitude": row.Altitude,
-            "CO": row.CO,
-            "Humidity": row.Humidity,
-            "ID": row.ID,
+            "ID": str(row.ID),
             "Latitude": row.Latitude,
             "Longitude": row.Longitude,
-            "PM10": row.PM10,
+            "time": row.time,
             "PM2_5": row.PM2_5,
             "SensorModel": row.SensorModel,
-            "Temperature": row.Temperature,
-            "time": row.time,
-            "Source": row.Source,
+            "SensorSource": row.SensorSource,
         })
 
     return model_data
 
 
 # Example request:
-# 127.0.0.1:8080/api/request_model_data?lat=40.7688&lon=-111.8462&radius=1&start_date=2020-03-10T0:0:0&end_date=2020-03-10T0:1:0
+# 127.0.0.1:8080/api/request_model_data?lat=40.7688&lon=-111.8462&radius=1&start_date=2020-06-30T0:0:0&end_date=2020-07-01T0:1:0
 @app.route("/api/request_model_data/", methods=['GET'])
 def request_model_data():
     query_parameters = request.args
@@ -482,12 +350,12 @@ def request_model_data():
 
 
 # Example request:
-# 127.0.0.1:8080/api/getPredictionsForLocation?lat=40.7688&lon=-111.8462&predictionsperhour=1&start_date=2020-03-10T00:00:00&end_date=2020-03-11T00:00:00
+# 127.0.0.1:8080/api/getPredictionsForLocation?lat=40.7688&lon=-111.8462&predictionsperhour=1&start_date=2020-06-30T00:00:00Z&end_date=2020-07-01T00:01:00Z
 @app.route("/api/getPredictionsForLocation/", methods=['GET'])
 def getPredictionsForLocation():
     # Check that the arguments we want exist
-    if not validateInputs(['lat', 'lon', 'predictionsperhour', 'start_date', 'end_date'], request.args):
-        return 'Query string is missing one or more of lat, lon, predictionsperhour, start_date, end_date', 400
+    # if not validateInputs(['lat', 'lon', 'predictionsperhour', 'start_date', 'end_date'], request.args):
+    #     return 'Query string is missing one or more of lat, lon, predictionsperhour, start_date, end_date', 400
 
     # step -1, parse query parameters
     try:
@@ -563,9 +431,9 @@ def getPredictionsForLocation():
     print(f'After removing points with zone num != 12: {len(sensor_data)} data points for {len(unique_sensors)} unique devices.')
 
     # Step 4, parse sensor type from the version
-    sensor_source_to_type = {'AirU': '3003', 'Purple Air': '5003', 'DAQ': '5003'}
+    sensor_source_to_type = {'AirU': '3003', 'PurpleAir': '5003', 'DAQ': '5003'}
     for datum in sensor_data:
-        datum['type'] = sensor_source_to_type[datum['Source']]
+        datum['type'] = sensor_source_to_type[datum['SensorSource']]
             
     print(f'Fields: {sensor_data[0].keys()}')
 
@@ -591,13 +459,3 @@ def getPredictionsForLocation():
     predictions = gaussian_model_utils.predictUsingModel(model, query_lat, query_lon, query_elevation, query_dates, time_offset)
 
     return jsonify(predictions)
-
-
-# Helper function
-def validateInputs(neededInputs, inputs):
-    """Check that expected inputs are provided"""
-    for anNeededInput in neededInputs:
-        if anNeededInput not in inputs:
-            return False
-    return True
-

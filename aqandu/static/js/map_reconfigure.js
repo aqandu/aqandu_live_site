@@ -67,11 +67,9 @@ function startTheWholePage() {
       getGraphData(d.id, d.sensorSource, getAggregation(whichTimeRangeToShow));
     });
 
-
+    // If not showSensors, get historic contour data
     if (!showSensors) {
       getContourData();
-    } else {
-      // need to do the same for the sensors TODO
     }
 
     setUpTimeline();
@@ -864,7 +862,6 @@ function getContourData() {
 
   // get difference between the dates in displays
   var diffDays = Math.ceil((todaysDate - pastDate) / (1000 * 60 * 60 * 24));
-  console.log(diffDays)
 
   // if more than 1 day, load each day separately
   let endDate = todaysDate;
@@ -945,7 +942,7 @@ function updateDots() {
 }
 
 function updateSensors() {
-  getDataFromDB(liveSensorURL_airU).then((data) => {
+  getDataFromDB(liveSensorURL_AirU).then((data) => {
     var numberOfAirUOut = data.length;
     $('#numberof_AirU').html(numberOfAirUOut);
 
@@ -1119,8 +1116,6 @@ function preprocessDBData(id, sensorData) {
 
     // pushes data for this specific line to an array so that there can be multiple lines updated dynamically on Click
     lineArray.push(newLine)
-    console.log('lineArray pushed 2', lineArray)
-
 
     drawChart();
   }
@@ -1270,7 +1265,6 @@ function getGraphData(sensorID, sensorSource, aggregation) {
 
 function populateGraph() {
   // Un-click the sensor source legend and update the dot highlights (AirU, PurpleAir, etc.)
-  console.log(currentlySelectedDataSource)
   if (currentlySelectedDataSource != 'none') {
     d3.select('.clickedLegendElement').classed('clickedLegendElement', false) // TODO: Fix bug with dot still showing in legend
     d3.select('#SLC-map').selectAll('.dot:not(noColor)').classed('notPartOfGroup', false);
