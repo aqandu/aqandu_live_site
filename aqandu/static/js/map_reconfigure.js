@@ -80,7 +80,7 @@ function startTheWholePage() {
 
   theMap = setupMap();
   sensLayer.addTo(theMap);
-  slcMap.contextmenu.disable(); // from https://github.com/aratcliffe/Leaflet.contextmenu/issues/37
+  // slcMap.contextmenu.disable(); // from https://github.com/aratcliffe/Leaflet.contextmenu/issues/37
 
   // shows either the sensors or the contours
   showMapDataVis();
@@ -149,7 +149,7 @@ function getClosest(aDate, contourArray) {
   } else if (aDate > new Date(contourArray[contourArray.length - 1].time)) {
     return [contourArray[contourArray.length - 1], contourArray[contourArray.length - 1]];
   } else {
-    // contourArray is sorted acending in time
+    // contourArray is sorted ascending in time
     var previousElement;
     for (let element of contourArray) {
       if (aDate < new Date(element.time)) {
@@ -443,7 +443,7 @@ function setupMap() {
 
       var colorDiv = document.createElement('div');
       colorDiv.setAttribute('id', aColor);
-      colorDiv.setAttribute('class', 'colorbar ' + aColor);
+      colorDiv.setAttribute('class', `colorBar ${aColor}`);
       tmp.appendChild(colorDiv);
 
       var span = document.createElement('span');
@@ -466,12 +466,12 @@ function setupMap() {
     legendContainer.appendChild(hr);
 
     // adding data source legend
-    var datasourceLegend = L.DomUtil.create('div', 'datasourceLegend');
-    legendContainer.appendChild(datasourceLegend);
+    var dataSourceLegend = L.DomUtil.create('div', 'dataSourceLegend');
+    legendContainer.appendChild(dataSourceLegend);
 
-    var d3div = d3.select(datasourceLegend);
+    var d3div = d3.select(dataSourceLegend);
     var titleDataSource = d3div.append('span')
-      .attr('id', 'datasource')
+      .attr('id', 'dataSource')
       .attr('class', 'legendTitle')
       .html('Data sources:');
 
@@ -493,7 +493,7 @@ function setupMap() {
       .attr('class', 'fas fa-circle');
 
     labels.append('span')
-      .attr('id', d => 'numberof_' + d);
+      .attr('id', d => 'numberOf_' + d);
 
     labels.on('click', d => {
       if (currentlySelectedDataSource != 'none') {
@@ -509,7 +509,7 @@ function setupMap() {
 
           currentlySelectedDataSource = 'none'
         } else {
-          // moved from one element to another without first unchecking it
+          // moved from one element to another without first un-checking it
           d3.select(d3.event.currentTarget).classed('clickedLegendElement', true)
           d3.select(d3.event.currentTarget).select('span').classed('notSelectedLabel', false);
           d3.select(d3.event.currentTarget).select('span').classed('selectedLabel', true);
@@ -676,7 +676,7 @@ function setContour(theMap, theContourData) {
 
 
 /**
- * Querys db to get the live sensors -- sensors that have data since yesterday beginnning of day
+ * Queries db to get the live sensors -- sensors that have data since yesterday beginning of day
  * @return {[type]} [description]
  */
 function drawSensorOnMap() {
@@ -685,13 +685,13 @@ function drawSensorOnMap() {
 
   getDataFromDB(liveSensorURL_all).then((data) => {
     var numberOfPurpleAir = data.filter(sensor => sensor['SensorSource'] === 'PurpleAir').length;
-    $('#numberof_PurpleAir').html(numberOfPurpleAir);
+    $('#numberOf_PurpleAir').html(numberOfPurpleAir);
 
     var numberOfAirU = data.filter(sensor => sensor['SensorSource'] === 'AirU').length;
-    $('#numberof_AirU').html(numberOfAirU);
+    $('#numberOf_AirU').html(numberOfAirU);
 
     var numberOfDAQ = data.filter(sensor => sensor['SensorSource'] === 'DAQ').length;
-    $('#numberof_DAQ').html(numberOfDAQ);
+    $('#numberOf_DAQ').html(numberOfDAQ);
 
     const response = data.map((d) => {
       d.PM2_5 = conversionPM(d.PM2_5, d['SensorSource'], d['SensorModel']);
@@ -944,7 +944,7 @@ function updateDots() {
 function updateSensors() {
   getDataFromDB(liveSensorURL_AirU).then((data) => {
     var numberOfAirUOut = data.length;
-    $('#numberof_AirU').html(numberOfAirUOut);
+    $('#numberOf_AirU').html(numberOfAirUOut);
 
     const response = data.filter((d) => {
       if (!liveAirUSensors.includes(d.ID)) {
@@ -1037,47 +1037,47 @@ function distance(lat1, lon1, lat2, lon2) {
 }
 
 function findDistance(r, mark) {
-  var lt = mark.getLatLng().lat;
-  var lon = mark.getLatLng().lng;
-  var closestsensor = null;
-  var sensorobject = null;
+  const lt = mark.getLatLng().lat;
+  const lon = mark.getLatLng().lng;
+  let closestSensor = null;
+  let sensorObject = null;
 
   r.forEach(function (item) {
     if (item['Latitude'] !== null && item['Longitude'] !== null) {
       var d = distance(lt, lon, parseFloat(item['Latitude']), parseFloat(item['Longitude']));
-      //compare old distance to new distance. Smaller = closestsensor
-      if (closestsensor === null) {
-        closestsensor = d; //distance
-        sensorobject = item; //data object
+      // Compare old distance to new distance. Smaller = closestSensor
+      if (closestSensor === null) {
+        closestSensor = d; //distance
+        sensorObject = item; //data object
       } else {
-        if (closestsensor > d) {
-          closestsensor = d;
-          sensorobject = item;
+        if (closestSensor > d) {
+          closestSensor = d;
+          sensorObject = item;
         }
       }
     }
   });
-  return sensorobject;
+  return sensorObject;
 }
 
-function findCorners(ltlg) {
-  var cornerarray = [];
-  lt = ltlg.lat;
-  lg = ltlg.lng;
+function findCorners(latLon) {
+  var cornerArray = [];
+  lt = latLon.lat;
+  lg = latLon.lng;
 
   var lt1 = lt - 5.0;
-  cornerarray.push(lt1);
+  cornerArray.push(lt1);
   var lt2 = lt + 5.0;
-  cornerarray.push(lt2);
+  cornerArray.push(lt2);
   var lg1 = lg - 5.0;
-  cornerarray.push(lg1);
+  cornerArray.push(lg1);
   var lg2 = lg + 5.0;
-  cornerarray.push(lg2);
+  cornerArray.push(lg2);
 
-  return cornerarray;
+  return cornerArray;
 }
 
-// from https://stackoverflow.com/questions/3224834/get-difference-between-2-dates-in-javascript --> by Shyam Habarakada
+// from https://stackoverflow.com/questions/3224834/get-difference-between-2-dates-in-javascript --> more correct answer
 function dateDiffInSeconds(a, b) {
   const MS_PER_SEC = 1000;
   // Discard the time and time-zone information.
@@ -1088,17 +1088,15 @@ function dateDiffInSeconds(a, b) {
 }
 
 function preprocessDBData(id, sensorData) {
-  let sanitizedID = id.split(' ').join('_')
-
+  let sanitizedID = id.split(' ').join('_') // Make out of id 'Rose Park', 'Rose_Park'
   let tags = sensorData['tags'][0];
   let sensorSource = tags['SensorSource'];
   let sensorModel = tags['SensorModel'];
 
   let processedSensorData = sensorData['data'].map((d) => {
     return {
-      id: sanitizedID,  // make out of id 'Rose Park', 'Rose_Park'
+      id: sanitizedID,  
       time: new Date(d.time),
-      // PM2_5: d['PM2_5']
       PM2_5: conversionPM(d.PM2_5, sensorSource, sensorModel)
     };
   });
@@ -1135,7 +1133,7 @@ function drawChart() {
   var pmFormat = d3.format(s);
 
   // Scale the range of the data
-  var valueline = d3.line().defined(function (d) { return d.PM2_5; })
+  var valueLine = d3.line().defined(function (d) { return d.PM2_5; })
     .x(function (d) {
       return x(d.time);
     })
@@ -1143,7 +1141,7 @@ function drawChart() {
       return y(d.PM2_5);
     });
 
-  //mike bostock's code
+  // Mike Bostock's code
   var voronoi = d3.voronoi()
     .x(function (d) { return x(d.time); })
     .y(function (d) { return y(d.PM2_5); })
@@ -1159,7 +1157,7 @@ function drawChart() {
 
   lines.enter().append('path') // looks at data not associated with path and then pairs it
     .attr('transform', 'translate(' + margin.left + ',' + margin.top + ')')
-    .attr('d', d => { return valueline(d.sensorData); })
+    .attr('d', d => { return valueLine(d.sensorData); })
     .attr('class', d => 'line-style line' + d.id)
     .attr('id', function (d) { return 'line_' + d.id; });
 
@@ -1364,10 +1362,10 @@ function conversionPM(pm, sensorSource, sensorModel) {
         pmv = pm;
       }
     } else {
-      // airu
+      // AirU
       // pmv = pm;
 
-      // airu calibration
+      // AirU calibration
       // pmv = 0.8582*pm + 1.1644; // until October 10, 2018
       // pmv = (0.448169438 * pm) + 5.885118729; // wildfire
       pmv = (0.460549385 * pm) + 3.343513586; // winter
@@ -1394,7 +1392,7 @@ function createNewMarker(location) {
   var estimatesForLocationURL = generateURL('/getEstimatesForLocation', { 'location': { 'lat': clickLocation['lat'], 'lon': clickLocation['lng'] }, 'start': formatDateTime(pastDate), 'end': formatDateTime(todaysDate) })
 
   getDataFromDB(estimatesForLocationURL).then(data => {
-    // parse the incoming bilinerar interpolated data
+    // parse the incoming bilinear interpolated data
     var processedData = data.map((d) => {
       return {
         id: markerID,
@@ -1424,7 +1422,7 @@ function flipMapDataVis() {
     showSensors = false;
 
     // allow marker creation contextual menu
-    slcMap.contextmenu.enable();
+    // slcMap.contextmenu.enable();
 
     // theMap.removeLayer(sensLayer);
     sensLayer.eachLayer(function (aLayer) {
@@ -1434,7 +1432,7 @@ function flipMapDataVis() {
 
   } else {
     showSensors = true;
-    slcMap.contextmenu.disable();
+    // slcMap.contextmenu.disable();
     clearMapSVG();
   }
   showMapDataVis();
