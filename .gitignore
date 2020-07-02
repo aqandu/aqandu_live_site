@@ -17,3 +17,6 @@ env/
 *__pycache__*
 *.DS_Store
 .vscode/
+
+# Model Generated Files
+*.txt
