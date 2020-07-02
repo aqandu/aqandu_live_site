@@ -113,8 +113,8 @@ function showMapDataVis() {
     hideSlider();
 
     // Update the vis every 60 seconds
-    dotsUpdateID = setInterval('updateDots()', 60000);  // 60,000 milliseconds = 1 min
-    sensorUpdateID = setInterval('updateSensors()', 300000); // update every 5min
+    dotsUpdateID = setInterval('updateDots()', 600000);  // 600,000 milliseconds = 10 min
+    sensorUpdateID = setInterval('updateSensors()', 600000); // 600,000 milliseconds = 10 min
 
   } else {
     // If showSensors is false show only contours, not the sensors
@@ -1289,7 +1289,10 @@ function populateGraph() {
       let aggregation = getAggregation(whichTimeRangeToShow);
 
       // Get the sensorType and pass it through to getGraphData
-      const sensorType = d3.select(this._icon).attr('class').split(' ').includes('AirU') ? 'AirU' : 'PurpleAir';
+      const dotClasses = d3.select(this._icon).attr('class').split(' ')
+      const sensorType = dotClasses.includes('AirU') ? 'AirU' :
+        dotClasses.includes('PurpleAir') ? 'PurpleAir' : 
+        'DAQ';
       getGraphData(this.id, sensorType, aggregation);
     }
   }

@@ -10,7 +10,7 @@ function generateURL(route, parameters) {
   if (route === '/rawDataFrom') {
     url = `${urlRoute}?id=${parameters.id}&sensorSource=${parameters.sensorSource}&start=${parameters.start}&end=${parameters.end}&show=${parameters.show}`;
   } else if (route === '/liveSensors') {
-    url = `${urlRoute}?sensorType=${parameters.type}`;
+    url = `${urlRoute}?sensorSource=${parameters.type}`;
   } else if (route === '/timeAggregatedDataFrom') {
     url = `${urlRoute}?id=${parameters.id}&sensorSource=${parameters.sensorSource}&start=${parameters.start}&end=${parameters.end}&function=${parameters.function}&functionArg=${parameters.functionArg}&timeInterval=${parameters.timeInterval}`;
   } else if (route === '/lastValue') {

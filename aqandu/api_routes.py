@@ -15,7 +15,7 @@ SOURCE_TABLE_MAP = {
     "PurpleAir": PURPLEAIR_TABLE_ID,
     "DAQ": DAQ_TABLE_ID,
 }
-VALID_SENSOR_TYPES = ["AirU", "PurpleAir", "DAQ", "all"]
+VALID_SENSOR_SOURCES = ["AirU", "PurpleAir", "DAQ", "all"]
 
 # Example request:
 # 127.0.0.1:8080/api/rawDataFrom?id=M30AEA4EF9F88&sensorSource=Purple%20Air&start=2020-03-25T00:23:51Z&end=2020-03-26T00:23:51Z&show=PM2_5
@@ -29,8 +29,8 @@ def rawDataFrom():
     show = request.args.get('show') # Data type (should be PM2_5)
 
     # Check that the arguments we want exist
-    if not sensor_source in VALID_SENSOR_TYPES:
-        msg = f"sensor_source is invalid. It must be one of {VALID_SENSOR_TYPES}"
+    if not sensor_source in VALID_SENSOR_SOURCES:
+        msg = f"sensor_source is invalid. It must be one of {VALID_SENSOR_SOURCES}"
         return msg, 400
 
     # TODO: fix argument
@@ -81,47 +81,65 @@ def rawDataFrom():
 @app.route("/api/liveSensors", methods = ["GET"])
 def liveSensors():
     # Get the arguments from the query string
-    sensor_type = request.args.get('sensorType')
+    sensor_source = request.args.get('sensorSource')
 
-    # Check that sensor_type is valid
-    if not sensor_type in VALID_SENSOR_TYPES:
-        msg = f"sensor_type is invalid. It must be one of {VALID_SENSOR_TYPES}"
+    # Check that sensor_source is valid
+    if not sensor_source in VALID_SENSOR_SOURCES:
+        msg = f"sensor_source is invalid. It must be one of {VALID_SENSOR_SOURCES}"
         return msg, 400
 
-    # TODO: Can we limit the amount of data processed for each call here
-    # TODO: Allow the sensor_type to have an effect on the query
     # Define the BigQuery query
-    query = f"""
-    (
-        SELECT a.ID, time, PM2_5, Latitude, Longitude, SensorModel, 'AirU' as SensorSource
-        FROM `{AIRU_TABLE_ID}` as a
-        INNER JOIN ( 
-            SELECT ID, max(time) AS LATEST_MEASUREMENT 
-            FROM `{AIRU_TABLE_ID}` 
-            GROUP BY ID 
-        ) AS b ON a.ID = b.ID AND a.time = b.LATEST_MEASUREMENT 
-    )
-    UNION ALL
-    (
-        SELECT a.ID, time, PM2_5, Latitude, Longitude, '' as SensorModel, 'PurpleAir' as SensorSource
-        FROM `{PURPLEAIR_TABLE_ID}` as a
-        INNER JOIN ( 
-            SELECT ID, max(time) AS LATEST_MEASUREMENT 
-            FROM `{PURPLEAIR_TABLE_ID}` 
-            GROUP BY ID 
-        ) AS b ON a.ID = b.ID AND a.time = b.LATEST_MEASUREMENT 
-    )
-    UNION ALL
-    (
-        SELECT a.ID, time, PM2_5, Latitude, Longitude, '' as SensorModel, 'DAQ' as SensorSource
-        FROM `{DAQ_TABLE_ID}` as a
-        INNER JOIN ( 
-            SELECT ID, max(time) AS LATEST_MEASUREMENT 
-            FROM `{DAQ_TABLE_ID}` 
-            GROUP BY ID 
-        ) AS b ON a.ID = b.ID AND a.time = b.LATEST_MEASUREMENT 
-    )
-    """
+    one_hour_ago = datetime.utcnow() - timedelta(hours = 1) # AirU + PurpleAir sensors have reported in the last hour
+    three_hours_ago = datetime.utcnow() - timedelta(hours = 3) # DAQ sensors have reported in the 3 hours
+    query_list = []
+    
+    if sensor_source == "AirU" or sensor_source == "all":
+        query_list.append(
+            f"""(
+                SELECT a.ID, time, PM2_5, Latitude, Longitude, SensorModel, 'AirU' as SensorSource
+                FROM `{AIRU_TABLE_ID}` as a
+                INNER JOIN ( 
+                    SELECT ID, max(time) AS LATEST_MEASUREMENT 
+                    FROM `{AIRU_TABLE_ID}` 
+                    WHERE time >= '{str(one_hour_ago)}'
+                    GROUP BY ID 
+                ) AS b ON a.ID = b.ID AND a.time = b.LATEST_MEASUREMENT 
+                WHERE time >= '{str(one_hour_ago)}'
+            )"""
+        )
+
+    if sensor_source == "PurpleAir" or sensor_source == "all":
+        query_list.append(
+            f"""(
+                SELECT a.ID, time, PM2_5, Latitude, Longitude, '' as SensorModel, 'PurpleAir' as SensorSource
+                FROM `{PURPLEAIR_TABLE_ID}` as a
+                INNER JOIN ( 
+                    SELECT ID, max(time) AS LATEST_MEASUREMENT 
+                    FROM `{PURPLEAIR_TABLE_ID}` 
+                    WHERE time >= '{str(one_hour_ago)}'
+                    GROUP BY ID 
+                ) AS b ON a.ID = b.ID AND a.time = b.LATEST_MEASUREMENT 
+                WHERE time >= '{str(one_hour_ago)}'
+            )"""
+        )
+
+    if sensor_source == "DAQ" or sensor_source == "all":
+        query_list.append(
+            f"""(
+                SELECT a.ID, time, PM2_5, Latitude, Longitude, '' as SensorModel, 'DAQ' as SensorSource
+                FROM `{DAQ_TABLE_ID}` as a
+                INNER JOIN ( 
+                    SELECT ID, max(time) AS LATEST_MEASUREMENT 
+                    FROM `{DAQ_TABLE_ID}` 
+                    WHERE time >= '{str(three_hours_ago)}'
+                    GROUP BY ID 
+                ) AS b ON a.ID = b.ID AND a.time = b.LATEST_MEASUREMENT 
+                WHERE time >= '{str(three_hours_ago)}'
+            )"""
+        )
+
+    # Build the actual query from the list of options
+    query = " UNION ALL ".join(query_list)
 
     # Run the query and collect the result
     sensor_list = []
@@ -174,14 +192,35 @@ def timeAggregatedDataFrom():
         resp = jsonify({'message': f"Incorrect date format, should be {utils.DATETIME_FORMAT}, e.g.: 2018-01-03T20:00:00Z"})
         return resp, 400
 
-    SQL_FUNCTIONS = {
-        "mean": "AVG",
-        "min": "MIN",
-        "max": "MAX",
-    }
-
-    # TODO: reduce the processed data size in bq
     # Define the BigQuery query
+    tables_list = []
+    if sensor_source == "AirU" or sensor_source == "all":
+        tables_list.append(
+            f"""(
+                SELECT ID, time, PM2_5, Latitude, Longitude, SensorModel, 'AirU' as SensorSource
+                FROM `{AIRU_TABLE_ID}`
+                WHERE time >= @start
+            )"""
+        )
+
+    if sensor_source == "PurpleAir" or sensor_source == "all":
+        tables_list.append(
+            f"""(
+                SELECT ID, time, PM2_5, Latitude, Longitude, '' as SensorModel, 'PurpleAir' as SensorSource
+                FROM `{PURPLEAIR_TABLE_ID}`
+                WHERE time >= @start
+            )"""
+        )
+
+    if sensor_source == "DAQ" or sensor_source == "all":
+        tables_list.append(
+            f"""(
+                SELECT ID, time, PM2_5, Latitude, Longitude, '' as SensorModel, 'DAQ' as SensorSource
+                FROM `{DAQ_TABLE_ID}`
+                WHERE time >= @start
+            )"""
+        )
+
     query = f"""
         WITH 
             intervals AS (
@@ -195,20 +234,7 @@ def timeAggregatedDataFrom():
             upper
         FROM intervals 
             JOIN (
-            (
-                SELECT ID, time, PM2_5, Latitude, Longitude, SensorModel, 'AirU' as SensorSource
-                FROM `{AIRU_TABLE_ID}`
-            )
-            UNION ALL
-            (
-                SELECT ID, time, PM2_5, Latitude, Longitude, '' as SensorModel, 'PurpleAir' as SensorSource
-                FROM `{PURPLEAIR_TABLE_ID}`
-            )
-            UNION ALL
-            (
-                SELECT ID, time, PM2_5, Latitude, Longitude, '' as SensorModel, 'DAQ' as SensorSource
-                FROM `{DAQ_TABLE_ID}`
-            )
+            {' UNION ALL '.join(tables_list)}
         ) sensors
             ON sensors.time BETWEEN intervals.lower AND intervals.upper
         WHERE ID = @id
@@ -251,16 +277,19 @@ def request_model_data_local(lat, lon, radius, start_date, end_date):
         (
             SELECT ID, time, PM2_5, Latitude, Longitude, SensorModel, 'AirU' as SensorSource
             FROM `{AIRU_TABLE_ID}`
+            WHERE time > @start_date AND time < @end_date
         )
         UNION ALL
         (
             SELECT ID, time, PM2_5, Latitude, Longitude, '' as SensorModel, 'PurpleAir' as SensorSource
             FROM `{PURPLEAIR_TABLE_ID}`
+            WHERE time > @start_date AND time < @end_date
         )
         UNION ALL
         (
             SELECT ID, time, PM2_5, Latitude, Longitude, '' as SensorModel, 'DAQ' as SensorSource
             FROM `{DAQ_TABLE_ID}`
+            WHERE time > @start_date AND time < @end_date
         )
     )
     WHERE SQRT(POW(Latitude - @lat, 2) + POW(Longitude - @lon, 2)) <= @radius
