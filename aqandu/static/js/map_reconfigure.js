@@ -17,23 +17,19 @@ const slcMap = L.map('SLC-map', {
     callback: createNewMarker
   }]
 });
-const liveSensorURL_AirU = generateURL('/liveSensors', { 'type': 'AirU' });
 const liveSensorURL_all = generateURL('/liveSensors', { 'type': 'all' });
 const lastContourURL = generateURL('/getLatestContour');
 
 let theMap;
-let liveAirUSensors = [];
 let whichTimeRangeToShow = 1;
 let currentlySelectedDataSource = 'none';
 let latestGeneratedID = -1;
 let dotsUpdateID;
-let sensorUpdateID;
 let contourUpdateID;
 let showSensors = true;
 let lineArray = [];
 let theContours = [];
 let liveSensors = [];
-let liveSensorsData = [];
 
 // Set dates for timeline and for ajax calls
 const todaysDate = new Date();
@@ -114,12 +110,10 @@ function showMapDataVis() {
 
     // Update the vis every 60 seconds
     dotsUpdateID = setInterval('updateDots()', 600000);  // 600,000 milliseconds = 10 min
-    sensorUpdateID = setInterval('updateSensors()', 600000); // 600,000 milliseconds = 10 min
 
   } else {
     // If showSensors is false show only contours, not the sensors
     clearInterval(dotsUpdateID)
-    clearInterval(sensorUpdateID)
 
     getContourData();
 
@@ -684,22 +678,13 @@ function drawSensorOnMap() {
   $('#SLC-map').LoadingOverlay('show');
 
   getDataFromDB(liveSensorURL_all).then((data) => {
-    var numberOfPurpleAir = data.filter(sensor => sensor['SensorSource'] === 'PurpleAir').length;
-    $('#numberOf_PurpleAir').html(numberOfPurpleAir);
+    // Standardize the PM2_5
+    data.forEach((d) => d.PM2_5 = conversionPM(d.PM2_5, d['SensorSource'], d['SensorModel']));
+    
+    // Update the number of sensors in the legend
+    updateNumberOfSensors(data)
 
-    var numberOfAirU = data.filter(sensor => sensor['SensorSource'] === 'AirU').length;
-    $('#numberOf_AirU').html(numberOfAirU);
-
-    var numberOfDAQ = data.filter(sensor => sensor['SensorSource'] === 'DAQ').length;
-    $('#numberOf_DAQ').html(numberOfDAQ);
-
-    const response = data.map((d) => {
-      d.PM2_5 = conversionPM(d.PM2_5, d['SensorSource'], d['SensorModel']);
-
-      return d
-    });
-
-    sensorLayer(response);
+    data.forEach(createMarker);
 
     data.forEach(function (aSensor) {
       liveSensors.push({ 'id': aSensor.ID.split(' ').join('_'), 'sensorSource': aSensor['SensorSource'] });
@@ -710,22 +695,6 @@ function drawSensorOnMap() {
   }).catch((err) => {
     console.error('Error: ', err)
   });
-
-
-}
-
-
-/**
- * [sensorLayer description]
- * @param  {[type]} response [description]
- * @return {[type]}          [description]
- */
-function sensorLayer(response) {
-  response.forEach(createMarker);
-}
-
-function sensorLayerDebugging(response) {
-  response.forEach(createMarkerDebugging);
 }
 
 // layer with the marks where people clicked
@@ -766,9 +735,6 @@ function createMarker(markerData) {
     ).addTo(sensLayer);
 
     mark.id = markerData['ID'];
-    if (sensorSource == 'AirU') {
-      liveAirUSensors.push(markerData.ID)
-    }
 
     mark.bindPopup(
       L.popup({ closeButton: false, className: 'sensorInformationPopup' }).setContent('<span class="popup">' + sensorSource + ': ' + markerData.ID + '</span>'))
@@ -888,33 +854,15 @@ function getContourData() {
   })
 }
 
-
-// get through all live sensors and load their data (past 24hours)
-function getAllSensorData() {
-
-  liveSensors.forEach(function (aLiveSensor) {
-    let route = '/rawDataFrom';
-    let parameters = { 'id': aLiveSensor.id, 'sensorSource': aLiveSensor.sensorSource, 'start': formatDateTime(pastDate), 'end': formatDateTime(todaysDate), 'show': 'PM2_5' };
-
-    let aSensorRawDataURL = generateURL(route, parameters)
-
-    getDataFromDB(aSensorRawDataURL).then(data => {
-      liveSensorsData.push({ 'id': data.tags[0]['ID'], 'pmData': data.data, 'sensorModel': data.tags[0]['SensorModel'], 'sensorSource': data.tags[0]['SensorSource'] })
-    }).catch(function (err) {
-      console.error('Error: ', err)
-    });
-  })
-}
-
-
 function updateDots() {
   getDataFromDB(liveSensorURL_all).then((data) => {
-    // apply conversion for purple air
-    Object.keys(data).forEach(function (key) {
-      let sensorModel = data[key]['SensorModel'];
-      let sensorSource = data[key]['SensorSource'];
-      data[key]['PM2_5'] = conversionPM(data[key]['PM2_5'], sensorSource, sensorModel);
-    });
+    // Standardize the PM2_5
+    data.forEach((d) => d.PM2_5 = conversionPM(d.PM2_5, d['SensorSource'], d['SensorModel']));
+
+    // Update the number of sensors in the legend
+    updateNumberOfSensors(data)
+
+    data.forEach(createMarker);
 
     sensLayer.eachLayer(layer => {
       // Find the updated value for a specific sensor id
@@ -938,24 +886,6 @@ function updateDots() {
   }).catch((err) => {
     console.error('Error: ', err);
     console.warn(arguments);
-  });
-}
-
-function updateSensors() {
-  getDataFromDB(liveSensorURL_AirU).then((data) => {
-    var numberOfAirUOut = data.length;
-    $('#numberOf_AirU').html(numberOfAirUOut);
-
-    const response = data.filter((d) => {
-      if (!liveAirUSensors.includes(d.ID)) {
-        return d;
-      }
-    });
-
-    sensorLayer(response);
-
-  }).catch((err) => {
-    console.error('Error: ', err)
   });
 }
 
@@ -1247,8 +1177,8 @@ function drawChart() {
 function getGraphData(sensorID, sensorSource, aggregation) {
   let route = aggregation ? '/timeAggregatedDataFrom' : '/rawDataFrom';
   let parameters = aggregation ? 
-    { 'id': sensorID, 'sensorSource': sensorSource, 'start': formatDateTime(pastDate), 'end': formatDateTime(todaysDate), 'function': 'mean', 'functionArg': 'PM2_5', 'timeInterval': '5' }
-    : { 'id': sensorID, 'sensorSource': sensorSource, 'start': formatDateTime(pastDate), 'end': formatDateTime(todaysDate), 'show': 'PM2_5' };
+    { 'id': sensorID, 'sensorSource': sensorSource, 'start': formatDateTime(pastDate), 'end': formatDateTime(todaysDate), 'function': 'mean', 'timeInterval': '5' }
+    : { 'id': sensorID, 'sensorSource': sensorSource, 'start': formatDateTime(pastDate), 'end': formatDateTime(todaysDate)};
 
   var url = generateURL(route, parameters);
 
@@ -1299,8 +1229,6 @@ function populateGraph() {
 }
 
 function clearData(changingTimeRange) {
-  // lineArray.forEach( // TODO clear the markers from the map )
-  // lineArray = []; //this empties line array so that new lines can now be added
   d3.selectAll('#lines').html('');  // in theory, we should just call drawChart again
   d3.selectAll('.voronoi').html('');
 
@@ -1407,7 +1335,6 @@ function createNewMarker(location) {
 
     // pushes data for this specific line to an array so that there can be multiple lines updated dynamically on Click
     lineArray.push(newLine)
-    console.log(lineArray)
 
     drawChart();
   }).catch((err) => {
@@ -1417,24 +1344,21 @@ function createNewMarker(location) {
 
 
 function flipMapDataVis() {
-
   if (showSensors) {
-    showSensors = false;
 
-    // allow marker creation contextual menu
-    // slcMap.contextmenu.enable();
+    // Only allow marker creation when showing dots
+    slcMap.contextmenu.enable();
 
-    // theMap.removeLayer(sensLayer);
     sensLayer.eachLayer(function (aLayer) {
       theMap.removeLayer(aLayer);
       sensLayer.removeLayer(aLayer);
     });
 
   } else {
-    showSensors = true;
-    // slcMap.contextmenu.disable();
+    slcMap.contextmenu.disable();
     clearMapSVG();
   }
+  showSensors = !showSensors
   showMapDataVis();
 }
 
@@ -1453,4 +1377,15 @@ function showSlider() {
 
 function formatDateTime(dateTime) {
   return `${dateTime.toISOString().substr(0, 19)}Z`
+}
+
+function updateNumberOfSensors(data) {
+  const numberOfPurpleAir = data.filter(sensor => sensor['SensorSource'] === 'PurpleAir').length;
+  $('#numberOf_PurpleAir').html(numberOfPurpleAir);
+
+  const numberOfAirU = data.filter(sensor => sensor['SensorSource'] === 'AirU').length;
+  $('#numberOf_AirU').html(numberOfAirU);
+
+  const numberOfDAQ = data.filter(sensor => sensor['SensorSource'] === 'DAQ').length;
+  $('#numberOf_DAQ').html(numberOfDAQ);
 }

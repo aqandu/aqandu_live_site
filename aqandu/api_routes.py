@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 from flask import request, jsonify
 
 # Load in .env and set the table name
-load_dotenv()
+load_dotenv() # Required for compatibility with GCP, can't use pipenv there
 AIRU_TABLE_ID = os.getenv("AIRU_TABLE_ID")
 PURPLEAIR_TABLE_ID = os.getenv("PURPLEAIR_TABLE_ID")
 DAQ_TABLE_ID = os.getenv("DAQ_TABLE_ID")
@@ -18,7 +18,7 @@ SOURCE_TABLE_MAP = {
 VALID_SENSOR_SOURCES = ["AirU", "PurpleAir", "DAQ", "all"]
 
 # Example request:
-# 127.0.0.1:8080/api/rawDataFrom?id=M30AEA4EF9F88&sensorSource=Purple%20Air&start=2020-03-25T00:23:51Z&end=2020-03-26T00:23:51Z&show=PM2_5
+# 127.0.0.1:8080/api/rawDataFrom?id=M30AEA4EF9F88&sensorSource=Purple%20Air&start=2020-03-25T00:23:51Z&end=2020-03-26T00:23:51Z
 @app.route("/api/rawDataFrom", methods = ["GET"])
 def rawDataFrom():
     # Get the arguments from the query string
@@ -26,15 +26,16 @@ def rawDataFrom():
     sensor_source = request.args.get('sensorSource')
     start = request.args.get('start')
     end = request.args.get('end')
-    show = request.args.get('show') # Data type (should be PM2_5)
+
+    # Check ID is valid
+    if id == "" or id == "undefined":
+        msg = f"id is invalid. It must be a string that is not '' or 'undefined'."
+        return msg, 400
 
     # Check that the arguments we want exist
     if not sensor_source in VALID_SENSOR_SOURCES:
         msg = f"sensor_source is invalid. It must be one of {VALID_SENSOR_SOURCES}"
         return msg, 400
-
-    # TODO: fix argument
-
 
     # Check that the data is formatted correctly
     if not utils.validateDate(start) or not utils.validateDate(end):
@@ -162,7 +163,7 @@ def liveSensors():
 
 
 # Example request
-# 127.0.0.1:8080/api/timeAggregatedDataFrom?id=M3C71BF153448&sensorSource=Purple%20Air&start=2020-06-08T16:21:56Z&end=2020-06-11T16:21:56Z&function=mean&functionArg=PM2_5&timeInterval=5
+# 127.0.0.1:8080/api/timeAggregatedDataFrom?id=M3C71BF153448&sensorSource=Purple%20Air&start=2020-06-08T16:21:56Z&end=2020-06-11T16:21:56Z&function=mean&timeInterval=5
 @app.route("/api/timeAggregatedDataFrom", methods = ["GET"])
 def timeAggregatedDataFrom():
     # Get the arguments from the query string
@@ -171,7 +172,6 @@ def timeAggregatedDataFrom():
     start = request.args.get('start')
     end = request.args.get('end')
     function = request.args.get('function')
-    functionArg = request.args.get('functionArg')
     timeInterval = request.args.get('timeInterval') # Time interval in minutes
 
     SQL_FUNCTIONS = {
@@ -181,8 +181,17 @@ def timeAggregatedDataFrom():
     }
 
     # TODO: fix argument
-    # Check that the arguments we want exist and in the right form
+    # Check ID is valid
+    if id == "" or id == "undefined":
+        msg = f"id is invalid. It must be a string that is not '' or 'undefined'."
+        return msg, 400
 
+    # Check that sensor_source is valid
+    if not sensor_source in VALID_SENSOR_SOURCES:
+        msg = f"sensor_source is invalid. It must be one of {VALID_SENSOR_SOURCES}"
+        return msg, 400
+
+    # Check aggregation function is valid
     if not function in SQL_FUNCTIONS:
         msg = f"function is not in {SQL_FUNCTIONS.keys()}"
         return msg, 400

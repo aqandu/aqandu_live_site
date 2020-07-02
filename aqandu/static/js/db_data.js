@@ -8,11 +8,11 @@ function generateURL(route, parameters) {
   let urlRoute = `${baseURL}${route}`;
   
   if (route === '/rawDataFrom') {
-    url = `${urlRoute}?id=${parameters.id}&sensorSource=${parameters.sensorSource}&start=${parameters.start}&end=${parameters.end}&show=${parameters.show}`;
+    url = `${urlRoute}?id=${parameters.id}&sensorSource=${parameters.sensorSource}&start=${parameters.start}&end=${parameters.end}`;
   } else if (route === '/liveSensors') {
     url = `${urlRoute}?sensorSource=${parameters.type}`;
   } else if (route === '/timeAggregatedDataFrom') {
-    url = `${urlRoute}?id=${parameters.id}&sensorSource=${parameters.sensorSource}&start=${parameters.start}&end=${parameters.end}&function=${parameters.function}&functionArg=${parameters.functionArg}&timeInterval=${parameters.timeInterval}`;
+    url = `${urlRoute}?id=${parameters.id}&sensorSource=${parameters.sensorSource}&start=${parameters.start}&end=${parameters.end}&function=${parameters.function}&timeInterval=${parameters.timeInterval}`;
   } else if (route === '/lastValue') {
     url = `${urlRoute}`;
   } else if (route === '/contours') {
