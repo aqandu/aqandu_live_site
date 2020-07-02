@@ -76,8 +76,7 @@ function startTheWholePage() {
 
   theMap = setupMap();
   sensLayer.addTo(theMap);
-  // slcMap.contextmenu.disable(); // from https://github.com/aratcliffe/Leaflet.contextmenu/issues/37
-
+  
   // shows either the sensors or the contours
   showMapDataVis();
 
@@ -129,7 +128,6 @@ function showMapDataVis() {
     // Update the vis every 5 minutes
     contourUpdateID = setInterval('updateContour()', 300000);
   }
-
 }
 
 
@@ -289,13 +287,10 @@ function setUpTimeline() {
     .style('stroke', 'rgb(215, 25, 28)')
     .style('fill', 'rgb(215, 25, 28)');
 
-
-  var xAxis = d3.axisBottom(x).ticks(9);
-  var yAxis = d3.axisLeft(y).ticks(7);
-
+  // Add axes
   svg.select('.x.axis') // Add the X Axis
     .attr('transform', 'translate(' + margin.left + ',' + (margin.top + height) + ')')
-    .call(xAxis);
+    .call(d3.axisBottom(x).ticks(9));
 
   svg.select('.x.label')      // text label for the x axis
     .attr('class', 'timeline')
@@ -304,7 +299,7 @@ function setUpTimeline() {
 
   svg.select('.y.axis') // Add the Y Axis
     .attr('transform', 'translate(' + margin.left + ',' + margin.top + ')')
-    .call(yAxis);
+    .call(d3.axisLeft(y).ticks(7));
 
   svg.select('.y.label')    // text label for the y axis
     .attr('class', 'timeline')
@@ -337,13 +332,11 @@ function getColorBandPath(yStart, yEnd) {
 // Create additional control placeholders
 // https://stackoverflow.com/questions/33614912/how-to-locate-leaflet-zoom-control-in-a-desired-position
 function addControlPlaceholders(map) {
-  var corners = map._controlCorners;
-  var l = 'leaflet-';
-  var container = map._controlContainer;
+  const corners = map._controlCorners;
 
   function createCorner(vSide, hSide) {
-    var className = l + vSide + ' ' + l + hSide;
-    corners[vSide + hSide] = L.DomUtil.create('div', className, container);
+    var className = `leaflet-${vSide} leaflet-${hSide}`;
+    corners[vSide + hSide] = L.DomUtil.create('div', className, map._controlContainer);
   }
 
   createCorner('verticalcentertop', 'left');
