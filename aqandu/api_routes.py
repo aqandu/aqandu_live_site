@@ -181,7 +181,6 @@ def timeAggregatedDataFrom():
         "max": "MAX",
     }
 
-    # TODO: fix argument
     # Check ID is valid
     if id == "" or id == "undefined":
         msg = "id is invalid. It must be a string that is not '' or 'undefined'."
