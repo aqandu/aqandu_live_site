@@ -672,7 +672,7 @@ function drawSensorOnMap() {
 
   getDataFromDB(liveSensorURL_all).then((data) => {
     // Standardize the PM2_5
-    data.forEach((d) => d.PM2_5 = conversionPM(d.PM2_5, d['SensorSource'], d['SensorModel']));
+    data.forEach((d) => d.PM2_5 = convertPM(d.PM2_5, d['SensorSource'], d['SensorModel']));
     
     // Update the number of sensors in the legend
     updateNumberOfSensors(data)
@@ -713,7 +713,7 @@ function createMarker(markerData) {
     let timeLastMeasurement = markerData.time;
     let minutesINBetween = (currentTime - timeLastMeasurement) / (1000 * 60);
     let theColor = displaySensor(sensorSource, minutesINBetween, currentPM25)
-    classList = classList + ' ' + theColor + ' ';
+    classList = `${classList} ${theColor} `;
 
     // throw away the spaces in the sensor name string so we have a valid class name
     classList += sensorSource.replace(/ /g, '');
@@ -727,11 +727,13 @@ function createMarker(markerData) {
       { icon: L.divIcon(dotIcon) }
     ).addTo(sensLayer);
 
-    mark.id = markerData['ID'];
+    mark.id = markerData.ID;
 
     mark.bindPopup(
-      L.popup({ closeButton: false, className: 'sensorInformationPopup' }).setContent('<span class="popup">' + sensorSource + ': ' + markerData.ID + '</span>'))
-    // mark.bindPopup(popup)
+      L
+        .popup({ closeButton: false, className: 'sensorInformationPopup' })
+        .setContent(`<span class="popup">${sensorSource}: ${markerData.ID}</span>`)
+    )
 
     mark.on('click', populateGraph)
     mark.on('mouseover', function (e) {
@@ -784,7 +786,7 @@ function createRandomClickMarker(markerData) {
     let classList = 'dot';
     let theColor = 'dblclickOnMap';
 
-    classList = classList + ' ' + theColor + ' ';
+    classList = `${classList} ${theColor} `;
     dotIcon.className = classList;
 
     var mark = new L.marker(
@@ -792,13 +794,16 @@ function createRandomClickMarker(markerData) {
         parseFloat(markerData.Latitude),
         parseFloat(markerData.Longitude)
       ),
-      { icon: L.divIcon(dotIcon) }
+      { icon: L.divIcon(dotIcon) },
     ).addTo(sensLayer);
 
-    mark.id = markerData['ID'];
+    mark.id = markerData.ID;
 
     mark.bindPopup(
-      L.popup({ closeButton: false, className: 'sensorInformationPopup' }).setContent('<span class="popup">' + markerData['SensorSource'] + ': ' + markerData.ID + '</span>'));
+      L
+        .popup({ closeButton: false, className: 'sensorInformationPopup' })
+        .setContent(`<span class="popup">${markerData.SensorSource}: ${markerData.ID}</span>`)
+    );
 
     // set the border of created marker to selected
     d3.select(mark._icon).classed('sensor-selected', true);
@@ -849,13 +854,12 @@ function getContourData() {
 
 function updateDots() {
   getDataFromDB(liveSensorURL_all).then((data) => {
-    // Standardize the PM2_5
-    data.forEach((d) => d.PM2_5 = conversionPM(d.PM2_5, d['SensorSource'], d['SensorModel']));
+    // Standardize the PM2_5 and create markers
+    data.forEach((d) => d.PM2_5 = convertPM(d.PM2_5, d.SensorSource, d.SensorModel));
+    data.forEach(createMarker);
 
     // Update the number of sensors in the legend
     updateNumberOfSensors(data)
-
-    data.forEach(createMarker);
 
     sensLayer.eachLayer(layer => {
       // Find the updated value for a specific sensor id
@@ -868,10 +872,7 @@ function updateDots() {
         const timeLastMeasurement = new Date(updatedValue.time).getTime();
         const minutesINBetween = (currentTime - timeLastMeasurement) / (1000 * 60);
 
-        const currentPM25 = updatedValue.PM2_5;
-        const theSensorSource = updatedValue.SensorSource
-
-        const theColor = displaySensor(theSensorSource, minutesINBetween, currentPM25)
+        const theColor = displaySensor(updatedValue.SensorSource, minutesINBetween, updatedValue.PM2_5)
         $(layer._icon).removeClass(epaColors.join(' '))
         $(layer._icon).addClass(theColor)
       }
@@ -885,7 +886,6 @@ function updateDots() {
 // Update the contours
 function updateContour() {
   getDataFromDB(lastContourURL).then(data => {
-    // Process contours data
     setContour(slcMap, data);
   }).catch(function (err) {
     console.error('Error when updating the contour: ', err)
@@ -897,15 +897,10 @@ function displaySensor(aSensorSource, minutesPassedSinceLastDataValue, aCurrentV
   let theColor = 'noColor';
   let calculatedColor = getColor(aCurrentValue);
 
-  if (aSensorSource === 'AirU' || aSensorSource === 'PurpleAir') {
-    if (minutesPassedSinceLastDataValue <= 10.0) {
+  if ((aSensorSource === 'AirU' || aSensorSource === 'PurpleAir') && minutesPassedSinceLastDataValue <= 10.0) {
       theColor = calculatedColor;
-    }
-  } else if (aSensorSource === 'DAQ') {
-
-    if (minutesPassedSinceLastDataValue <= 180.0) {
+  } else if (aSensorSource === 'DAQ' && minutesPassedSinceLastDataValue <= 180.0) {
       theColor = calculatedColor;
-    }
   } else {
     console.error('displaySensor: forgotten a case!!');
   }
@@ -949,67 +944,6 @@ function getColor(currentValue) {
   return theColor;
 }
 
-function distance(lat1, lon1, lat2, lon2) {
-  const p = 0.017453292519943295; // Math.PI / 180
-  const c = Math.cos;
-  const a = 0.5 - c((lat2 - lat1) * p) / 2 +
-    c(lat1 * p) * c(lat2 * p) *
-    (1 - c((lon2 - lon1) * p)) / 2;
-
-  return 12742 * Math.asin(Math.sqrt(a)); // 2 * R; R = 6371 km
-}
-
-function findDistance(r, mark) {
-  const lt = mark.getLatLng().lat;
-  const lon = mark.getLatLng().lng;
-  let closestSensor = null;
-  let sensorObject = null;
-
-  r.forEach(function (item) {
-    if (item['Latitude'] !== null && item['Longitude'] !== null) {
-      var d = distance(lt, lon, parseFloat(item['Latitude']), parseFloat(item['Longitude']));
-      // Compare old distance to new distance. Smaller = closestSensor
-      if (closestSensor === null) {
-        closestSensor = d; //distance
-        sensorObject = item; //data object
-      } else {
-        if (closestSensor > d) {
-          closestSensor = d;
-          sensorObject = item;
-        }
-      }
-    }
-  });
-  return sensorObject;
-}
-
-function findCorners(latLon) {
-  var cornerArray = [];
-  lt = latLon.lat;
-  lg = latLon.lng;
-
-  var lt1 = lt - 5.0;
-  cornerArray.push(lt1);
-  var lt2 = lt + 5.0;
-  cornerArray.push(lt2);
-  var lg1 = lg - 5.0;
-  cornerArray.push(lg1);
-  var lg2 = lg + 5.0;
-  cornerArray.push(lg2);
-
-  return cornerArray;
-}
-
-// from https://stackoverflow.com/questions/3224834/get-difference-between-2-dates-in-javascript --> more correct answer
-function dateDiffInSeconds(a, b) {
-  const MS_PER_SEC = 1000;
-  // Discard the time and time-zone information.
-  const utc1 = Date.UTC(a.getFullYear(), a.getMonth(), a.getDate());
-  const utc2 = Date.UTC(b.getFullYear(), b.getMonth(), b.getDate());
-
-  return Math.floor((utc2 - utc1) / MS_PER_SEC);
-}
-
 function preprocessDBData(id, sensorData) {
   let sanitizedID = id.split(' ').join('_') // Make out of id 'Rose Park', 'Rose_Park'
   let tags = sensorData['tags'][0];
@@ -1020,7 +954,7 @@ function preprocessDBData(id, sensorData) {
     return {
       id: sanitizedID,  
       time: new Date(d.time),
-      PM2_5: conversionPM(d.PM2_5, sensorSource, sensorModel)
+      PM2_5: convertPM(d.PM2_5, sensorSource, sensorModel)
     };
   });
 
@@ -1176,12 +1110,8 @@ function getGraphData(sensorID, sensorSource, aggregation) {
   var url = generateURL(route, parameters);
 
   getDataFromDB(url)
-    .then((data) => {
-      preprocessDBData(sensorID, data)
-    })
-    .catch((err) => {
-      console.error('Error: ', err)
-    });
+    .then((data) => preprocessDBData(sensorID, data))
+    .catch((err) => console.error('Error: ', err));
 }
 
 function populateGraph() {
@@ -1257,42 +1187,59 @@ PM2.5,TEOM =−54.22405ln(0.98138−0.00772PM2.5,PMS1003)
 for sensors pms5003:
 PM2.5,TEOM =−64.48285ln(0.97176−0.01008PM2.5,PMS5003)
 */
-function conversionPM(pm, sensorSource, sensorModel) {
-  var pmv = null;
-  if (pm != null) {
-    // if pm is null keep it null
-    if (sensorSource != 'AirU') {
+function convertPM(pm, sensorSource, sensorModel) {
+  // Bail out if pm is null
+  if (pm === null) {
+    return pm
+  }
 
+  let pmv = null;
       let model = null;
-      if (sensorModel != null) {
+  if (sensorModel !== null) {
         model = sensorModel.split('+')[0];
       }
 
-      // var pmv = 0;
+  correction_factors = {
+    AirU: {
+      b_one: 0.460549385,
+      intercept: 3.343513586,
+    },
+    other: {
+      PMS5003: {
+        b_one: 0.713235898,
+        intercept: 1.032516,
+      },
+      PMS1003: {
+        b_one: 0.574723564,
+        intercept: 2.205862689,
+      }
+    }
+  }
+
+  if (sensorSource === 'AirU') {
+    return (correction_factors.AirU.b_one * pm) + correction_factors.AirU.intercept
+  } else if (model === 'PMS5003' || model === 'PMS1003') {
+    return (correction_factors.other[model].b_one * pm) + correction_factors.other[model].intercept
+  }
+
+  if (pm != null) {
+    if (sensorSource != 'AirU') {
       if (model === 'PMS5003') {
         // pmv = (-1) * 64.48285 * Math.log(0.97176 - (0.01008 * pm));
         // pmv = 0.7778*pm + 2.6536; // until October 10, 2018
-
         // pmv = (0.432805631 * pm) + 3.316987; // wildfire
-        pmv = (0.713235898 * pm) + 1.032516; // winter
 
       } else if (model === 'PMS1003') {
         // pmv = (-1) * 54.22405 * Math.log(0.98138 - (0.00772 * pm));
         // pmv = 0.5431*pm + 1.0607; // until October 10, 2018
-
         // pmv = (0.418860234 * pm) + 4.630728956; // wildfire
-        pmv = (0.574723564 * pm) + 2.205862689; //  winter
       } else {
         pmv = pm;
       }
     } else {
-      // AirU
-      // pmv = pm;
-
       // AirU calibration
       // pmv = 0.8582*pm + 1.1644; // until October 10, 2018
       // pmv = (0.448169438 * pm) + 5.885118729; // wildfire
-      pmv = (0.460549385 * pm) + 3.343513586; // winter
     }
   }
 
