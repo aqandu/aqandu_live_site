@@ -1,7 +1,8 @@
 # stgp_v01_2
 # spatial-temporal GP model
 # v01: use SE kernel for space (no elevation) and SE kernel for time
-#      stData must NOT contians NaN values. Tips: if there are, use interpolation in fill them if the the missing values are minor.
+#      stData must NOT contians NaN values.
+# Tips: if there are, use interpolation in fill them if the the missing values are minor.
 # v01_2: add elevation as model input.
 #        lat & long share the same length sacle, elevation use its own length scale
 #
@@ -11,9 +12,9 @@ import torch
 import torch.nn as nn
 import numpy as np
 import math
-from matplotlib import pyplot as plt
 
 JITTER = 1e-1
+
 
 def kronecker(A, B):
     AB = torch.einsum("ab,cd->acbd", A, B)
@@ -31,7 +32,7 @@ def tile(a, dim, n_tile):
     return torch.index_select(a, dim, order_index)
 
 
-# combination uisng Kronecker product similar manner
+# combination using Kronecker product similar manner
 def combinations(A, B):
     A1 = tile(A, 0, B.size(0))
     B1 = B.repeat(A.size(0), 1)
@@ -42,7 +43,8 @@ class gaussian_model(nn.Module):
     def __init__(self, space_coordinates, time_coordinates, stData,
                  latlong_length_scale=4300., elevation_length_scale=30., time_length_scale=0.25,
                  noise_variance=0.1, signal_variance=1.):
-        # space_coordinates musth a matrix of [number of space_coordinates x (lat,long,elevation)] in UTM or any meter coordinate.
+        # space_coordinates musth a matrix of [number of space_coordinates x (lat,long,elevation)]
+        # in UTM or any meter coordinate.
         # time_coordinates musth a matrix of [number of time_coordinates x 1] in hour formate
         # stData musth be a matrix of [space_coordinates.size(0) x time_coordinates.size(0)]
 
@@ -75,15 +77,17 @@ class gaussian_model(nn.Module):
         return K
 
     def update(self):
-        ndata = self.stData.numel()
         latlong_kernel = self.SE_kernel(self.space_coordinates[:, 0:2], self.space_coordinates[:, 0:2],
                                         torch.exp(self.log_latlong_length_scale))
         elevation_kernel = self.SE_kernel(self.space_coordinates[:, 2:3], self.space_coordinates[:, 2:3],
                                           torch.exp(self.log_elevation_length_scale))
         spatial_kernel = latlong_kernel * elevation_kernel + torch.eye(latlong_kernel.size(0)) * JITTER
 
-        temporal_kernel = self.SE_kernel(self.time_coordinates, self.time_coordinates,
-                                         torch.exp(self.log_time_length_scale)) + torch.eye(self.time_coordinates.size(0)) * JITTER
+        temporal_kernel = self.SE_kernel(
+            self.time_coordinates,
+            self.time_coordinates,
+            torch.exp(self.log_time_length_scale)
+        ) + torch.eye(self.time_coordinates.size(0)) * JITTER
 
         eigen_value_s, eigen_vector_s = torch.symeig(spatial_kernel, eigenvectors=True)
         eigen_value_t, eigen_vector_t = torch.symeig(temporal_kernel, eigenvectors=True)
@@ -131,6 +135,7 @@ class gaussian_model(nn.Module):
     def train_bfgs(self, niteration, lr=0.001):
         # LBFGS optimizer
         optimizer = torch.optim.LBFGS(self.parameters(), lr=lr)  # lr is very important, lr>0.1 lead to failure
+
         # LBFGS
         def closure():
             optimizer.zero_grad()
@@ -145,7 +150,7 @@ class gaussian_model(nn.Module):
     def train_adam(self, niteration, lr=0.001):
         # adam optimizer
         # uncommont the following to enable
-        optimizer = torch.optim.Adam(self.parameters(), lr = lr)
+        optimizer = torch.optim.Adam(self.parameters(), lr=lr)
         for i in range(niteration):
             optimizer.zero_grad()
             self.update()

@@ -1,12 +1,11 @@
 from datetime import datetime, timedelta
-import json
 import os
 from aqandu import app, bq_client, bigquery, utils, elevation_interpolator, gaussian_model_utils
 from dotenv import load_dotenv
 from flask import request, jsonify
 
 # Load in .env and set the table name
-load_dotenv() # Required for compatibility with GCP, can't use pipenv there
+load_dotenv()  # Required for compatibility with GCP, can't use pipenv there
 AIRU_TABLE_ID = os.getenv("AIRU_TABLE_ID")
 PURPLEAIR_TABLE_ID = os.getenv("PURPLEAIR_TABLE_ID")
 DAQ_TABLE_ID = os.getenv("DAQ_TABLE_ID")
@@ -19,7 +18,9 @@ VALID_SENSOR_SOURCES = ["AirU", "PurpleAir", "DAQ", "all"]
 
 # Example request:
 # 127.0.0.1:8080/api/rawDataFrom?id=M30AEA4EF9F88&sensorSource=Purple%20Air&start=2020-03-25T00:23:51Z&end=2020-03-26T00:23:51Z
-@app.route("/api/rawDataFrom", methods = ["GET"])
+
+
+@app.route("/api/rawDataFrom", methods=["GET"])
 def rawDataFrom():
     # Get the arguments from the query string
     id = request.args.get('id')
@@ -29,22 +30,22 @@ def rawDataFrom():
 
     # Check ID is valid
     if id == "" or id == "undefined":
-        msg = f"id is invalid. It must be a string that is not '' or 'undefined'."
+        msg = "id is invalid. It must be a string that is not '' or 'undefined'."
         return msg, 400
 
     # Check that the arguments we want exist
-    if not sensor_source in VALID_SENSOR_SOURCES:
+    if sensor_source not in VALID_SENSOR_SOURCES:
         msg = f"sensor_source is invalid. It must be one of {VALID_SENSOR_SOURCES}"
         return msg, 400
 
     # Check that the data is formatted correctly
     if not utils.validateDate(start) or not utils.validateDate(end):
-        resp = jsonify({'message': f"Incorrect date format, should be {utils.DATETIME_FORMAT}, e.g.: 2018-01-03T20:00:00Z"})
-        return resp, 400
+        msg = "Incorrect date format, should be {utils.DATETIME_FORMAT}, e.g.: 2018-01-03T20:00:00Z"
+        return msg, 400
 
     # Define the BigQuery query
     query = f"""
-        SELECT 
+        SELECT
             PM2_5,
             time
         FROM `{SOURCE_TABLE_MAP[sensor_source]}`
@@ -71,7 +72,7 @@ def rawDataFrom():
     tags = [{
         "ID": id,
         "SensorSource": sensor_source,
-        "SensorModel":"H1.2+S1.0.8",
+        "SensorModel": "H1.2+S1.0.8",
         "time": datetime.utcnow().strftime(utils.DATETIME_FORMAT)
     }]
     return jsonify({"data": measurements, "tags": tags})
@@ -79,32 +80,32 @@ def rawDataFrom():
 
 # Example request
 # 127.0.0.1:8080/api/liveSensors?sensorType=all
-@app.route("/api/liveSensors", methods = ["GET"])
+@app.route("/api/liveSensors", methods=["GET"])
 def liveSensors():
     # Get the arguments from the query string
     sensor_source = request.args.get('sensorSource')
 
     # Check that sensor_source is valid
-    if not sensor_source in VALID_SENSOR_SOURCES:
+    if sensor_source not in VALID_SENSOR_SOURCES:
         msg = f"sensor_source is invalid. It must be one of {VALID_SENSOR_SOURCES}"
         return msg, 400
 
     # Define the BigQuery query
-    one_hour_ago = datetime.utcnow() - timedelta(hours = 1) # AirU + PurpleAir sensors have reported in the last hour
-    three_hours_ago = datetime.utcnow() - timedelta(hours = 3) # DAQ sensors have reported in the 3 hours
+    one_hour_ago = datetime.utcnow() - timedelta(hours=1)  # AirU + PurpleAir sensors have reported in the last hour
+    three_hours_ago = datetime.utcnow() - timedelta(hours=3)  # DAQ sensors have reported in the 3 hours
     query_list = []
-    
+
     if sensor_source == "AirU" or sensor_source == "all":
         query_list.append(
             f"""(
                 SELECT a.ID, time, PM2_5, Latitude, Longitude, SensorModel, 'AirU' as SensorSource
                 FROM `{AIRU_TABLE_ID}` as a
-                INNER JOIN ( 
-                    SELECT ID, max(time) AS LATEST_MEASUREMENT 
-                    FROM `{AIRU_TABLE_ID}` 
+                INNER JOIN (
+                    SELECT ID, max(time) AS LATEST_MEASUREMENT
+                    FROM `{AIRU_TABLE_ID}`
                     WHERE time >= '{str(one_hour_ago)}'
-                    GROUP BY ID 
-                ) AS b ON a.ID = b.ID AND a.time = b.LATEST_MEASUREMENT 
+                    GROUP BY ID
+                ) AS b ON a.ID = b.ID AND a.time = b.LATEST_MEASUREMENT
                 WHERE time >= '{str(one_hour_ago)}'
             )"""
         )
@@ -114,12 +115,12 @@ def liveSensors():
             f"""(
                 SELECT a.ID, time, PM2_5, Latitude, Longitude, '' as SensorModel, 'PurpleAir' as SensorSource
                 FROM `{PURPLEAIR_TABLE_ID}` as a
-                INNER JOIN ( 
-                    SELECT ID, max(time) AS LATEST_MEASUREMENT 
-                    FROM `{PURPLEAIR_TABLE_ID}` 
+                INNER JOIN (
+                    SELECT ID, max(time) AS LATEST_MEASUREMENT
+                    FROM `{PURPLEAIR_TABLE_ID}`
                     WHERE time >= '{str(one_hour_ago)}'
-                    GROUP BY ID 
-                ) AS b ON a.ID = b.ID AND a.time = b.LATEST_MEASUREMENT 
+                    GROUP BY ID
+                ) AS b ON a.ID = b.ID AND a.time = b.LATEST_MEASUREMENT
                 WHERE time >= '{str(one_hour_ago)}'
             )"""
         )
@@ -129,12 +130,12 @@ def liveSensors():
             f"""(
                 SELECT a.ID, time, PM2_5, Latitude, Longitude, '' as SensorModel, 'DAQ' as SensorSource
                 FROM `{DAQ_TABLE_ID}` as a
-                INNER JOIN ( 
-                    SELECT ID, max(time) AS LATEST_MEASUREMENT 
-                    FROM `{DAQ_TABLE_ID}` 
+                INNER JOIN (
+                    SELECT ID, max(time) AS LATEST_MEASUREMENT
+                    FROM `{DAQ_TABLE_ID}`
                     WHERE time >= '{str(three_hours_ago)}'
-                    GROUP BY ID 
-                ) AS b ON a.ID = b.ID AND a.time = b.LATEST_MEASUREMENT 
+                    GROUP BY ID
+                ) AS b ON a.ID = b.ID AND a.time = b.LATEST_MEASUREMENT
                 WHERE time >= '{str(three_hours_ago)}'
             )"""
         )
@@ -164,7 +165,7 @@ def liveSensors():
 
 # Example request
 # 127.0.0.1:8080/api/timeAggregatedDataFrom?id=M3C71BF153448&sensorSource=Purple%20Air&start=2020-06-08T16:21:56Z&end=2020-06-11T16:21:56Z&function=mean&timeInterval=5
-@app.route("/api/timeAggregatedDataFrom", methods = ["GET"])
+@app.route("/api/timeAggregatedDataFrom", methods=["GET"])
 def timeAggregatedDataFrom():
     # Get the arguments from the query string
     id = request.args.get('id')
@@ -172,7 +173,7 @@ def timeAggregatedDataFrom():
     start = request.args.get('start')
     end = request.args.get('end')
     function = request.args.get('function')
-    timeInterval = request.args.get('timeInterval') # Time interval in minutes
+    timeInterval = request.args.get('timeInterval')  # Time interval in minutes
 
     SQL_FUNCTIONS = {
         "mean": "AVG",
@@ -183,23 +184,23 @@ def timeAggregatedDataFrom():
     # TODO: fix argument
     # Check ID is valid
     if id == "" or id == "undefined":
-        msg = f"id is invalid. It must be a string that is not '' or 'undefined'."
+        msg = "id is invalid. It must be a string that is not '' or 'undefined'."
         return msg, 400
 
     # Check that sensor_source is valid
-    if not sensor_source in VALID_SENSOR_SOURCES:
+    if sensor_source not in VALID_SENSOR_SOURCES:
         msg = f"sensor_source is invalid. It must be one of {VALID_SENSOR_SOURCES}"
         return msg, 400
 
     # Check aggregation function is valid
-    if not function in SQL_FUNCTIONS:
+    if function not in SQL_FUNCTIONS:
         msg = f"function is not in {SQL_FUNCTIONS.keys()}"
         return msg, 400
 
     # Check that the data is formatted correctly
     if not utils.validateDate(start) or not utils.validateDate(end):
-        resp = jsonify({'message': f"Incorrect date format, should be {utils.DATETIME_FORMAT}, e.g.: 2018-01-03T20:00:00Z"})
-        return resp, 400
+        msg = "Incorrect date format, should be {utils.DATETIME_FORMAT}, e.g.: 2018-01-03T20:00:00Z"
+        return msg, 400
 
     # Define the BigQuery query
     tables_list = []
@@ -231,17 +232,20 @@ def timeAggregatedDataFrom():
         )
 
     query = f"""
-        WITH 
+        WITH
             intervals AS (
-                SELECT 
+                SELECT
                     TIMESTAMP_ADD(@start, INTERVAL @interval * num MINUTE) AS lower,
                     TIMESTAMP_ADD(@start, INTERVAL @interval * 60* (1 + num) - 1 SECOND) AS upper
                 FROM UNNEST(GENERATE_ARRAY(0,  DIV(TIMESTAMP_DIFF(@end, @start, MINUTE) , @interval))) AS num
             )
-        SELECT 
-            CASE WHEN {SQL_FUNCTIONS.get(function)}(PM2_5) IS NOT NULL THEN {SQL_FUNCTIONS.get(function)}(PM2_5) ELSE 0 END AS PM2_5,
+        SELECT
+            CASE WHEN {SQL_FUNCTIONS.get(function)}(PM2_5) IS NOT NULL
+                THEN {SQL_FUNCTIONS.get(function)}(PM2_5)
+                ELSE 0
+                END AS PM2_5,
             upper
-        FROM intervals 
+        FROM intervals
             JOIN (
             {' UNION ALL '.join(tables_list)}
         ) sensors
@@ -270,7 +274,7 @@ def timeAggregatedDataFrom():
     tags = [{
         "ID": id,
         "SensorSource": sensor_source,
-        "SensorModel":"H1.2+S1.0.8",
+        "SensorModel": "H1.2+S1.0.8",
         "time": datetime.utcnow().strftime(utils.DATETIME_FORMAT)
     }]
     return jsonify({"data": measurements, "tags": tags})
@@ -280,7 +284,7 @@ def request_model_data_local(lat, lon, radius, start_date, end_date):
     model_data = []
     # get the latest sensor data from each sensor
     query = f"""
-    SELECT * 
+    SELECT *
     FROM
     (
         (
@@ -316,7 +320,7 @@ def request_model_data_local(lat, lon, radius, start_date, end_date):
         ]
     )
 
-    query_job = bq_client.query(query, job_config = job_config)
+    query_job = bq_client.query(query, job_config=job_config)
 
     if query_job.error_result:
         print(query_job.error_result)
@@ -373,13 +377,16 @@ def getPredictionsForLocation():
 
     # Check that the data is formatted correctly
     if not utils.validateDate(query_start_date) or not utils.validateDate(query_end_date):
-        resp = jsonify({'message': f"Incorrect date format, should be {utils.DATETIME_FORMAT}, e.g.: 2018-01-03T20:00:00Z"})
-        return resp, 400
+        msg = f"Incorrect date format, should be {utils.DATETIME_FORMAT}, e.g.: 2018-01-03T20:00:00Z"
+        return msg, 400
 
     query_start_datetime = utils.parseDateString(query_start_date)
     query_end_datetime = utils.parseDateString(query_end_date)
 
-    print(f'Query parameters: lat={query_lat} lon={query_lon} start_date={query_start_datetime} end_date={query_end_datetime} predictionsperhour={query_period}')
+    print((
+        f"Query parameters: lat={query_lat} lon={query_lon} start_date={query_start_datetime}"
+        f" end_date={query_end_datetime} predictionsperhour={query_period}"
+    ))
 
     # step 0, load up the bounding box from file and check that request is within it
     bounding_box_vertices = utils.loadBoundingBox('bounding_box.csv')
@@ -399,25 +406,31 @@ def getPredictionsForLocation():
     print('Loaded length scales:', length_scales, '\n')
     length_scales = utils.getScalesInTimeRange(length_scales, query_start_datetime, query_end_datetime)
     if len(length_scales) < 1:
-        return f'Incorrent number of length scales({len(length_scales)}) found in between {query_start_datetime} and {query_end_datetime}', 400
-    
+        msg = (
+            f"Incorrect number of length scales({len(length_scales)}) "
+            f"found in between {query_start_datetime} and {query_end_datetime}"
+        )
+        return msg, 400
+
     latlon_length_scale = length_scales[0]['latlon']
     elevation_length_scale = length_scales[0]['elevation']
     time_length_scale = length_scales[0]['time']
 
-    print(f'Using length scales: latlon={latlon_length_scale} elevation={elevation_length_scale} time={time_length_scale}')
+    print(
+        f'Using length scales: latlon={latlon_length_scale} elevation={elevation_length_scale} time={time_length_scale}'
+    )
 
     # step 3, query relevent data
     NUM_METERS_IN_MILE = 1609.34
-    radius = latlon_length_scale/NUM_METERS_IN_MILE # convert meters to miles for db query
+    radius = latlon_length_scale / NUM_METERS_IN_MILE  # convert meters to miles for db query
 
     radius = latlon_length_scale / 70000
     sensor_data = request_model_data_local(
-                    lat=query_lat, 
-                    lon=query_lon, 
-                    radius=radius, 
-                    start_date=query_start_datetime - timedelta(hours=time_length_scale), 
-                    end_date=query_end_datetime + timedelta(hours=time_length_scale))
+        lat=query_lat,
+        lon=query_lon,
+        radius=radius,
+        start_date=query_start_datetime - timedelta(hours=time_length_scale),
+        end_date=query_end_datetime + timedelta(hours=time_length_scale))
 
     unique_sensors = {datum['ID'] for datum in sensor_data}
     print(f'Loaded {len(sensor_data)} data points for {len(unique_sensors)} unique devices from bgquery.')
@@ -431,13 +444,16 @@ def getPredictionsForLocation():
     sensor_data = [datum for datum in sensor_data if datum['zone_num'] == 12]
 
     unique_sensors = {datum['ID'] for datum in sensor_data}
-    print(f'After removing points with zone num != 12: {len(sensor_data)} data points for {len(unique_sensors)} unique devices.')
+    print((
+        "After removing points with zone num != 12: "
+        f"{len(sensor_data)} data points for {len(unique_sensors)} unique devices."
+    ))
 
     # Step 4, parse sensor type from the version
     sensor_source_to_type = {'AirU': '3003', 'PurpleAir': '5003', 'DAQ': '5003'}
     for datum in sensor_data:
         datum['type'] = sensor_source_to_type[datum['SensorSource']]
-            
+
     print(f'Fields: {sensor_data[0].keys()}')
 
     # step 4.5, Data Screening
@@ -454,11 +470,13 @@ def getPredictionsForLocation():
             datum['Altitude'] = elevation_interpolator([datum['Latitude']], [datum['Longitude']])[0]
 
     # step 7, Create Model
-    model, time_offset = gaussian_model_utils.createModel(sensor_data, latlon_length_scale, elevation_length_scale, time_length_scale)
+    model, time_offset = gaussian_model_utils.createModel(
+        sensor_data, latlon_length_scale, elevation_length_scale, time_length_scale)
 
     # step 8, get predictions from model
     query_dates = utils.interpolateQueryDates(query_start_datetime, query_end_datetime, query_period)
     query_elevation = elevation_interpolator([query_lat], [query_lon])[0]
-    predictions = gaussian_model_utils.predictUsingModel(model, query_lat, query_lon, query_elevation, query_dates, time_offset)
+    predictions = gaussian_model_utils.predictUsingModel(
+        model, query_lat, query_lon, query_elevation, query_dates, time_offset)
 
     return jsonify(predictions)
