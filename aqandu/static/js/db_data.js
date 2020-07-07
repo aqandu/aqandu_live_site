@@ -13,8 +13,6 @@ function generateURL(route, parameters) {
     url = `${urlRoute}?sensorSource=${parameters.type}`;
   } else if (route === '/timeAggregatedDataFrom') {
     url = `${urlRoute}?id=${parameters.id}&sensorSource=${parameters.sensorSource}&start=${parameters.start}&end=${parameters.end}&function=${parameters.function}&timeInterval=${parameters.timeInterval}`;
-  } else if (route === '/lastValue') {
-    url = `${urlRoute}`;
   } else if (route === '/contours') {
     url = `https://air.eng.utah.edu/dbapi/api/contours?start=${parameters.start}&end=${parameters.end}`;
   } else if (route === '/getLatestContour') {
