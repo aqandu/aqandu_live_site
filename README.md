@@ -3,11 +3,11 @@ These are instructions for setting up the Python Virtual Environment and fronten
   
 # Setting up a dev environment
 
-First clone the repo locally and copy the example_config.py to config.py
+First clone the repo locally 
 
 ```
 git clone https://github.com/visdesignlab/aqandu.git
-cp example_config.py config.py
+# Run commands here to set the config.py and aqandu/aqandu.json files (likely from Jack Wilburn)
 ```
 
 Now, make sure you have pipenv installed using:
@@ -40,7 +40,6 @@ pipenv run serve
 To deploy the application, you have to use the command line and the gcloud tools. Once you have the production config (from Jack or another admin) and you've set up gcloud cli with the correct default project, run the following commands:
 
 ```
-cp config.production.py config.py
 gcloud app deploy app.yaml
 ```
 
@@ -48,7 +47,7 @@ This will start building the containers that serve the website. You can check fo
 
 **NOTE**
 
-If you're getting `Error Response: [4] DEADLINE_EXCEEDED` then you need to increase the timeout for the build using 
+If you're getting `Error Response: [4] DEADLINE_EXCEEDED` then you need to increase the timeout for the build to 20 minutes using 
 
 ```
 gcloud config set app/cloud_build_timeout 1200

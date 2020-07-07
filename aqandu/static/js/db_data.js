@@ -1,38 +1,36 @@
 /* global XMLHttpRequest:true */
 /* eslint no-undef: "error" */
 
-var baseURL = 'https://air.eng.utah.edu';
+var baseURL = '/api';
 
 
-function generateURL(anEndpoint, route, parameters) { // eslint-disable-line no-unused-vars
-  let url = '';
-  if (route === '/rawDataFrom?') {
-    url = `${baseURL}${anEndpoint}${route}id=${parameters.id}&sensorSource=${parameters.sensorSource}&start=${parameters.start}&end=${parameters.end}&show=${parameters.show}`;
+function generateURL(route, parameters) {
+  let urlRoute = `${baseURL}${route}`;
+  
+  if (route === '/rawDataFrom') {
+    url = `${urlRoute}?id=${parameters.id}&sensorSource=${parameters.sensorSource}&start=${parameters.start}&end=${parameters.end}`;
   } else if (route === '/liveSensors') {
-    url = `${baseURL}${anEndpoint}${route}/${parameters.type}`;
-  } else if (route === '/processedDataFrom?') {
-    url = `${baseURL}${anEndpoint}${route}id=${parameters.id}&sensorSource=${parameters.sensorSource}&start=${parameters.start}&end=${parameters.end}&function=${parameters.function}&functionArg=${parameters.functionArg}&timeInterval=${parameters.timeInterval}`;
-  } else if (route === '/lastValue') {
-    url = `${baseURL}${anEndpoint}${route}?fieldKey=${parameters.fieldKey}`;
+    url = `${urlRoute}?sensorSource=${parameters.type}`;
+  } else if (route === '/timeAggregatedDataFrom') {
+    url = `${urlRoute}?id=${parameters.id}&sensorSource=${parameters.sensorSource}&start=${parameters.start}&end=${parameters.end}&function=${parameters.function}&timeInterval=${parameters.timeInterval}`;
   } else if (route === '/contours') {
-    url = `${baseURL}${anEndpoint}${route}?start=${parameters.start}&end=${parameters.end}`;
+    url = `https://air.eng.utah.edu/dbapi/api/contours?start=${parameters.start}&end=${parameters.end}`;
   } else if (route === '/getLatestContour') {
-    url = `${baseURL}${anEndpoint}${route}`;
-  } else if (route === '/getEstimatesForLocation') {
-    url = `${baseURL}${anEndpoint}${route}?location_lat=${parameters.location.lat}&location_lng=${parameters.location.lng}&start=${parameters.start}&end=${parameters.end}`;
+    url = `https://air.eng.utah.edu/dbapi/api/getLatestContour`;
+  } else if (route === '/getPredictionsForLocation') {
+    url = `${urlRoute}?lat=${parameters.location.lat}&lon=${parameters.location.lon}&start_date=${parameters.start}&end_date=${parameters.end}&predictionsperhour=${parameters.predictionsperhour}`;
   }
 
   return url;
 }
 
-function getDataFromDB(anURL) { // eslint-disable-line no-unused-vars
+function getDataFromDB(anURL) {
   return new Promise((resolve, reject) => {
     const method = 'GET';
     const async = true;
     const request = new XMLHttpRequest();
 
     request.open(method, anURL, async); // true => request is async
-
     // If the request returns successfully, then resolve the promise
     request.onreadystatechange = function () {
       if (request.readyState === 4) {
@@ -49,7 +47,5 @@ function getDataFromDB(anURL) { // eslint-disable-line no-unused-vars
     }
 
     request.send();
-
-    console.log("request sent successfully");
   });
 }

@@ -16,12 +16,8 @@ def init(app=None):
         env = Environment(app)
         env.directory = 'aqandu/static'
         env.load_path = [path.join(path.dirname(__file__), 'aqandu/static')]
-        # env.append_path('assets')
-        # env.set_directory(env_directory)
-        # App Engine doesn't support automatic rebuilding.
-        env.auto_build = False
+        env.auto_build = False  # App Engine doesn't support automatic rebuilding.
         env.versions = 'hash'
-        # This file needs to be shipped with your code.
         env.manifest = 'file'
 
         all_css = Bundle(
@@ -37,9 +33,7 @@ def init(app=None):
             filters='jsmin', output='js/all_js.%(version)s.js')
         env.register('js', all_js)
 
-        # bundles = [css, js]
         bundles = [all_css, all_js]
-        # bundles = [all_css]
         return bundles
 
 

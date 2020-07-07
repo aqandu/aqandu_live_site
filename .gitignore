@@ -1,16 +1,22 @@
-aqandu/crud.py
-aqandu/model_datastore.py
+# Sensitive info
 config.py
 config.production.py
-aqandu/templates/base old.html
-aqandu/templates/form.html
-aqandu/templates/index new.html
-aqandu/templates/list.html
-env/
-*all_*
+.env
+.env.prod
+aqandu/aqandu.json
+
+# Auto generated files
 aqandu/static/.webassets-cache
 aqandu/static/.webassets-manifest
-*__pycache__*
-*.DS_Store
 aqandu/static/svgs-26-03-2018-13-40/
 aqandu/static/sample_data/
+
+# Misc
+env/
+*all_*
+*__pycache__*
+*.DS_Store
+.vscode/
+
+# Model Generated Files
+*.txt
