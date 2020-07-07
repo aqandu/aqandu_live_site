@@ -16,9 +16,6 @@ SOURCE_TABLE_MAP = {
 }
 VALID_SENSOR_SOURCES = ["AirU", "PurpleAir", "DAQ", "all"]
 
-# Example request:
-# 127.0.0.1:8080/api/rawDataFrom?id=M30AEA4EF9F88&sensorSource=Purple%20Air&start=2020-03-25T00:23:51Z&end=2020-03-26T00:23:51Z
-
 
 @app.route("/api/rawDataFrom", methods=["GET"])
 def rawDataFrom():
@@ -78,8 +75,6 @@ def rawDataFrom():
     return jsonify({"data": measurements, "tags": tags})
 
 
-# Example request
-# 127.0.0.1:8080/api/liveSensors?sensorType=all
 @app.route("/api/liveSensors", methods=["GET"])
 def liveSensors():
     # Get the arguments from the query string
@@ -163,8 +158,6 @@ def liveSensors():
     return jsonify(sensor_list)
 
 
-# Example request
-# 127.0.0.1:8080/api/timeAggregatedDataFrom?id=M3C71BF153448&sensorSource=Purple%20Air&start=2020-06-08T16:21:56Z&end=2020-06-11T16:21:56Z&function=mean&timeInterval=5
 @app.route("/api/timeAggregatedDataFrom", methods=["GET"])
 def timeAggregatedDataFrom():
     # Get the arguments from the query string
@@ -340,8 +333,6 @@ def request_model_data_local(lat, lon, radius, start_date, end_date):
     return model_data
 
 
-# Example request:
-# 127.0.0.1:8080/api/request_model_data?lat=40.7688&lon=-111.8462&radius=1&start_date=2020-06-30T0:0:0&end_date=2020-07-01T0:1:0
 @app.route("/api/request_model_data/", methods=['GET'])
 def request_model_data():
     query_parameters = request.args
@@ -355,8 +346,6 @@ def request_model_data():
     return jsonify(model_data)
 
 
-# Example request:
-# 127.0.0.1:8080/api/getPredictionsForLocation?lat=40.7688&lon=-111.8462&predictionsperhour=1&start_date=2020-06-30T00:00:00Z&end_date=2020-07-01T00:01:00Z
 @app.route("/api/getPredictionsForLocation/", methods=['GET'])
 def getPredictionsForLocation():
     # Check that the arguments we want exist
