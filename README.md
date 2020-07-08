@@ -78,27 +78,34 @@ There are several routes set up for accessing the data. Here are the names, allo
     curl '127.0.0.1:8080/api/timeAggregatedDataFrom?id=M9884E31FEBEE&sensorSource=AirU&start=2020-07-04T22:14:00Z&end=2020-07-07T22:14:00Z&function=mean&timeInterval=5'
     ```
 
--- TODO: fix this
 - Name:`/api/request_model_data`
   - Allowed Methods: `GET`
   - Parameters:
       - Required:  
-           `model_id`: A model id for the model that will be re-run.
-  - Description:
-  - Return: E
+           `lat`: Latitude.  
+           `lon`: Longitude.  
+           `radius`: radius around lat, lon in degrees.  
+           `start_date`: A datetime string in the format "%Y-%m-%dT%H:%M:%SZ".  
+           `end_date`: A datetime string in the format "%Y-%m-%dT%H:%M:%SZ".
+  - Description: Get model data for the predictions route.
+  - Return: Array of Objects with keys (ID, Latitude, Longitude, time, PM2_5, SensorModel, SensorSource)
   - Example:
     ```
-    curl 127.0.0.1:8080/api/request_model_data?lat=40.7688&lon=-111.8462&radius=1&start_date=2020-06-30T0:0:0&end_date=2020-07-01T0:1:0
+    curl '127.0.0.1:8080/api/request_model_data?lat=40.7688&lon=-111.8462&radius=1&start_date=2020-06-30T0:0:0&end_date=2020-07-01T00:01:00'
     ```
 
 - Name:`/api/getPredictionsForLocation`
   - Allowed Methods: `GET`
   - Parameters:
       - Required:  
-           `model_id`: A model id for the model that will be re-run.
-  - Description:
-  - Return: E
+           `lat`: Latitude.  
+           `lon`: Longitude.  
+           `predictionsperhour`: integer number of predictions per hour.  
+           `start_date`: A datetime string in the format "%Y-%m-%dT%H:%M:%SZ".  
+           `end_date`: A datetime string in the format "%Y-%m-%dT%H:%M:%SZ".
+  - Description: Generate predicted pm2.5 for arbitrary locations downtown SLC.
+  - Return: Array of Objects with keys (Altitude, Latitude, Longitude, PM2_5, datetime, variance).
   - Example:
     ```
-    curl 127.0.0.1:8080/api/getPredictionsForLocation?lat=40.7688&lon=-111.8462&predictionsperhour=1&start_date=2020-06-30T00:00:00Z&end_date=2020-07-01T00:01:00Z
+    curl '127.0.0.1:8080/api/getPredictionsForLocation?lat=40.7688&lon=-111.8462&predictionsperhour=1&start_date=2020-06-30T00:00:00Z&end_date=2020-07-01T00:01:00Z'
     ```
