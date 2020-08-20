@@ -350,8 +350,8 @@ def request_model_data_local(lat, lon, radius, start_date, end_date):
             bigquery.ScalarQueryParameter("lat", "NUMERIC", lat),
             bigquery.ScalarQueryParameter("lon", "NUMERIC", lon),
             bigquery.ScalarQueryParameter("radius", "NUMERIC", radius),
-            bigquery.ScalarQueryParameter("start_date", "TIMESTAMP", start_date),
-            bigquery.ScalarQueryParameter("end_date", "TIMESTAMP", end_date),
+            bigquery.ScalarQueryParameter("start_date", "TIMESTAMP", utils.datetimeToBigQueryTimestamp(start_date)),
+            bigquery.ScalarQueryParameter("end_date", "TIMESTAMP", utils.datetimeToBigQueryTimestamp(end_date)),
         ]
     )
 
@@ -381,21 +381,26 @@ def request_model_data_local(lat, lon, radius, start_date, end_date):
     return model_data
 
 # Example request:
-# 127.0.0.1:8080/api/request_model_data?lat=40.7688&lon=-111.8462&radius=1&start_date=2020-03-10T0:0:0&end_date=2020-03-10T0:1:0
+# 127.0.0.1:8080/api/request_model_data?lat=40.7688&lon=-111.8462&radius=1&start_date=2020-03-10T0:0:0Z&end_date=2020-03-10T0:1:0Z
 @app.route("/api/request_model_data/", methods=['GET'])
 def request_model_data():
     query_parameters = request.args
     lat = query_parameters.get('lat')
     lon = query_parameters.get('lon')
     radius = query_parameters.get('radius')
-    start_date = f"{query_parameters.get('start_date')} America/Denver"
-    end_date = f"{query_parameters.get('end_date')} America/Denver"
+    query_start_date = request.args.get('start_date')
+    query_end_date = request.args.get('end_date')
+    if not utils.validateDate(query_start_date) or not utils.validateDate(query_end_date):
+        resp = jsonify({'message': f"Incorrect date format, should be {utils.DATETIME_FORMAT}, e.g.: 2018-01-03T20:00:00Z"})
+        return resp, 400
 
-    model_data = request_model_data_local(lat, lon, radius, start_date, end_date)
+    query_start_datetime = utils.parseDateString(query_start_date)
+    query_end_datetime = utils.parseDateString(query_end_date)
+    model_data = request_model_data_local(lat, lon, radius, query_start_datetime, query_end_datetime)
     return jsonify(model_data)
 
 # Example request:
-# 127.0.0.1:8080/api/getPredictionsForLocation?lat=40.7688&lon=-111.8462&predictionsperhour=1&start_date=2020-03-10T00:00:00&end_date=2020-03-11T00:00:00
+# 127.0.0.1:8080/api/getPredictionsForLocation?lat=40.7688&lon=-111.8462&predictionsperhour=1&start_date=2020-03-10T00:00:00Z&end_date=2020-03-11T00:00:00Z
 @app.route("/api/getPredictionsForLocation/", methods=['GET'])
 def getPredictionsForLocation():
     # Check that the arguments we want exist
