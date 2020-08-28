@@ -1,4 +1,4 @@
-#mainpage {
+#main-page {
   height: 100%;
   width: 100%;
 }
@@ -286,19 +286,15 @@ input:valid ~ span.validity:after {
   font-size: 1.5em;
 }
 
-#numberof_airu {
+#numberOf_AirU {
   padding-left: 10px;
 }
 
-#numberof_PurpleAir {
+#numberOf_PurpleAir {
   padding-left: 10px;
 }
 
-#numberof_Mesowest {
-  padding-left: 10px;
-}
-
-#numberof_DAQ{
+#numberOf_DAQ{
   padding-left: 10px;
 }
 
@@ -455,7 +451,7 @@ input:valid ~ span.validity:after {
   left: -5px;
 }
 
-.colorbar {
+.colorBar {
   width: 18px;
   display: inline-block;
   border: 1px solid #000;

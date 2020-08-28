@@ -10,7 +10,7 @@ JANUARY1ST = datetime(2000, 1, 1, 0, 0, 0, 0, pytz.timezone('UTC'))
 TIME_COORDINATE_BIN_NUMBER_KEY = 'time_coordinate_bin_number'
 
 
-def getTimeCoordinateBin(datetime, time_offset = 0):
+def getTimeCoordinateBin(datetime, time_offset=0):
     delta = datetime - JANUARY1ST
     NUM_MINUTES_PER_BIN = 60
     bin_number = float(int(delta.total_seconds() / 60 / NUM_MINUTES_PER_BIN) / 60 * NUM_MINUTES_PER_BIN)
@@ -50,7 +50,7 @@ def createSpaceVector(sensor_data):
     for datum in sensor_data:
         if datum['ID'] not in device_location_map:
             device_location_map[datum['ID']] = (datum['utm_x'], datum['utm_y'], datum['Altitude'])
-    
+
     space_coordinates = numpy.ndarray(shape=(0, 3), dtype=float)
     for key in device_location_map.keys():
         loc = device_location_map[key]
@@ -58,7 +58,7 @@ def createSpaceVector(sensor_data):
         toadd = numpy.expand_dims(toadd, axis=0)
         space_coordinates = numpy.append(space_coordinates, toadd, axis=0)
         device_location_map[key] = space_coordinates.shape[0] - 1
-    
+
     return space_coordinates, device_location_map
 
 
@@ -68,7 +68,7 @@ def saveMatrixToFile(matrix, filename):
             for col in row:
                 print(f'{col:0.2f}\t', end='', file=output_file)
             print(file=output_file)
-    
+
 
 # goal is to fill in zero elements in between two values
 def interpolateZeroElements(matrix):
@@ -85,17 +85,17 @@ def interpolateZeroElements(matrix):
                     distance = curValueIndex - prevValueIndex
                     if distance > 1:
                         # interpolate zeros between prev and cur
-                        terp = numpy.interp(range(prevValueIndex+1, curValueIndex), [prevValueIndex, curValueIndex], [row[prevValueIndex], row[curValueIndex]])
-                        row[prevValueIndex+1:curValueIndex] = terp
+                        terp = numpy.interp(range(prevValueIndex + 1, curValueIndex), [prevValueIndex, curValueIndex], [row[prevValueIndex], row[curValueIndex]])
+                        row[prevValueIndex + 1:curValueIndex] = terp
                     prevValueIndex = curValueIndex
-    
+
 
 def trimEdgeZeroElements(matrix, time_coordinates):
     # record index of edge values for each row
     firstValues = {}
     lastValues = {}
     for col_index in range(matrix.shape[1]):
-        inverse_col_index = -1-col_index
+        inverse_col_index = -1 - col_index
         for row_index in range(matrix.shape[0]):
             if row_index not in firstValues:
                 if matrix[row_index][col_index] != 0:
@@ -130,7 +130,7 @@ def setupDataMatrix(sensor_data, space_coordinates, time_coordinates, device_loc
         location_index = device_location_map[datum['ID']]
         # bound sensor data below by 0
         data_matrix[location_index][date_index] = datum['PM2_5'] if datum['PM2_5'] >= 0 else 0
-    
+
     saveMatrixToFile(data_matrix, '1matrix.txt')
     interpolateZeroElements(data_matrix)
     saveMatrixToFile(data_matrix, '2interpolated.txt')
@@ -146,17 +146,16 @@ def createModel(sensor_data, latlon_length_scale, elevation_length_scale, time_l
     time_coordinates, time_offset = createTimeVector(sensor_data)
     space_coordinates, device_location_map = createSpaceVector(sensor_data)
     data_matrix, space_coordinates, time_coordinates = setupDataMatrix(sensor_data, space_coordinates, time_coordinates, device_location_map)
-    
-    space_coordinates = torch.tensor(space_coordinates)     #convert data to pytorch tensor
-    time_coordinates = torch.tensor(time_coordinates)   #convert data to pytorch tensor
-    data_matrix = torch.tensor(data_matrix)   #convert data to pytorch tensor
+
+    space_coordinates = torch.tensor(space_coordinates)     # convert data to pytorch tensor
+    time_coordinates = torch.tensor(time_coordinates)   # convert data to pytorch tensor
+    data_matrix = torch.tensor(data_matrix)   # convert data to pytorch tensor
 
     model = gaussian_model.gaussian_model(space_coordinates, time_coordinates, data_matrix,
-             latlong_length_scale=float(latlon_length_scale),
-             elevation_length_scale=float(elevation_length_scale),
-             time_length_scale=float(time_length_scale),
-             noise_variance=0.1)
-             
+                                          latlong_length_scale=float(latlon_length_scale),
+                                          elevation_length_scale=float(elevation_length_scale),
+                                          time_length_scale=float(time_length_scale),
+                                          noise_variance=0.1)
 
     return model, time_offset
 
@@ -164,7 +163,7 @@ def createModel(sensor_data, latlon_length_scale, elevation_length_scale, time_l
 def predictUsingModel(model, lat, lon, elevation, query_dates, time_offset):
 
     time_coordinates = convertToTimeCoordinatesVector(query_dates, time_offset)
-    
+
     x, y, zone_num, zone_let = utils.latlonToUTM(lat, lon)
     space_coordinates = numpy.ndarray(shape=(0, 3), dtype=float)
     toadd = numpy.asarray([x, y, elevation])
@@ -181,6 +180,9 @@ def predictUsingModel(model, lat, lon, elevation, query_dates, time_offset):
     yPred = [float(value) for value in yPred[0]]
     yVar = [float(value) for value in yVar[0]]
 
-    predictions = [{'PM2_5': pred, 'variance':var, 'datetime':date.strftime('%Y-%m-%d %H:%M:%S%z'), 'Latitude':lat, 'Longitude':lon, 'Altitude':elevation} for pred, var, date in zip(yPred, yVar, query_dates)]
-    
+    predictions = [
+        {'PM2_5': pred, 'variance': var, 'datetime': date.strftime('%Y-%m-%d %H:%M:%S%z'), 'Latitude': lat, 'Longitude': lon, 'Altitude': elevation}
+        for pred, var, date in zip(yPred, yVar, query_dates)
+    ]
+
     return predictions

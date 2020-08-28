@@ -1,20 +1,12 @@
-/* global d3 L:true */
-/* eslint no-undef: 'error' */
-/* eslint no-mixed-operators: ['error', {'allowSamePrecedence': true}] */
-
-// Set dates for timeline and for ajax calls
-const todayDate = new Date();
-const today = todayDate.toISOString().substr(0, 19) + 'Z';
-const date = new Date();
-date.setDate(date.getDate() - 1);
-let pastDate = date.toISOString().substr(0, 19) + 'Z';
-
-// the axis transformation
-let x = d3.scaleTime().domain([new Date(pastDate), new Date(today)]);
-const y = d3.scaleLinear().domain([0.0, 150.0]);
-
-let showSensors = true;
-
+// Set global variables
+const sensLayer = L.layerGroup();
+const epaColors = ['green', 'yellow', 'orange', 'red', 'veryUnhealthyRed', 'hazardousRed', 'noColor'];
+const margin = {
+  top: 10,
+  right: 50,
+  bottom: 40,
+  left: 50,
+};
 const slcMap = L.map('SLC-map', {
   center: [40.748808, -111.8896],
   zoom: 13,
@@ -25,37 +17,28 @@ const slcMap = L.map('SLC-map', {
     callback: createNewMarker
   }]
 });
-
-const sensLayer = L.layerGroup();
-
-const epaColors = ['green', 'yellow', 'orange', 'red', 'veryUnhealthyRed', 'hazardousRed', 'noColor'];
-
-const margin = {
-  top: 10,
-  right: 50,
-  bottom: 40,
-  left: 50,
-};
-
-let lineArray = [];
-let theContours = [];
-let liveSensors = [];
-let liveSensorsData = [];
-
-const liveSensorURL_airU = generateURL('/liveSensors', { 'type': 'airU' });
 const liveSensorURL_all = generateURL('/liveSensors', { 'type': 'all' });
-const lastPM25ValueURL = generateURL('/lastValue', { 'fieldKey': 'pm25' });
-const lastContourURL = generateURL('/getLatestContour', null);
-
+const lastContourURL = generateURL('/getLatestContour');
 
 let theMap;
-let liveAirUSensors = [];
 let whichTimeRangeToShow = 1;
 let currentlySelectedDataSource = 'none';
 let latestGeneratedID = -1;
 let dotsUpdateID;
-let sensorUpdateID;
 let contourUpdateID;
+let showSensors = true;
+let lineArray = [];
+let theContours = [];
+let liveSensors = [];
+
+// Set dates for timeline and for ajax calls
+const todaysDate = new Date();
+let pastDate = new Date(todaysDate - whichTimeRangeToShow * 86400000);
+
+// Timeline axis definitions
+let x = d3.scaleTime().domain([pastDate, todaysDate]);
+const y = d3.scaleLinear().domain([0.0, 150.0]);
+
 
 // function run when page has finished loading all DOM elements and they are ready to use
 $(function () {
@@ -63,29 +46,50 @@ $(function () {
 });
 
 function startTheWholePage() {
+  // TODO: Find a better place for this
+  // sets the from date for the timeline when the radio button is changed
+  $('#timelineControls input[type=radio]').on('change', function () {
+    whichTimeRangeToShow = parseInt($(`[name="timeRange"]:checked`).val());
+
+    // Update the pastDate and update the timeline axis
+    pastDate = new Date(todaysDate - whichTimeRangeToShow * 86400000);
+    x = d3.scaleTime().domain([pastDate, todaysDate]);
+
+    clearData(true)
+
+    // TODO: Fix how the data is retrieve and pushed to the lineArray
+    lineArray.forEach((d) => {
+      lineArray.splice(lineArray.indexOf(d), 1);
+      getGraphData(d.id, d.sensorSource, getAggregation(whichTimeRangeToShow));
+    });
+
+    // If not showSensors, get historic contour data
+    if (!showSensors) {
+      getContourData();
+    }
+
+    setUpTimeline();
+  });
+
   setUpTimeline();
   window.onresize = setUpTimeline;
 
   theMap = setupMap();
-
   sensLayer.addTo(theMap);
-
-  // from https://github.com/aratcliffe/Leaflet.contextmenu/issues/37
-  slcMap.contextmenu.disable();
-
+  
   // shows either the sensors or the contours
   showMapDataVis();
 
   // preventing click on timeline to generate map event (such as creating dot for getting AQ)
-  var timelineDiv = L.DomUtil.get('timeline');
+  const timelineDiv = L.DomUtil.get('timeline');
   L.DomEvent.disableClickPropagation(timelineDiv);
   L.DomEvent.on(timelineDiv, 'mousewheel', L.DomEvent.stopPropagation);
 
-  var legendDiv = L.DomUtil.get('legend');
+  const legendDiv = L.DomUtil.get('legend');
   L.DomEvent.disableClickPropagation(legendDiv);
   L.DomEvent.on(legendDiv, 'mousewheel', L.DomEvent.stopPropagation);
 
-  var reappearingButtonDiv = L.DomUtil.get('openLegendButton');
+  const reappearingButtonDiv = L.DomUtil.get('openLegendButton');
   L.DomEvent.disableClickPropagation(reappearingButtonDiv);
   L.DomEvent.on(reappearingButtonDiv, 'mousewheel', L.DomEvent.stopPropagation);
 
@@ -104,13 +108,11 @@ function showMapDataVis() {
     hideSlider();
 
     // Update the vis every 60 seconds
-    dotsUpdateID = setInterval('updateDots()', 60000);  // 60,000 miliseconds = 1 min
-    sensorUpdateID = setInterval('updateSensors()', 300000); // update every 5min
+    dotsUpdateID = setInterval('updateDots()', 600000);  // 600,000 milliseconds = 10 min
 
   } else {
     // If showSensors is false show only contours, not the sensors
     clearInterval(dotsUpdateID)
-    clearInterval(sensorUpdateID)
 
     getContourData();
 
@@ -126,7 +128,6 @@ function showMapDataVis() {
     // Update the vis every 5 minutes
     contourUpdateID = setInterval('updateContour()', 300000);
   }
-
 }
 
 
@@ -140,7 +141,7 @@ function getClosest(aDate, contourArray) {
   } else if (aDate > new Date(contourArray[contourArray.length - 1].time)) {
     return [contourArray[contourArray.length - 1], contourArray[contourArray.length - 1]];
   } else {
-    // contourArray is sorted acending in time
+    // contourArray is sorted ascending in time
     var previousElement;
     for (let element of contourArray) {
       if (aDate < new Date(element.time)) {
@@ -156,41 +157,6 @@ function getClosest(aDate, contourArray) {
 function setUpTimeline() {
   // TIMELINE UI
 
-  // sets the from date for the timeline when the radio button is changed
-  $('#timelineControls input[type=radio]').on('change', function () {
-    whichTimeRangeToShow = parseInt($(`[name=${timeRange}]:checked`).val());
-
-    let newDate = new Date(today);  // use 'today' as the base date
-    newDate.setDate(newDate.getDate() - whichTimeRangeToShow);
-    pastDate = newDate.toISOString().substr(0, 19) + 'Z';
-
-    // refresh x
-    x = d3.scaleTime().domain([new Date(pastDate), new Date(today)]);
-    setUpTimeline();  // TODO is there a better way than this circular calling: yes, let's move this outside the function
-
-
-    // which IDs are there
-    let lineData = [];
-    lineArray.forEach(function (aLine) {
-      let theAggregation = getAggregation(whichTimeRangeToShow);
-
-      lineData.push({ id: aLine.id, sensorSource: aLine.sensorSource, aggregation: theAggregation })
-    });
-
-    clearData(true);
-
-    lineData.forEach(function (aLine) {
-      reGetGraphData(aLine.id, aLine.sensorSource, aLine.aggregation);
-    });
-
-    if (!showSensors) {
-      getContourData();
-    } else {
-      // need to do the same for the sensors TODO
-    }
-
-  });
-
   // Add the submit event
   $('#sensorDataSearchForm').on('submit', function (e) {
     e.preventDefault();  //prevent form from submitting
@@ -198,7 +164,7 @@ function setUpTimeline() {
     let data = $('#sensorDataSearchForm :input').serializeArray();
 
     let anAggregation = getAggregation(whichTimeRangeToShow);
-    reGetGraphData(data[0].value, 'airu', anAggregation);
+    getGraphData(data[0].value, 'AirU', anAggregation);
 
     // If the sensor is visible on the map, mark it as selected
     sensLayer.eachLayer(function (layer) {
@@ -210,22 +176,22 @@ function setUpTimeline() {
 
   // TIMELINE
 
-  var timelineDIV = d3.select('#timeline');
-  var bounds = timelineDIV.node().getBoundingClientRect();
-  var svgWidth = bounds.width;
-  var svgHeight = bounds.height;
-  var width = svgWidth - margin.left - margin.right;
-  var height = svgHeight - margin.top - margin.bottom - 18;
-  var svg = timelineDIV.select('svg') // Set size of svgContainer
+  const timelineDIV = d3.select('#timeline');
+  const bounds = timelineDIV.node().getBoundingClientRect();
+  const svgWidth = bounds.width;
+  const svgHeight = bounds.height;
+  const width = svgWidth - margin.left - margin.right;
+  const height = svgHeight - margin.top - margin.bottom - 18;
+  const svg = timelineDIV.select('svg') // Set size of svgContainer
 
-  var formatSliderDate = d3.timeFormat('%a %d %I %p');
-  var formatSliderHandler = d3.timeFormat('%a %m/%d %I:%M%p');
+  const formatSliderDate = d3.timeFormat('%a %d %I %p');
+  const formatSliderHandler = d3.timeFormat('%a %m/%d %I:%M%p');
 
   x.range([0, width]);
   y.range([height, 0]);
 
   // adding the slider
-  var slider = d3.select('#slider')
+  const slider = d3.select('#slider')
     .attr('transform', 'translate(50, 10)');
 
   slider.selectAll('line').remove();
@@ -240,7 +206,7 @@ function setUpTimeline() {
     .attr('class', 'track-overlay')
     .call(d3.drag()
       .on('start.interrupt', function () { slider.interrupt(); })
-      .on('start drag', function (d) {
+      .on('start drag', (d) => {
         var currentDate = x.invert(d3.event.x);
         var upperAndLowerBound = getClosest(currentDate, theContours);
         var roundedDate
@@ -265,7 +231,7 @@ function setUpTimeline() {
     .enter().append('text')
     .attr('x', x)
     .attr('text-anchor', 'middle')
-    .text(function (d) { return formatSliderDate(d); });
+    .text((d) => formatSliderDate(d));
 
   slider.select('circle').remove();
   slider.select('#contourTime').remove();
@@ -277,7 +243,7 @@ function setUpTimeline() {
     .attr('class', 'handle')
     .attr('r', 9);
 
-  sliderHandle.attr('cx', x(todayDate));
+  sliderHandle.attr('cx', x(todaysDate));
 
   if (showSensors) {
     hideSlider();
@@ -321,13 +287,10 @@ function setUpTimeline() {
     .style('stroke', 'rgb(215, 25, 28)')
     .style('fill', 'rgb(215, 25, 28)');
 
-
-  var xAxis = d3.axisBottom(x).ticks(9);
-  var yAxis = d3.axisLeft(y).ticks(7);
-
+  // Add axes
   svg.select('.x.axis') // Add the X Axis
     .attr('transform', 'translate(' + margin.left + ',' + (margin.top + height) + ')')
-    .call(xAxis);
+    .call(d3.axisBottom(x).ticks(9));
 
   svg.select('.x.label')      // text label for the x axis
     .attr('class', 'timeline')
@@ -336,7 +299,7 @@ function setUpTimeline() {
 
   svg.select('.y.axis') // Add the Y Axis
     .attr('transform', 'translate(' + margin.left + ',' + margin.top + ')')
-    .call(yAxis);
+    .call(d3.axisLeft(y).ticks(7));
 
   svg.select('.y.label')    // text label for the y axis
     .attr('class', 'timeline')
@@ -369,13 +332,11 @@ function getColorBandPath(yStart, yEnd) {
 // Create additional control placeholders
 // https://stackoverflow.com/questions/33614912/how-to-locate-leaflet-zoom-control-in-a-desired-position
 function addControlPlaceholders(map) {
-  var corners = map._controlCorners;
-  var l = 'leaflet-';
-  var container = map._controlContainer;
+  const corners = map._controlCorners;
 
   function createCorner(vSide, hSide) {
-    var className = l + vSide + ' ' + l + hSide;
-    corners[vSide + hSide] = L.DomUtil.create('div', className, container);
+    var className = `leaflet-${vSide} leaflet-${hSide}`;
+    corners[vSide + hSide] = L.DomUtil.create('div', className, map._controlContainer);
   }
 
   createCorner('verticalcentertop', 'left');
@@ -469,7 +430,7 @@ function setupMap() {
 
       var colorDiv = document.createElement('div');
       colorDiv.setAttribute('id', aColor);
-      colorDiv.setAttribute('class', 'colorbar ' + aColor);
+      colorDiv.setAttribute('class', `colorBar ${aColor}`);
       tmp.appendChild(colorDiv);
 
       var span = document.createElement('span');
@@ -492,16 +453,16 @@ function setupMap() {
     legendContainer.appendChild(hr);
 
     // adding data source legend
-    var datasourceLegend = L.DomUtil.create('div', 'datasourceLegend');
-    legendContainer.appendChild(datasourceLegend);
+    var dataSourceLegend = L.DomUtil.create('div', 'dataSourceLegend');
+    legendContainer.appendChild(dataSourceLegend);
 
-    var d3div = d3.select(datasourceLegend);
+    var d3div = d3.select(dataSourceLegend);
     var titleDataSource = d3div.append('span')
-      .attr('id', 'datasource')
+      .attr('id', 'dataSource')
       .attr('class', 'legendTitle')
       .html('Data sources:');
 
-    var dataLabel = ['airu', 'PurpleAir', 'Mesowest', 'DAQ'];
+    var dataLabel = ['AirU', 'PurpleAir', 'DAQ'];
     var labels = d3div.selectAll('label').data(dataLabel);
     labels.exit().remove();
     var labelsEnter = labels.enter()
@@ -519,7 +480,7 @@ function setupMap() {
       .attr('class', 'fas fa-circle');
 
     labels.append('span')
-      .attr('id', d => 'numberof_' + d);
+      .attr('id', d => 'numberOf_' + d);
 
     labels.on('click', d => {
       if (currentlySelectedDataSource != 'none') {
@@ -535,7 +496,7 @@ function setupMap() {
 
           currentlySelectedDataSource = 'none'
         } else {
-          // moved from one element to another without first unchecking it
+          // moved from one element to another without first un-checking it
           d3.select(d3.event.currentTarget).classed('clickedLegendElement', true)
           d3.select(d3.event.currentTarget).select('span').classed('notSelectedLabel', false);
           d3.select(d3.event.currentTarget).select('span').classed('selectedLabel', true);
@@ -702,7 +663,7 @@ function setContour(theMap, theContourData) {
 
 
 /**
- * Querys db to get the live sensors -- sensors that have data since yesterday beginnning of day
+ * Queries db to get the live sensors -- sensors that have data since yesterday beginning of day
  * @return {[type]} [description]
  */
 function drawSensorOnMap() {
@@ -710,28 +671,16 @@ function drawSensorOnMap() {
   $('#SLC-map').LoadingOverlay('show');
 
   getDataFromDB(liveSensorURL_all).then((data) => {
-    var numberOfPurpleAir = data.filter(sensor => sensor['Sensor Source'] === 'Purple Air').length;
-    $('#numberof_PurpleAir').html(numberOfPurpleAir);
+    // Standardize the PM2_5
+    data.forEach((d) => d.PM2_5 = convertPM(d.PM2_5, d['SensorSource'], d['SensorModel']));
+    
+    // Update the number of sensors in the legend
+    updateNumberOfSensors(data)
 
-    var numberOfAirU = data.filter(sensor => sensor['Sensor Source'] === 'airu').length;
-    $('#numberof_airu').html(numberOfAirU);
-
-    var numberOfMesowest = data.filter(sensor => sensor['Sensor Source'] === 'Mesowest').length;
-    $('#numberof_Mesowest').html(numberOfMesowest);
-
-    var numberOfDAQ = data.filter(sensor => sensor['Sensor Source'] === 'DAQ').length;
-    $('#numberof_DAQ').html(numberOfDAQ);
-
-    const response = data.map((d) => {
-      d.pm25 = conversionPM(d.pm25, d['Sensor Source'], d['Sensor Model']);
-
-      return d
-    });
-
-    sensorLayer(response);
+    data.forEach(createMarker);
 
     data.forEach(function (aSensor) {
-      liveSensors.push({ 'id': aSensor.ID.split(' ').join('_'), 'sensorSource': aSensor['Sensor Source'] });
+      liveSensors.push({ 'id': aSensor.ID.split(' ').join('_'), 'sensorSource': aSensor['SensorSource'] });
     });
 
     $('#SLC-map').LoadingOverlay('hide');
@@ -739,22 +688,6 @@ function drawSensorOnMap() {
   }).catch((err) => {
     console.error('Error: ', err)
   });
-
-
-}
-
-
-/**
- * [sensorLayer description]
- * @param  {[type]} response [description]
- * @return {[type]}          [description]
- */
-function sensorLayer(response) {
-  response.forEach(createMarker);
-}
-
-function sensorLayerDebugging(response) {
-  response.forEach(createMarkerDebugging);
 }
 
 // layer with the marks where people clicked
@@ -770,17 +703,17 @@ function createMarker(markerData) {
     html: ''
   };
 
-  let sensorSource = markerData['Sensor Source'];
+  let sensorSource = markerData['SensorSource'];
 
   if (markerData.Latitude !== null && markerData.Longitude !== null) {
     let classList = 'dot';
-    let currentPM25 = markerData.pm25;
+    let currentPM25 = markerData.PM2_5;
 
     let currentTime = new Date().getTime();
     let timeLastMeasurement = markerData.time;
     let minutesINBetween = (currentTime - timeLastMeasurement) / (1000 * 60);
     let theColor = displaySensor(sensorSource, minutesINBetween, currentPM25)
-    classList = classList + ' ' + theColor + ' ';
+    classList = `${classList} ${theColor} `;
 
     // throw away the spaces in the sensor name string so we have a valid class name
     classList += sensorSource.replace(/ /g, '');
@@ -794,14 +727,13 @@ function createMarker(markerData) {
       { icon: L.divIcon(dotIcon) }
     ).addTo(sensLayer);
 
-    mark.id = markerData['ID'];
-    if (sensorSource == 'airu') {
-      liveAirUSensors.push(markerData.ID)
-    }
+    mark.id = markerData.ID;
 
     mark.bindPopup(
-      L.popup({ closeButton: false, className: 'sensorInformationPopup' }).setContent('<span class="popup">' + sensorSource + ': ' + markerData.ID + '</span>'))
-    // mark.bindPopup(popup)
+      L
+        .popup({ closeButton: false, className: 'sensorInformationPopup' })
+        .setContent(`<span class="popup">${sensorSource}: ${markerData.ID}</span>`)
+    )
 
     mark.on('click', populateGraph)
     mark.on('mouseover', function (e) {
@@ -854,7 +786,7 @@ function createRandomClickMarker(markerData) {
     let classList = 'dot';
     let theColor = 'dblclickOnMap';
 
-    classList = classList + ' ' + theColor + ' ';
+    classList = `${classList} ${theColor} `;
     dotIcon.className = classList;
 
     var mark = new L.marker(
@@ -862,13 +794,16 @@ function createRandomClickMarker(markerData) {
         parseFloat(markerData.Latitude),
         parseFloat(markerData.Longitude)
       ),
-      { icon: L.divIcon(dotIcon) }
+      { icon: L.divIcon(dotIcon) },
     ).addTo(sensLayer);
 
-    mark.id = markerData['ID'];
+    mark.id = markerData.ID;
 
     mark.bindPopup(
-      L.popup({ closeButton: false, className: 'sensorInformationPopup' }).setContent('<span class="popup">' + markerData['Sensor Source'] + ': ' + markerData.ID + '</span>'));
+      L
+        .popup({ closeButton: false, className: 'sensorInformationPopup' })
+        .setContent(`<span class="popup">${markerData.SensorSource}: ${markerData.ID}</span>`)
+    );
 
     // set the border of created marker to selected
     d3.select(mark._icon).classed('sensor-selected', true);
@@ -890,22 +825,23 @@ function getContourData() {
   $('#SLC-map').LoadingOverlay('show');
 
   // get difference between the dates in displays
-  var diffDays = Math.ceil((new Date(today) - new Date(pastDate)) / (1000 * 60 * 60 * 24));
+  var diffDays = Math.ceil((todaysDate - pastDate) / (1000 * 60 * 60 * 24));
 
   // if more than 1 day, load each day separately
-  var contoursURL = '';
-  var endDate = today;
+  let endDate = todaysDate;
   var listOfPromises = [];
+
   for (let i = 1; i <= diffDays; i++) {
+    // Get the startDate
+    let startDate = new Date(todaysDate - i * 86400000);
 
-    var anIntermediateDate = new Date(today);
-    anIntermediateDate.setDate(anIntermediateDate.getDate() - i);
-    var startDate = anIntermediateDate.toISOString().substr(0, 19) + 'Z';
+    // Get the URL
+    let contoursURL = generateURL('/contours', { 'start': formatDateTime(startDate), 'end': formatDateTime(endDate) });
 
-    var contoursURL = generateURL('/contours', { 'start': startDate, 'end': endDate });
-
+    // Make a promise and push it to the list of promises
     listOfPromises.push(getDataFromDB(contoursURL));
 
+    // Update endDate
     endDate = startDate
   }
 
@@ -916,44 +852,27 @@ function getContourData() {
   })
 }
 
-
-// get through all live sensors and load their data (past 24hours)
-function getAllSensorData() {
-
-  liveSensors.forEach(function (aLiveSensor) {
-    var route = '/rawDataFrom';
-    var parameters = { 'id': aLiveSensor.id, 'sensorSource': aLiveSensor.sensorSource, 'start': pastDate, 'end': today, 'show': 'pm25' };
-
-    var aSensorRawDataURL = generateURL(route, parameters)
-
-    getDataFromDB(aSensorRawDataURL).then(data => {
-      liveSensorsData.push({ 'id': data.tags[0]['ID'], 'pmData': data.data, 'sensorModel': data.tags[0]['Sensor Model'], 'sensorSource': data.tags[0]['Sensor Source'] })
-    }).catch(function (err) {
-      console.error('Error: ', err)
-    });
-  })
-}
-
-
 function updateDots() {
-  getDataFromDB(lastPM25ValueURL).then((data) => {
-    // apply conversion for purple air
-    Object.keys(data).forEach(function (key) {
-      let sensorModel = data[key]['Sensor Model'];
-      let sensorSource = data[key]['Sensor Source'];
-      data[key]['last'] = conversionPM(data[key]['last'], sensorSource, sensorModel);
-    });
+  getDataFromDB(liveSensorURL_all).then((data) => {
+    // Standardize the PM2_5 and create markers
+    data.forEach((d) => d.PM2_5 = convertPM(d.PM2_5, d.SensorSource, d.SensorModel));
+    data.forEach(createMarker);
 
-    sensLayer.eachLayer(function (layer) {
-      if (data[layer.id] !== undefined) {
-        let currentTime = new Date().getTime()
-        let timeLastMeasurement = new Date(data[layer.id].time).getTime();
-        let minutesINBetween = (currentTime - timeLastMeasurement) / (1000 * 60);
+    // Update the number of sensors in the legend
+    updateNumberOfSensors(data)
 
-        let currentPM25 = data[layer.id].last;
-        let theSensorSource = data[layer.id]['Sensor Source']
+    sensLayer.eachLayer(layer => {
+      // Find the updated value for a specific sensor id
+      const updatedValue = data.find(latestValue => {
+        return latestValue.ID === layer.id
+      })
 
-        let theColor = displaySensor(theSensorSource, minutesINBetween, currentPM25)
+      if (updatedValue) {
+        const currentTime = new Date().getTime()
+        const timeLastMeasurement = new Date(updatedValue.time).getTime();
+        const minutesINBetween = (currentTime - timeLastMeasurement) / (1000 * 60);
+
+        const theColor = displaySensor(updatedValue.SensorSource, minutesINBetween, updatedValue.PM2_5)
         $(layer._icon).removeClass(epaColors.join(' '))
         $(layer._icon).addClass(theColor)
       }
@@ -964,28 +883,9 @@ function updateDots() {
   });
 }
 
-function updateSensors() {
-  getDataFromDB(liveSensorURL_airU).then((data) => {
-    var numberOfAirUOut = data.length;
-    $('#numberof_airu').html(numberOfAirUOut);
-
-    const response = data.filter((d) => {
-      if (!liveAirUSensors.includes(d.ID)) {
-        return d;
-      }
-    });
-
-    sensorLayer(response);
-
-  }).catch((err) => {
-    console.error('Error: ', err)
-  });
-}
-
 // Update the contours
 function updateContour() {
   getDataFromDB(lastContourURL).then(data => {
-    // Process contours data
     setContour(slcMap, data);
   }).catch(function (err) {
     console.error('Error when updating the contour: ', err)
@@ -993,28 +893,20 @@ function updateContour() {
 }
 
 
-function displaySensor(aSensorSource, timePassedSinceLastDataValue, aCurrentValue) {
+function displaySensor(aSensorSource, minutesPassedSinceLastDataValue, aCurrentValue) {
   let theColor = 'noColor';
   let calculatedColor = getColor(aCurrentValue);
 
-  if (aSensorSource === 'airu' || aSensorSource === 'Purple Air') {
-    if (timePassedSinceLastDataValue <= 10.0) {
+  if ((aSensorSource === 'AirU' || aSensorSource === 'PurpleAir') && minutesPassedSinceLastDataValue <= 10.0) {
       theColor = calculatedColor;
-    }
-  } else if (aSensorSource === 'DAQ') {
-
-    if (timePassedSinceLastDataValue <= 180.0) {
+  } else if (aSensorSource === 'DAQ' && minutesPassedSinceLastDataValue <= 180.0) {
       theColor = calculatedColor;
-    }
-  } else if (aSensorSource === 'Mesowest') {
-
-    if (timePassedSinceLastDataValue <= 20.0) {
-      theColor = calculatedColor;
-    }
   } else {
     console.error('displaySensor: forgotten a case!!');
   }
 
+  // TODO: Remove this line, currently hacks to last value regardless of timestamp
+  theColor = calculatedColor;
   return theColor;
 }
 
@@ -1052,84 +944,21 @@ function getColor(currentValue) {
   return theColor;
 }
 
-function distance(lat1, lon1, lat2, lon2) {
-  const p = 0.017453292519943295; // Math.PI / 180
-  const c = Math.cos;
-  const a = 0.5 - c((lat2 - lat1) * p) / 2 +
-    c(lat1 * p) * c(lat2 * p) *
-    (1 - c((lon2 - lon1) * p)) / 2;
-
-  return 12742 * Math.asin(Math.sqrt(a)); // 2 * R; R = 6371 km
-}
-
-function findDistance(r, mark) {
-  var lt = mark.getLatLng().lat;
-  var lon = mark.getLatLng().lng;
-  var closestsensor = null;
-  var sensorobject = null;
-
-  r.forEach(function (item) {
-    if (item['Latitude'] !== null && item['Longitude'] !== null) {
-      var d = distance(lt, lon, parseFloat(item['Latitude']), parseFloat(item['Longitude']));
-      //compare old distance to new distance. Smaller = closestsensor
-      if (closestsensor === null) {
-        closestsensor = d; //distance
-        sensorobject = item; //data object
-      } else {
-        if (closestsensor > d) {
-          closestsensor = d;
-          sensorobject = item;
-        }
-      }
-    }
-  });
-  return sensorobject;
-}
-
-function findCorners(ltlg) {
-  var cornerarray = [];
-  lt = ltlg.lat;
-  lg = ltlg.lng;
-
-  var lt1 = lt - 5.0;
-  cornerarray.push(lt1);
-  var lt2 = lt + 5.0;
-  cornerarray.push(lt2);
-  var lg1 = lg - 5.0;
-  cornerarray.push(lg1);
-  var lg2 = lg + 5.0;
-  cornerarray.push(lg2);
-
-  return cornerarray;
-}
-
-// from https://stackoverflow.com/questions/3224834/get-difference-between-2-dates-in-javascript --> by Shyam Habarakada
-function dateDiffInSeconds(a, b) {
-  const MS_PER_SEC = 1000;
-  // Discard the time and time-zone information.
-  const utc1 = Date.UTC(a.getFullYear(), a.getMonth(), a.getDate());
-  const utc2 = Date.UTC(b.getFullYear(), b.getMonth(), b.getDate());
-
-  return Math.floor((utc2 - utc1) / MS_PER_SEC);
-}
-
 function preprocessDBData(id, sensorData) {
-  let sanitizedID = id.split(' ').join('_')
-
+  let sanitizedID = id.split(' ').join('_') // Make out of id 'Rose Park', 'Rose_Park'
   let tags = sensorData['tags'][0];
-  let sensorSource = tags['Sensor Source'];
-  let sensorModel = tags['Sensor Model'];
+  let sensorSource = tags['SensorSource'];
+  let sensorModel = tags['SensorModel'];
 
   let processedSensorData = sensorData['data'].map((d) => {
     return {
-      id: sanitizedID,  // make out of id 'Rose Park', 'Rose_Park'
+      id: sanitizedID,  
       time: new Date(d.time),
-      // pm25: d['pm25']
-      pm25: conversionPM(d.pm25, sensorSource, sensorModel)
+      PM2_5: convertPM(d.PM2_5, sensorSource, sensorModel)
     };
   });
 
-  var present = false;
+  let present = false;
   for (var i = 0; i < lineArray.length; i++) {
     if (lineArray[i].id === sanitizedID) {
       present = true;
@@ -1161,18 +990,18 @@ function drawChart() {
   var pmFormat = d3.format(s);
 
   // Scale the range of the data
-  var valueline = d3.line().defined(function (d) { return d.pm25; })
+  var valueLine = d3.line().defined(function (d) { return d.PM2_5; })
     .x(function (d) {
       return x(d.time);
     })
     .y(function (d) {
-      return y(d.pm25);
+      return y(d.PM2_5);
     });
 
-  //mike bostock's code
+  // Mike Bostock's code
   var voronoi = d3.voronoi()
     .x(function (d) { return x(d.time); })
-    .y(function (d) { return y(d.pm25); })
+    .y(function (d) { return y(d.PM2_5); })
     .extent([[-margin.left, -margin.top], [width + margin.right, height + margin.bottom]]);
 
   // adds the svg attributes to container
@@ -1185,7 +1014,7 @@ function drawChart() {
 
   lines.enter().append('path') // looks at data not associated with path and then pairs it
     .attr('transform', 'translate(' + margin.left + ',' + margin.top + ')')
-    .attr('d', d => { return valueline(d.sensorData); })
+    .attr('d', d => { return valueLine(d.sensorData); })
     .attr('class', d => 'line-style line' + d.id)
     .attr('id', function (d) { return 'line_' + d.id; });
 
@@ -1206,8 +1035,8 @@ function drawChart() {
     // in SVG land, this means that hoveredLine will jump to the foreground
     //.node() gets the dom element (line element), then when you append child to the parent that it already has, it bumps updated child to the front
     hoveredLine.node().parentNode.appendChild(hoveredLine.node());
-    focus.attr('transform', 'translate(' + (x(d.data.time) + margin.left) + ',' + (y(d.data.pm25) + margin.top) + ')'); //x and y gets coordinates from values, which we can then change with margin
-    focus.select('text').text(pmFormat(d.data.pm25) + ' µg/m\u00B3');
+    focus.attr('transform', 'translate(' + (x(d.data.time) + margin.left) + ',' + (y(d.data.PM2_5) + margin.top) + ')'); //x and y gets coordinates from values, which we can then change with margin
+    focus.select('text').text(pmFormat(d.data.PM2_5) + ' µg/m\u00B3');
 
     // date focus
     dateFocus.attr('transform', 'translate(' + (x(d.data.time) + margin.left) + ',' + (y(2) + margin.top) + ')');
@@ -1247,9 +1076,7 @@ function drawChart() {
     d3.select('.dateFocus rect').attr('height', null)
   }
 
-  var listOfLists = lineArray.map(function (d) {
-    return d.sensorData;
-  });
+  var listOfLists = lineArray.map((d) => d.sensorData);
   var listOfPoints = d3.merge(listOfLists);
   var voronoiPolygons = voronoi.polygons(listOfPoints);
 
@@ -1275,90 +1102,56 @@ function drawChart() {
 }
 
 function getGraphData(sensorID, sensorSource, aggregation) {
-  let theRoute = '';
-  let parameters = {};
-  if (!aggregation) {
-    theRoute = '/rawDataFrom';
-    parameters = { 'id': sensorID, 'sensorSource': sensorSource, 'start': pastDate, 'end': today, 'show': 'pm25' };
-  } else if (aggregation) {
-    theRoute = '/processedDataFrom?';
-    parameters = { 'id': sensorID, 'sensorSource': sensorSource, 'start': pastDate, 'end': today, 'function': 'mean', 'functionArg': 'pm25', 'timeInterval': '5m' }; // 60m
-  } else {
-    console.error('Error reaching API');
-  }
+  let route = aggregation ? '/timeAggregatedDataFrom' : '/rawDataFrom';
+  let parameters = aggregation ? 
+    { 'id': sensorID, 'sensorSource': sensorSource, 'start': formatDateTime(pastDate), 'end': formatDateTime(todaysDate), 'function': 'mean', 'timeInterval': '5' }
+    : { 'id': sensorID, 'sensorSource': sensorSource, 'start': formatDateTime(pastDate), 'end': formatDateTime(todaysDate)};
 
-  var url = generateURL(theRoute, parameters);
+  var url = generateURL(route, parameters);
 
-  getDataFromDB(url).then(data => {
-    preprocessDBData(sensorID, data)
-  }).catch(function (err) {
-    console.error('Error: ', err)
-  });
-}
-
-function reGetGraphData(theID, theSensorSource, aggregation) {
-  let theRoute = '';
-  let parameters = {};
-  if (!aggregation) {
-    theRoute = '/rawDataFrom';
-    parameters = { 'id': theID, 'sensorSource': theSensorSource, 'start': pastDate, 'end': today, 'show': 'pm25' };
-  } else if (aggregation) {
-    theRoute = '/processedDataFrom?';
-    parameters = { 'id': theID, 'sensorSource': theSensorSource, 'start': pastDate, 'end': today, 'function': 'mean', 'functionArg': 'pm25', 'timeInterval': '5m' }; // 60min
-  } else {
-    console.error('Failed to get graph data.');
-  }
-
-  var url = generateURL(theRoute, parameters);
-  getDataFromDB(url).then(data => {
-    preprocessDBData(theID, data)
-  }).catch(function (err) {
-    $('#errorInformation').html(err['message'])
-    console.error('Error: ', err)
-  });
-
+  getDataFromDB(url)
+    .then((data) => preprocessDBData(sensorID, data))
+    .catch((err) => console.error('Error: ', err));
 }
 
 function populateGraph() {
-  // unclick the sensor type legend
+  // Un-click the sensor source legend and update the dot highlights (AirU, PurpleAir, etc.)
   if (currentlySelectedDataSource != 'none') {
-    d3.select('.clickedLegendElement').classed('clickedLegendElement', false)
-    // remove notPartOfGroup class
-    // remove colored-border-selected class
+    d3.select('.clickedLegendElement').classed('clickedLegendElement', false) // TODO: Fix bug with dot still showing in legend
     d3.select('#SLC-map').selectAll('.dot:not(noColor)').classed('notPartOfGroup', false);
     d3.select('#SLC-map').selectAll('.dot:not(noColor)').classed('partOfGroup-border', false);
   }
 
 
   if (d3.select(this._icon).classed('sensor-selected')) {
-    // if dot already selected
+    // If the dot is already selected get the id and remove from the line array
     let clickedDotID = this.id.split(' ').join('_');
-    // d3.select('#line_' + clickedDotID).remove();
     lineArray = lineArray.filter(line => line.id != clickedDotID);
+
+    // Re-render the line charts and set the dot to unselected
     drawChart();
     d3.select(this._icon).classed('sensor-selected', false);
 
   } else {
-    // only add the timeline if dot has usable data
+    // Else the dot is not already selected. Check it has a color (thus usable data) before continuing
     if (!d3.select(this._icon).classed('noColor')) {
+      // Set the dot to selected
       d3.select(this._icon).classed('sensor-selected', true);
 
+      // Check whether we need to aggregate the data
       let aggregation = getAggregation(whichTimeRangeToShow);
 
-      // get the sensor source
-
-      if (d3.select(this._icon).attr('class').split(' ').includes('airu')) {
-        getGraphData(this.id, 'airu', aggregation);
-      } else {
-        getGraphData(this.id, 'Purple Air', aggregation);
-      }
+      // Get the sensorType and pass it through to getGraphData
+      const dotClasses = d3.select(this._icon).attr('class').split(' ')
+      const sensorType = dotClasses.includes('AirU') ? 'AirU' :
+        dotClasses.includes('PurpleAir') ? 'PurpleAir' : 
+        'DAQ';
+      getGraphData(this.id, sensorType, aggregation);
     }
   }
 }
 
 function clearData(changingTimeRange) {
-  // lineArray.forEach( // TODO clear the markers from the map )
-  lineArray = []; //this empties line array so that new lines can now be added
   d3.selectAll('#lines').html('');  // in theory, we should just call drawChart again
   d3.selectAll('.voronoi').html('');
 
@@ -1394,42 +1187,59 @@ PM2.5,TEOM =−54.22405ln(0.98138−0.00772PM2.5,PMS1003)
 for sensors pms5003:
 PM2.5,TEOM =−64.48285ln(0.97176−0.01008PM2.5,PMS5003)
 */
-function conversionPM(pm, sensorSource, sensorModel) {
-  var pmv = null;
-  if (pm != null) {
-    // if pm is null keep it null
-    if (sensorSource != 'airu') {
+function convertPM(pm, sensorSource, sensorModel) {
+  // Bail out if pm is null
+  if (pm === null) {
+    return pm
+  }
 
+  let pmv = null;
       let model = null;
-      if (sensorModel != null) {
+  if (sensorModel !== null) {
         model = sensorModel.split('+')[0];
       }
 
-      // var pmv = 0;
+  correction_factors = {
+    AirU: {
+      b_one: 0.460549385,
+      intercept: 3.343513586,
+    },
+    other: {
+      PMS5003: {
+        b_one: 0.713235898,
+        intercept: 1.032516,
+      },
+      PMS1003: {
+        b_one: 0.574723564,
+        intercept: 2.205862689,
+      }
+    }
+  }
+
+  if (sensorSource === 'AirU') {
+    return (correction_factors.AirU.b_one * pm) + correction_factors.AirU.intercept
+  } else if (model === 'PMS5003' || model === 'PMS1003') {
+    return (correction_factors.other[model].b_one * pm) + correction_factors.other[model].intercept
+  }
+
+  if (pm != null) {
+    if (sensorSource != 'AirU') {
       if (model === 'PMS5003') {
         // pmv = (-1) * 64.48285 * Math.log(0.97176 - (0.01008 * pm));
         // pmv = 0.7778*pm + 2.6536; // until October 10, 2018
-
         // pmv = (0.432805631 * pm) + 3.316987; // wildfire
-        pmv = (0.713235898 * pm) + 1.032516; // winter
 
       } else if (model === 'PMS1003') {
         // pmv = (-1) * 54.22405 * Math.log(0.98138 - (0.00772 * pm));
         // pmv = 0.5431*pm + 1.0607; // until October 10, 2018
-
         // pmv = (0.418860234 * pm) + 4.630728956; // wildfire
-        pmv = (0.574723564 * pm) + 2.205862689; //  winter
       } else {
         pmv = pm;
       }
     } else {
-      // airu
-      // pmv = pm;
-
-      // airu calibration
+      // AirU calibration
       // pmv = 0.8582*pm + 1.1644; // until October 10, 2018
       // pmv = (0.448169438 * pm) + 5.885118729; // wildfire
-      pmv = (0.460549385 * pm) + 3.343513586; // winter
     }
   }
 
@@ -1437,32 +1247,28 @@ function conversionPM(pm, sensorSource, sensorModel) {
 }
 
 function createNewMarker(location) {
-  var clickLocation = location.latlon;
-
   // creating the ID for the marker
-  var markerID = latestGeneratedID + 1;
+  let markerID = latestGeneratedID + 1;
   latestGeneratedID = markerID;
   markerID = 'personalMarker_' + markerID;
 
-
   // create Dot
-  var randomClickMarker = [{ 'ID': markerID, 'Sensor Source': 'sensorLayerRandomMarker', 'Latitude': String(clickLocation['lat']), 'Longitude': String(clickLocation['lng']) }]
+  const randomClickMarker = [{ 'ID': markerID, 'SensorSource': 'sensorLayerRandomMarker', 'Latitude': String(location.latlng.lat), 'Longitude': String(location.latlng.lng) }]
   sensorLayerRandomMarker(randomClickMarker)
 
+  const predictionsForLocationURL = generateURL('/getPredictionsForLocation', { 'location': { 'lat':  String(location.latlng.lat), 'lon': String(location.latlng.lng) }, 'start': formatDateTime(pastDate), 'end': formatDateTime(todaysDate), 'predictionsperhour': 1 })
 
-  var estimatesForLocationURL = generateURL('/getEstimatesForLocation', { 'location': { 'lat': clickLocation['lat'], 'lon': clickLocation['lng'] }, 'start': pastDate, 'end': today })
-
-  getDataFromDB(estimatesForLocationURL).then(data => {
-    // parse the incoming bilinerar interpolated data
+  getDataFromDB(predictionsForLocationURL).then(data => {
+    // parse the incoming bilinear interpolated data
     var processedData = data.map((d) => {
       return {
         id: markerID,
-        time: new Date(d.time),
-        pm25: d.pm25,
+        time: new Date(d.datetime),
+        PM2_5: d.PM2_5,
         contour: d.contour          // DO I NEED THIS TODO
       };
     }).filter((d) => {
-      return d.pm25 === 0 || !!d.pm25; // forces NaN, null, undefined to be false, all other values to be true
+      return d.PM2_5 === 0 || !!d.PM2_5; // forces NaN, null, undefined to be false, all other values to be true
     });
 
     var newLine = { id: markerID, sensorSource: 'sensorLayerRandomMarker', sensorData: processedData };
@@ -1478,24 +1284,21 @@ function createNewMarker(location) {
 
 
 function flipMapDataVis() {
-
   if (showSensors) {
-    showSensors = false;
 
-    // allow marker creation contextual menu
+    // Only allow marker creation when showing dots
     slcMap.contextmenu.enable();
 
-    // theMap.removeLayer(sensLayer);
     sensLayer.eachLayer(function (aLayer) {
       theMap.removeLayer(aLayer);
       sensLayer.removeLayer(aLayer);
     });
 
   } else {
-    showSensors = true;
     slcMap.contextmenu.disable();
     clearMapSVG();
   }
+  showSensors = !showSensors
   showMapDataVis();
 }
 
@@ -1510,4 +1313,19 @@ function hideSlider() {
 
 function showSlider() {
   d3.select('#slider').classed('hide', false);
+}
+
+function formatDateTime(dateTime) {
+  return `${dateTime.toISOString().substr(0, 19)}Z`
+}
+
+function updateNumberOfSensors(data) {
+  const numberOfPurpleAir = data.filter(sensor => sensor['SensorSource'] === 'PurpleAir').length;
+  $('#numberOf_PurpleAir').html(numberOfPurpleAir);
+
+  const numberOfAirU = data.filter(sensor => sensor['SensorSource'] === 'AirU').length;
+  $('#numberOf_AirU').html(numberOfAirU);
+
+  const numberOfDAQ = data.filter(sensor => sensor['SensorSource'] === 'DAQ').length;
+  $('#numberOf_DAQ').html(numberOfDAQ);
 }

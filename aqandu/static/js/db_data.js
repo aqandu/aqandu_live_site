@@ -1,26 +1,24 @@
 /* global XMLHttpRequest:true */
 /* eslint no-undef: "error" */
 
-var baseURL = 'http://127.0.0.1:8080/api';
+var baseURL = '/api';
 
 
 function generateURL(route, parameters) {
   let urlRoute = `${baseURL}${route}`;
   
   if (route === '/rawDataFrom') {
-    url = `${urlRoute}?id=${parameters.id}&sensorSource=${parameters.sensorSource}&start=${parameters.start}&end=${parameters.end}&show=${parameters.show}`;
+    url = `${urlRoute}?id=${parameters.id}&sensorSource=${parameters.sensorSource}&start=${parameters.start}&end=${parameters.end}`;
   } else if (route === '/liveSensors') {
-    url = `${urlRoute}?sensorType=${parameters.type}`;
-  } else if (route === '/processedDataFrom?') {
-    url = `${urlRoute}?id=${parameters.id}&sensorSource=${parameters.sensorSource}&start=${parameters.start}&end=${parameters.end}&function=${parameters.function}&functionArg=${parameters.functionArg}&timeInterval=${parameters.timeInterval}`;
-  } else if (route === '/lastValue') {
-    url = `${urlRoute}?fieldKey=${parameters.fieldKey}`;
+    url = `${urlRoute}?sensorSource=${parameters.type}`;
+  } else if (route === '/timeAggregatedDataFrom') {
+    url = `${urlRoute}?id=${parameters.id}&sensorSource=${parameters.sensorSource}&start=${parameters.start}&end=${parameters.end}&function=${parameters.function}&timeInterval=${parameters.timeInterval}`;
   } else if (route === '/contours') {
-    url = `${urlRoute}?start=${parameters.start}&end=${parameters.end}`;
+    url = `https://air.eng.utah.edu/dbapi/api/contours?start=${parameters.start}&end=${parameters.end}`;
   } else if (route === '/getLatestContour') {
-    url = `${urlRoute}`;
-  } else if (route === '/getEstimatesForLocation') {
-    url = `${urlRoute}?locationLat=${parameters.location.lat}&locationLon=${parameters.location.lng}&start=${parameters.start}&end=${parameters.end}`;
+    url = `https://air.eng.utah.edu/dbapi/api/getLatestContour`;
+  } else if (route === '/getPredictionsForLocation') {
+    url = `${urlRoute}?lat=${parameters.location.lat}&lon=${parameters.location.lon}&start_date=${parameters.start}&end_date=${parameters.end}&predictionsperhour=${parameters.predictionsperhour}`;
   }
 
   return url;

@@ -2,8 +2,6 @@ from datetime import datetime, timedelta
 import pytz
 import utm
 from matplotlib.path import Path
-import scipy
-import numpy as np
 from scipy import interpolate
 from scipy.io import loadmat
 import csv
@@ -30,13 +28,14 @@ def datetimeToBigQueryTimestamp(date):
     return date.strftime(BQ_DATETIME_FORMAT)
     
 
+
 # Load up elevation grid
 def setupElevationInterpolator(filename):
     data = loadmat(filename)
     elevation_grid = data['elevs']
     gridLongs = data['gridLongs']
     gridLats = data['gridLats']
-    return interpolate.interp2d(gridLongs,gridLats,elevation_grid,kind='cubic')
+    return interpolate.interp2d(gridLongs, gridLats, elevation_grid, kind='cubic')
 
 
 def loadBoundingBox(filename):
@@ -66,7 +65,7 @@ def loadCorrectionFactors(filename):
             rowDict['5003_intercept'] = float(rowDict['5003_intercept'])
             correction_factors.append(rowDict)
         return correction_factors
-    
+
 
 def loadLengthScales(filename):
     with open(filename) as csv_file:
@@ -93,7 +92,7 @@ def isQueryInBoundingBox(bounding_box_vertices, query_lat, query_lon):
     # Add first vertex to end of verts so that the path closes properly
     verts.append(verts[0])
     codes = [Path.MOVETO]
-    codes += [Path.LINETO]*(len(verts)-2)
+    codes += [Path.LINETO] * (len(verts) - 2)
     codes += [Path.CLOSEPOLY]
     boundingBox = Path(verts, codes)
     return boundingBox.contains_point((query_lon, query_lat))
@@ -101,7 +100,7 @@ def isQueryInBoundingBox(bounding_box_vertices, query_lat, query_lon):
 
 def removeInvalidSensors(sensor_data):
     # sensor is invalid if its average reading for any day exceeds 350 ug/m3
-    epoch = datetime(1970,1,1)
+    epoch = datetime(1970, 1, 1)
     epoch = pytz.timezone('US/Mountain').localize(epoch)
     dayCounts = {}
     dayReadings = {}
@@ -115,22 +114,24 @@ def removeInvalidSensors(sensor_data):
         else:
             dayCounts[key] = 1
             dayReadings[key] = pm25
-    
+
     # get days that had higher than 350 avg reading
     keysToRemove = [key for key in dayCounts if (dayReadings[key] / dayCounts[key]) > 350]
     keysToRemoveSet = set()
     for key in keysToRemove:
         keysToRemoveSet.add(key)
-        keysToRemoveSet.add((key[0]+1, key[1]))
-        keysToRemoveSet.add((key[0]-1, key[1]))
+        keysToRemoveSet.add((key[0] + 1, key[1]))
+        keysToRemoveSet.add((key[0] - 1, key[1]))
 
     print(f'Removing these days from data due to exceeding 350 ug/m3 avg: {keysToRemoveSet}')
     sensor_data = [datum for datum in sensor_data if (datum['daysSinceEpoch'], datum['ID']) not in keysToRemoveSet]
 
-
     # TODO NEEDS TESTING!
-    # 5003 sensors are invalid if Raw 24-hour average PM2.5 levels are > 5 ug/m3 AND the two sensors differ by more than 16%
-    sensor5003Locations = {datum['ID']: (datum['utm_x'], datum['utm_y']) for datum in sensor_data if datum['type'] == '5003'}
+    # 5003 sensors are invalid if Raw 24-hour average PM2.5 levels are > 5 ug/m3
+    # AND the two sensors differ by more than 16%
+    sensor5003Locations = {
+        datum['ID']: (datum['utm_x'], datum['utm_y']) for datum in sensor_data if datum['type'] == '5003'
+    }
     sensorMatches = {}
     for sensor in sensor5003Locations:
         for match in sensor5003Locations:
@@ -152,17 +153,21 @@ def removeInvalidSensors(sensor_data):
                 maximum = max(reading1, reading2)
                 if min(reading1, reading2) > 5 and difference / maximum > 0.16:
                     keysToRemoveSet.add(key)
-                    keysToRemoveSet.add((key[0]+1, key[1]))
-                    keysToRemoveSet.add((key[0]-1, key[1]))
+                    keysToRemoveSet.add((key[0] + 1, key[1]))
+                    keysToRemoveSet.add((key[0] - 1, key[1]))
                     keysToRemoveSet.add(key2)
-                    keysToRemoveSet.add((key2[0]+1, key2[1]))
-                    keysToRemoveSet.add((key2[0]-1, key2[1]))
+                    keysToRemoveSet.add((key2[0] + 1, key2[1]))
+                    keysToRemoveSet.add((key2[0] - 1, key2[1]))
 
-    print(f'Removing these days from data due to pair of 5003 sensors with both > 5 daily reading and smaller is 16% different reading from larger : {keysToRemoveSet}')
+    print((
+        "Removing these days from data due to pair of 5003 sensors with both > 5 "
+        f"daily reading and smaller is 16% different reading from larger : {keysToRemoveSet}"
+    ))
     sensor_data = [datum for datum in sensor_data if (datum['daysSinceEpoch'], datum['ID']) not in keysToRemoveSet]
 
     # * Otherwise just average the two readings and correct as normal.
     return sensor_data
+
 
 def applyCorrectionFactor(factors, data_timestamp, data, sensor_type):
     for factor in factors:
@@ -170,11 +175,11 @@ def applyCorrectionFactor(factors, data_timestamp, data, sensor_type):
         factor_end = factor['end_date']
         if factor_start <= data_timestamp and factor_end > data_timestamp:
             if sensor_type == '1003':
-                return data*factor['1003_slope'] + factor['1003_intercept']
+                return data * factor['1003_slope'] + factor['1003_intercept']
             elif sensor_type == '3003':
-                return data*factor['3003_slope'] + factor['3003_intercept']
+                return data * factor['3003_slope'] + factor['3003_intercept']
             elif sensor_type == '5003':
-                return data*factor['5003_slope'] + factor['5003_intercept']
+                return data * factor['5003_slope'] + factor['5003_intercept']
     print('\nNo correction factor found for ', data_timestamp)
     return data
 
@@ -204,6 +209,5 @@ def latlonToUTM(lat, lon):
 
 
 def convertLatLonToUTM(sensor_data):
-    provided_utm_zones = set()
     for datum in sensor_data:
         datum['utm_x'], datum['utm_y'], datum['zone_num'], zone_let = latlonToUTM(datum['Latitude'], datum['Longitude'])
