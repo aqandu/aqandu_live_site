@@ -26,7 +26,6 @@ def parseDateString(datetime_string):
 
 def datetimeToBigQueryTimestamp(date):
     return date.strftime(BQ_DATETIME_FORMAT)
-    
 
 
 # Load up elevation grid
