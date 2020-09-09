@@ -8,6 +8,7 @@ import csv
 
 
 DATETIME_FORMAT = "%Y-%m-%dT%H:%M:%SZ"
+BQ_DATETIME_FORMAT = "%Y-%m-%dT%H:%M:%S America/Denver"
 
 
 def validateDate(dateString):
@@ -21,6 +22,10 @@ def validateDate(dateString):
 def parseDateString(datetime_string):
     """Parse date string into a datetime object"""
     return datetime.strptime(datetime_string, DATETIME_FORMAT).astimezone(pytz.timezone('US/Mountain'))
+
+
+def datetimeToBigQueryTimestamp(date):
+    return date.strftime(BQ_DATETIME_FORMAT)
 
 
 # Load up elevation grid

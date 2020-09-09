@@ -307,8 +307,8 @@ def request_model_data_local(lat, lon, radius, start_date, end_date):
             bigquery.ScalarQueryParameter("lat", "NUMERIC", lat),
             bigquery.ScalarQueryParameter("lon", "NUMERIC", lon),
             bigquery.ScalarQueryParameter("radius", "NUMERIC", radius),
-            bigquery.ScalarQueryParameter("start_date", "TIMESTAMP", start_date),
-            bigquery.ScalarQueryParameter("end_date", "TIMESTAMP", end_date),
+            bigquery.ScalarQueryParameter("start_date", "TIMESTAMP", utils.datetimeToBigQueryTimestamp(start_date)),
+            bigquery.ScalarQueryParameter("end_date", "TIMESTAMP", utils.datetimeToBigQueryTimestamp(end_date)),
         ]
     )
 
@@ -339,10 +339,15 @@ def request_model_data():
     lat = query_parameters.get('lat')
     lon = query_parameters.get('lon')
     radius = query_parameters.get('radius')
-    start_date = f"{query_parameters.get('start_date')} America/Denver"
-    end_date = f"{query_parameters.get('end_date')} America/Denver"
+    query_start_date = request.args.get('start_date')
+    query_end_date = request.args.get('end_date')
+    if not utils.validateDate(query_start_date) or not utils.validateDate(query_end_date):
+        resp = jsonify({'message': f"Incorrect date format, should be {utils.DATETIME_FORMAT}, e.g.: 2018-01-03T20:00:00Z"})
+        return resp, 400
 
-    model_data = request_model_data_local(lat, lon, radius, start_date, end_date)
+    query_start_datetime = utils.parseDateString(query_start_date)
+    query_end_datetime = utils.parseDateString(query_end_date)
+    model_data = request_model_data_local(lat, lon, radius, query_start_datetime, query_end_datetime)
     return jsonify(model_data)
 
 
