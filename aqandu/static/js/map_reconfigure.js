@@ -39,7 +39,6 @@ let pastDate = new Date(todaysDate - whichTimeRangeToShow * 86400000);
 let x = d3.scaleTime().domain([pastDate, todaysDate]);
 const y = d3.scaleLinear().domain([0.0, 150.0]);
 
-
 // function run when page has finished loading all DOM elements and they are ready to use
 $(function () {
   startTheWholePage()
@@ -106,10 +105,6 @@ function showMapDataVis() {
     drawSensorOnMap();
 
     hideSlider();
-
-    // Update the vis every 60 seconds
-    dotsUpdateID = setInterval('updateDots()', 600000);  // 600,000 milliseconds = 10 min
-
   } else {
     // If showSensors is false show only contours, not the sensors
     clearInterval(dotsUpdateID)
@@ -129,7 +124,6 @@ function showMapDataVis() {
     contourUpdateID = setInterval('updateContour()', 300000);
   }
 }
-
 
 function getAggregation(timeRange) {
   return timeRange !== 1
@@ -151,7 +145,6 @@ function getClosest(aDate, contourArray) {
     }
   }
 }
-
 
 // Set up the timeline view
 function setUpTimeline() {
@@ -267,13 +260,11 @@ function setUpTimeline() {
     .style('stroke', 'rgb(166, 217, 106)')
     .style('fill', 'rgb(166, 217, 106)');
 
-
   svg.select('#colorBands').append('path')
     .attr('d', getColorBandPath(12, 35.4))
     .style('opacity', 0.1)
     .style('stroke', 'rgb(255, 255, 191)')
     .style('fill', 'rgb(255, 255, 191)');
-
 
   svg.select('#colorBands').append('path')
     .attr('d', getColorBandPath(35.4, 55.4))
@@ -320,14 +311,12 @@ function setUpTimeline() {
   });
 }
 
-
 function getColorBandPath(yStart, yEnd) {
   return `M ${margin.left + x(x.domain()[0])},${margin.top + y(yStart)} 
     L ${margin.left + x(x.domain()[0])},${margin.top + y(yEnd)} 
     L ${margin.left + x(x.domain()[1])},${margin.top + y(yEnd)} 
     L ${margin.left + x(x.domain()[1])},${margin.top + y(yStart)}`;
 }
-
 
 // Create additional control placeholders
 // https://stackoverflow.com/questions/33614912/how-to-locate-leaflet-zoom-control-in-a-desired-position
@@ -345,7 +334,6 @@ function addControlPlaceholders(map) {
   createCorner('verticalcenterbottom', 'left');
   createCorner('verticalcenterbottom', 'right');
 }
-
 
 /**
  * setting up the leaflet map view and the UI elements for the map
@@ -540,7 +528,6 @@ function setupMap() {
     $('#openLegendButton').hide();
   });
 
-
   $('#closeTimelineControlButton').on('click', function () {
     $('#timelineControls').hide();
     $('#openTimelineControlButton').show();
@@ -550,7 +537,6 @@ function setupMap() {
     $('#openTimelineControlButton').hide();
     $('#timelineControls').show();
   })
-
 
   $('#closeTimelineButton').on('click', function () {
     $('#timeline').hide();
@@ -661,7 +647,6 @@ function setContour(theMap, theContourData) {
   resetView();
 }
 
-
 /**
  * Queries db to get the live sensors -- sensors that have data since yesterday beginning of day
  * @return {[type]} [description]
@@ -745,7 +730,6 @@ function createMarker(markerData) {
   }
 }
 
-
 function createMarkerDebugging(markerData) {
   var dotIcon = {
     iconSize: [20, 20], // size of the icon
@@ -772,7 +756,6 @@ function createMarkerDebugging(markerData) {
     mark.id = 'sensorLayerDebugging';
   }
 }
-
 
 function createRandomClickMarker(markerData) {
   var dotIcon = {
@@ -818,7 +801,6 @@ function createRandomClickMarker(markerData) {
 
   }
 }
-
 
 // get the data for the contours between start and end
 function getContourData() {
@@ -1122,7 +1104,6 @@ function populateGraph() {
     d3.select('#SLC-map').selectAll('.dot:not(noColor)').classed('partOfGroup-border', false);
   }
 
-
   if (d3.select(this._icon).classed('sensor-selected')) {
     // If the dot is already selected get the id and remove from the line array
     let clickedDotID = this.id.split(' ').join('_');
@@ -1178,7 +1159,6 @@ function clearData(changingTimeRange) {
     }
   });
 }
-
 
 /* converts pm2.5 purpleAir to pm2.5 to federal reference method in microgram/m^3 so that the data is 'consistent'
 only used when data is from purpleAir sensors. There are two different kinds of sensors, thus two different conversions
