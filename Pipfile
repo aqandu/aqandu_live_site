@@ -20,6 +20,7 @@ Flask = "*"
 Flask-Assets = "*"
 python-dotenv = "*"
 google-cloud-bigquery = "*"
+flask-caching = "*"
 
 [requires]
 python_version = "3.7"
