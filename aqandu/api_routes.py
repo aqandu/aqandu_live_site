@@ -418,8 +418,6 @@ def getPredictionsForLocation():
     # step 3, query relevent data
     NUM_METERS_IN_MILE = 1609.34
     radius = latlon_length_scale / NUM_METERS_IN_MILE  # convert meters to miles for db query
-
-    radius = latlon_length_scale / 70000
     sensor_data = request_model_data_local(
         lat=query_lat,
         lon=query_lon,
