@@ -274,6 +274,7 @@ def timeAggregatedDataFrom():
     return jsonify({"data": measurements, "tags": tags})
 
 
+# Gets data within radius of the provided lat lon within the time frame. The radius units are latlon degrees so this is an approximate bounding circle
 def request_model_data_local(lat, lon, radius, start_date, end_date):
     model_data = []
     # get the latest sensor data from each sensor
@@ -334,7 +335,7 @@ def request_model_data_local(lat, lon, radius, start_date, end_date):
 
     return model_data
 
-
+# Gets data within radius of the provided lat lon within the time frame. The radius units are latlon degrees so this is an approximate bounding circle
 @app.route("/api/request_model_data/", methods=['GET'])
 def request_model_data():
     query_parameters = request.args
@@ -416,8 +417,8 @@ def getPredictionsForLocation():
     )
 
     # step 3, query relevent data
-    NUM_METERS_IN_MILE = 1609.34
-    radius = latlon_length_scale / NUM_METERS_IN_MILE  # convert meters to miles for db query
+    APPROX_METERS_PER_LATLON_DEGREE_IN_UTAH = 70000
+    radius = latlon_length_scale / APPROX_METERS_PER_LATLON_DEGREE_IN_UTAH  # convert meters to latlon degrees for db query
     sensor_data = request_model_data_local(
         lat=query_lat,
         lon=query_lon,
