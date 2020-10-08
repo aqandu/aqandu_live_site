@@ -1,14 +1,16 @@
 from datetime import datetime, timedelta
-import os
-from aqandu import app, bq_client, bigquery, cache, utils, elevation_interpolator, gaussian_model_utils
+from os import getenv
+from aqandu import app, bq_client, cache, utils, elevation_interpolator, gaussian_model_utils
 from dotenv import load_dotenv
 from flask import request, jsonify
+from google.cloud.bigquery import QueryJobConfig, ScalarQueryParameter
+
 
 # Load in .env and set the table name
 load_dotenv()  # Required for compatibility with GCP, can't use pipenv there
-AIRU_TABLE_ID = os.getenv("AIRU_TABLE_ID")
-PURPLEAIR_TABLE_ID = os.getenv("PURPLEAIR_TABLE_ID")
-DAQ_TABLE_ID = os.getenv("DAQ_TABLE_ID")
+AIRU_TABLE_ID = getenv("AIRU_TABLE_ID")
+PURPLEAIR_TABLE_ID = getenv("PURPLEAIR_TABLE_ID")
+DAQ_TABLE_ID = getenv("DAQ_TABLE_ID")
 SOURCE_TABLE_MAP = {
     "AirU": AIRU_TABLE_ID,
     "PurpleAir": PURPLEAIR_TABLE_ID,
@@ -52,11 +54,11 @@ def rawDataFrom():
         ORDER BY time
     """
 
-    job_config = bigquery.QueryJobConfig(
+    job_config = QueryJobConfig(
         query_parameters=[
-            bigquery.ScalarQueryParameter("id", "STRING", id),
-            bigquery.ScalarQueryParameter("start", "TIMESTAMP", start),
-            bigquery.ScalarQueryParameter("end", "TIMESTAMP", end),
+            ScalarQueryParameter("id", "STRING", id),
+            ScalarQueryParameter("start", "TIMESTAMP", start),
+            ScalarQueryParameter("end", "TIMESTAMP", end),
         ]
     )
 
@@ -248,12 +250,12 @@ def timeAggregatedDataFrom():
         ORDER BY upper
     """
 
-    job_config = bigquery.QueryJobConfig(
+    job_config = QueryJobConfig(
         query_parameters=[
-            bigquery.ScalarQueryParameter("id", "STRING", id),
-            bigquery.ScalarQueryParameter("start", "TIMESTAMP", start),
-            bigquery.ScalarQueryParameter("end", "TIMESTAMP", end),
-            bigquery.ScalarQueryParameter("interval", "INT64", timeInterval),
+            ScalarQueryParameter("id", "STRING", id),
+            ScalarQueryParameter("start", "TIMESTAMP", start),
+            ScalarQueryParameter("end", "TIMESTAMP", end),
+            ScalarQueryParameter("interval", "INT64", timeInterval),
         ]
     )
 
@@ -304,13 +306,13 @@ def request_model_data_local(lat, lon, radius, start_date, end_date):
     ORDER BY time ASC
     """
 
-    job_config = bigquery.QueryJobConfig(
+    job_config = QueryJobConfig(
         query_parameters=[
-            bigquery.ScalarQueryParameter("lat", "NUMERIC", lat),
-            bigquery.ScalarQueryParameter("lon", "NUMERIC", lon),
-            bigquery.ScalarQueryParameter("radius", "NUMERIC", radius),
-            bigquery.ScalarQueryParameter("start_date", "TIMESTAMP", utils.datetimeToBigQueryTimestamp(start_date)),
-            bigquery.ScalarQueryParameter("end_date", "TIMESTAMP", utils.datetimeToBigQueryTimestamp(end_date)),
+            ScalarQueryParameter("lat", "NUMERIC", lat),
+            ScalarQueryParameter("lon", "NUMERIC", lon),
+            ScalarQueryParameter("radius", "NUMERIC", radius),
+            ScalarQueryParameter("start_date", "TIMESTAMP", utils.datetimeToBigQueryTimestamp(start_date)),
+            ScalarQueryParameter("end_date", "TIMESTAMP", utils.datetimeToBigQueryTimestamp(end_date)),
         ]
     )
 
@@ -333,6 +335,7 @@ def request_model_data_local(lat, lon, radius, start_date, end_date):
         })
 
     return model_data
+
 
 # Gets data within radius of the provided lat lon within the time frame. The radius units are latlon degrees so this is an approximate bounding circle
 @app.route("/api/request_model_data/", methods=['GET'])
