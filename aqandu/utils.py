@@ -1,10 +1,10 @@
 from datetime import datetime, timedelta
-import pytz
-import utm
+from pytz import timezone
+from utm import from_latlon
 from matplotlib.path import Path
 from scipy import interpolate
 from scipy.io import loadmat
-import csv
+from csv import reader as csv_reader
 
 
 DATETIME_FORMAT = "%Y-%m-%dT%H:%M:%SZ"
@@ -21,7 +21,7 @@ def validateDate(dateString):
 
 def parseDateString(datetime_string):
     """Parse date string into a datetime object"""
-    return datetime.strptime(datetime_string, DATETIME_FORMAT).astimezone(pytz.timezone('US/Mountain'))
+    return datetime.strptime(datetime_string, DATETIME_FORMAT).astimezone(timezone('US/Mountain'))
 
 
 def datetimeToBigQueryTimestamp(date):
@@ -39,16 +39,16 @@ def setupElevationInterpolator(filename):
 
 def loadBoundingBox(filename):
     with open(filename) as csv_file:
-        csv_reader = csv.reader(csv_file, delimiter=',')
-        rows = [row for row in csv_reader][1:]
+        read_csv = csv_reader(csv_file, delimiter=',')
+        rows = [row for row in read_csv][1:]
         bounding_box_vertices = [(index, float(row[1]), float(row[2])) for row, index in zip(rows, range(len(rows)))]
         return bounding_box_vertices
 
 
 def loadCorrectionFactors(filename):
     with open(filename) as csv_file:
-        csv_reader = csv.reader(csv_file, delimiter=',')
-        rows = [row for row in csv_reader]
+        read_csv = csv_reader(csv_file, delimiter=',')
+        rows = [row for row in read_csv]
         header = rows[0]
         rows = rows[1:]
         correction_factors = []
@@ -68,8 +68,8 @@ def loadCorrectionFactors(filename):
 
 def loadLengthScales(filename):
     with open(filename) as csv_file:
-        csv_reader = csv.reader(csv_file, delimiter=',')
-        rows = [row for row in csv_reader]
+        read_csv = csv_reader(csv_file, delimiter=',')
+        rows = [row for row in read_csv]
         header = rows[0]
         rows = rows[1:]
         length_scales = []
@@ -100,7 +100,7 @@ def isQueryInBoundingBox(bounding_box_vertices, query_lat, query_lon):
 def removeInvalidSensors(sensor_data):
     # sensor is invalid if its average reading for any day exceeds 350 ug/m3
     epoch = datetime(1970, 1, 1)
-    epoch = pytz.timezone('US/Mountain').localize(epoch)
+    epoch = timezone('US/Mountain').localize(epoch)
     dayCounts = {}
     dayReadings = {}
     for datum in sensor_data:
@@ -204,7 +204,7 @@ def interpolateQueryDates(start_datetime, end_datetime, period):
 
 
 def latlonToUTM(lat, lon):
-    return utm.from_latlon(lat, lon)
+    return from_latlon(lat, lon)
 
 
 def convertLatLonToUTM(sensor_data):

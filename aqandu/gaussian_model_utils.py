@@ -1,12 +1,22 @@
 from datetime import datetime
-import pytz
-import numpy
+from pytz import timezone
+from numpy import (
+    asarray,
+    expand_dims,
+    ndarray,
+    append,
+    interp,
+    count_nonzero,
+    zeros,
+    nonzero,
+    transpose
+)
 from aqandu import gaussian_model
 from aqandu import utils
-import torch
+from torch import tensor
 
 
-JANUARY1ST = datetime(2000, 1, 1, 0, 0, 0, 0, pytz.timezone('UTC'))
+JANUARY1ST = datetime(2000, 1, 1, 0, 0, 0, 0, timezone('UTC'))
 TIME_COORDINATE_BIN_NUMBER_KEY = 'time_coordinate_bin_number'
 
 
@@ -39,7 +49,7 @@ def createTimeVector(sensor_data):
 
     time_coordinates = [bin_number - lowest_bin_number for bin_number in time_coordinates]
     time_coordinates.sort()
-    time_coordinates = numpy.expand_dims(numpy.asarray(time_coordinates), axis=1)
+    time_coordinates = expand_dims(asarray(time_coordinates), axis=1)
 
     return time_coordinates, lowest_bin_number
 
@@ -51,12 +61,12 @@ def createSpaceVector(sensor_data):
         if datum['ID'] not in device_location_map:
             device_location_map[datum['ID']] = (datum['utm_x'], datum['utm_y'], datum['Altitude'])
 
-    space_coordinates = numpy.ndarray(shape=(0, 3), dtype=float)
+    space_coordinates = ndarray(shape=(0, 3), dtype=float)
     for key in device_location_map.keys():
         loc = device_location_map[key]
-        toadd = numpy.asarray([loc[0], loc[1], loc[2]])
-        toadd = numpy.expand_dims(toadd, axis=0)
-        space_coordinates = numpy.append(space_coordinates, toadd, axis=0)
+        toadd = asarray([loc[0], loc[1], loc[2]])
+        toadd = expand_dims(toadd, axis=0)
+        space_coordinates = append(space_coordinates, toadd, axis=0)
         device_location_map[key] = space_coordinates.shape[0] - 1
 
     return space_coordinates, device_location_map
@@ -85,7 +95,7 @@ def interpolateZeroElements(matrix):
                     distance = curValueIndex - prevValueIndex
                     if distance > 1:
                         # interpolate zeros between prev and cur
-                        terp = numpy.interp(range(prevValueIndex + 1, curValueIndex), [prevValueIndex, curValueIndex], [row[prevValueIndex], row[curValueIndex]])
+                        terp = interp(range(prevValueIndex + 1, curValueIndex), [prevValueIndex, curValueIndex], [row[prevValueIndex], row[curValueIndex]])
                         row[prevValueIndex + 1:curValueIndex] = terp
                     prevValueIndex = curValueIndex
 
@@ -117,16 +127,16 @@ def trimEdgeZeroElements(matrix, time_coordinates):
 
 
 def removeBadSensors(data_matrix, space_coordinates, ratio):
-    toKeep = [(numpy.count_nonzero(row) / len(row)) > ratio for row in data_matrix]
+    toKeep = [(count_nonzero(row) / len(row)) > ratio for row in data_matrix]
     data_matrix = data_matrix[toKeep]
     space_coordinates = space_coordinates[toKeep]
     return data_matrix, space_coordinates
 
 
 def setupDataMatrix(sensor_data, space_coordinates, time_coordinates, device_location_map):
-    data_matrix = numpy.zeros(shape=(space_coordinates.shape[0], time_coordinates.shape[0]))
+    data_matrix = zeros(shape=(space_coordinates.shape[0], time_coordinates.shape[0]))
     for datum in sensor_data:
-        date_index = numpy.nonzero(time_coordinates == datum[TIME_COORDINATE_BIN_NUMBER_KEY])[0][0]
+        date_index = nonzero(time_coordinates == datum[TIME_COORDINATE_BIN_NUMBER_KEY])[0][0]
         location_index = device_location_map[datum['ID']]
         # bound sensor data below by 0
         data_matrix[location_index][date_index] = datum['PM2_5'] if datum['PM2_5'] >= 0 else 0
@@ -147,9 +157,9 @@ def createModel(sensor_data, latlon_length_scale, elevation_length_scale, time_l
     space_coordinates, device_location_map = createSpaceVector(sensor_data)
     data_matrix, space_coordinates, time_coordinates = setupDataMatrix(sensor_data, space_coordinates, time_coordinates, device_location_map)
 
-    space_coordinates = torch.tensor(space_coordinates)     # convert data to pytorch tensor
-    time_coordinates = torch.tensor(time_coordinates)   # convert data to pytorch tensor
-    data_matrix = torch.tensor(data_matrix)   # convert data to pytorch tensor
+    space_coordinates = tensor(space_coordinates)     # convert data to pytorch tensor
+    time_coordinates = tensor(time_coordinates)   # convert data to pytorch tensor
+    data_matrix = tensor(data_matrix)   # convert data to pytorch tensor
 
     model = gaussian_model.gaussian_model(space_coordinates, time_coordinates, data_matrix,
                                           latlong_length_scale=float(latlon_length_scale),
@@ -165,14 +175,14 @@ def predictUsingModel(model, lat, lon, elevation, query_dates, time_offset):
     time_coordinates = convertToTimeCoordinatesVector(query_dates, time_offset)
 
     x, y, zone_num, zone_let = utils.latlonToUTM(lat, lon)
-    space_coordinates = numpy.ndarray(shape=(0, 3), dtype=float)
-    toadd = numpy.asarray([x, y, elevation])
-    toadd = numpy.expand_dims(toadd, axis=0)
-    space_coordinates = numpy.append(space_coordinates, toadd, axis=0)
+    space_coordinates = ndarray(shape=(0, 3), dtype=float)
+    toadd = asarray([x, y, elevation])
+    toadd = expand_dims(toadd, axis=0)
+    space_coordinates = append(space_coordinates, toadd, axis=0)
 
-    query_space = torch.tensor(space_coordinates)
-    query_dates2 = numpy.transpose(numpy.asarray([time_coordinates]))
-    query_time = torch.tensor(query_dates2)
+    query_space = tensor(space_coordinates)
+    query_dates2 = transpose(asarray([time_coordinates]))
+    query_time = tensor(query_dates2)
 
     yPred, yVar = model(query_space, query_time)
     yPred = yPred.numpy()
