@@ -1181,17 +1181,17 @@ function convertPM(pm, sensorSource, sensorModel) {
 
   correction_factors = {
     AirU: {
-      b_one: 0.460549385,
-      intercept: 3.343513586,
+      b_one: 0.657,
+      intercept: 3.075,
     },
     other: {
       PMS5003: {
-        b_one: 0.713235898,
-        intercept: 1.032516,
+        b_one: 0.617,
+        intercept: 2.154,
       },
       PMS1003: {
-        b_one: 0.574723564,
-        intercept: 2.205862689,
+        b_one: 0.641,
+        intercept: 0.213,
       }
     }
   }
