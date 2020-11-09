@@ -1,14 +1,14 @@
 from datetime import datetime, timedelta
-from pytz import timezone
-from utm import from_latlon
+import pytz
+import utm
 from matplotlib.path import Path
+import numpy as np
 from scipy import interpolate
 from scipy.io import loadmat
-from csv import reader as csv_reader
+import csv
 
 
 DATETIME_FORMAT = "%Y-%m-%dT%H:%M:%SZ"
-BQ_DATETIME_FORMAT = "%Y-%m-%dT%H:%M:%S America/Denver"
 
 
 def validateDate(dateString):
@@ -21,34 +21,37 @@ def validateDate(dateString):
 
 def parseDateString(datetime_string):
     """Parse date string into a datetime object"""
-    return datetime.strptime(datetime_string, DATETIME_FORMAT).astimezone(timezone('US/Mountain'))
-
-
-def datetimeToBigQueryTimestamp(date):
-    return date.strftime(BQ_DATETIME_FORMAT)
+    return datetime.strptime(datetime_string, DATETIME_FORMAT).astimezone(pytz.timezone('US/Mountain'))
 
 
 # Load up elevation grid
+# BE CAREFUL - this object, given the way the data is saved, seems to talk "lon-lat" order
 def setupElevationInterpolator(filename):
     data = loadmat(filename)
     elevation_grid = data['elevs']
     gridLongs = data['gridLongs']
     gridLats = data['gridLats']
+    np.savetxt('grid_lats.txt',gridLats)
+    np.savetxt('grid_lons.txt',gridLongs)
+    np.savetxt('elev_grid.txt', elevation_grid)
+    print(gridLongs.shape)
+    print(gridLats.shape)
+    print(elevation_grid.shape)
     return interpolate.interp2d(gridLongs, gridLats, elevation_grid, kind='cubic')
 
 
 def loadBoundingBox(filename):
     with open(filename) as csv_file:
-        read_csv = csv_reader(csv_file, delimiter=',')
-        rows = [row for row in read_csv][1:]
+        csv_reader = csv.reader(csv_file, delimiter=',')
+        rows = [row for row in csv_reader][1:]
         bounding_box_vertices = [(index, float(row[1]), float(row[2])) for row, index in zip(rows, range(len(rows)))]
         return bounding_box_vertices
 
 
 def loadCorrectionFactors(filename):
     with open(filename) as csv_file:
-        read_csv = csv_reader(csv_file, delimiter=',')
-        rows = [row for row in read_csv]
+        csv_reader = csv.reader(csv_file, delimiter=',')
+        rows = [row for row in csv_reader]
         header = rows[0]
         rows = rows[1:]
         correction_factors = []
@@ -68,8 +71,8 @@ def loadCorrectionFactors(filename):
 
 def loadLengthScales(filename):
     with open(filename) as csv_file:
-        read_csv = csv_reader(csv_file, delimiter=',')
-        rows = [row for row in read_csv]
+        csv_reader = csv.reader(csv_file, delimiter=',')
+        rows = [row for row in csv_reader]
         header = rows[0]
         rows = rows[1:]
         length_scales = []
@@ -100,7 +103,7 @@ def isQueryInBoundingBox(bounding_box_vertices, query_lat, query_lon):
 def removeInvalidSensors(sensor_data):
     # sensor is invalid if its average reading for any day exceeds 350 ug/m3
     epoch = datetime(1970, 1, 1)
-    epoch = timezone('US/Mountain').localize(epoch)
+    epoch = pytz.timezone('US/Mountain').localize(epoch)
     dayCounts = {}
     dayReadings = {}
     for datum in sensor_data:
@@ -179,7 +182,8 @@ def applyCorrectionFactor(factors, data_timestamp, data, sensor_type):
                 return data * factor['3003_slope'] + factor['3003_intercept']
             elif sensor_type == '5003':
                 return data * factor['5003_slope'] + factor['5003_intercept']
-    print('\nNo correction factor found for ', data_timestamp)
+###  print('\nNo correction factor found for ', data_timestamp)
+#  no correction factor will be considered identity
     return data
 
 
@@ -202,10 +206,47 @@ def interpolateQueryDates(start_datetime, end_datetime, period):
 
     return query_dates
 
+# Not yet sure if this is needed
+# build a grid of coordinates that will consistute the "map"
+#def interpolateQueryLocationsUTM(lat_lo, lat_hi, lon_lo, lon_hi, spatial_res): 
+    # # create the north sound and east west locations in UTM coordinates
+    # E_range = np.arrange(lon_low, lon_hi, spatial_res)
+    # N_range = np.arrange(lat_low, lat_hi, spatial_res)
+    # return np.meshgrid(E_range, N_range)
 
+# build a grid of coordinates that will consistute the "map"  - used for getEstimateMap() in the api
+def interpolateQueryLocations(lat_lo, lat_hi, lon_lo, lon_hi, lat_res, lon_res): 
+#    lat_step = (lat_hi-lat_low)/float(lat_size)
+#    lon_step = (lon_hi-lon_low)/float(lon_size)
+    lat_range = np.arange(lon_lo, lon_hi, lon_res)
+    lon_range = np.arange(lat_lo, lat_hi, lat_res)
+    return lat_range, lon_range
+#    return np.meshgrid(lat_range, lon_range)
+
+
+
+
+# computes an approximate latlon bounding box that includes the given point and all points within the radius of distance_meters.  Used to limit the query of "relevant sensors".  Note the return order...
+def latlonBoundingBox(lat, lon, distance_meters):
+    E, N, zone_num, zone_let  = utm.from_latlon(lat, lon)
+    lat_lo, lon_tmp = utm.to_latlon(E, N-distance_meters, zone_num, zone_let)
+    lat_hi, lon_tmp = utm.to_latlon(E, N+distance_meters, zone_num, zone_let)
+    lat_tmp, lon_lo = utm.to_latlon(E-distance_meters, N, zone_num, zone_let)
+    lat_tmp, lon_hi = utm.to_latlon(E+distance_meters, N, zone_num, zone_let)
+    print(lat_lo, lat_hi, lon_lo, lon_hi)
+    return lat_lo, lat_hi, lon_lo, lon_hi
+
+# when you have multiple queries at once, you need to build bounding boxes that include all of the sensors
+def boundingBoxUnion(bbox1, bbox2):
+    return min(bbox1[0], bbox2[0]), max(bbox1[1], bbox2[1]), min(bbox1[2], bbox2[2]), max(bbox1[3], bbox2[3])
+
+
+# convenience/wrappers for the utm toolbox
 def latlonToUTM(lat, lon):
-    return from_latlon(lat, lon)
+    return utm.from_latlon(lat, lon)
 
+def UTM(E, N, zone_num, zone_let):
+    return utm.to_latlon(E, N)
 
 def convertLatLonToUTM(sensor_data):
     for datum in sensor_data:
