@@ -724,8 +724,6 @@ def getEstimatesForLocation():
 
     # step 8, get estimates from model
     query_dates = utils.interpolateQueryDates(query_start_datetime, query_end_datetime, query_rate)
-    # print("query_dates are")
-    # print(query_dates)
     # NOTICE - the elevation object takes locations in the form "lon-lat"
     query_elevation = elevation_interpolator(np.array([query_lon]), np.array([query_lat]))[0]
     yPred, yVar = gaussian_model_utils.estimateUsingModel(
@@ -896,7 +894,6 @@ def getEstimatesForLocations():
             )
 
     return jsonify(estimates)
-
 
 
 
