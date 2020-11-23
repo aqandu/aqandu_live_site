@@ -123,7 +123,7 @@ There are several routes set up for accessing the data. Here are the names, allo
   - Return: Array of Objects with keys (ID, Latitude, Longitude, time, PM2_5, SensorModel, SensorSource)
   - Example:
     ```
-    curl '127.0.0.1:8080/api/request_model_data?lat=40.7688&lon=-111.8462&radius=1&start_date=2020-06-30T0:0:0&end_date=2020-07-01T00:01:00'
+    curl '127.0.0.1:8080/api/request_model_data?lat=40.7688&lon=-111.8462&radius=1&start_date=2020-06-30T00:00:00Z&end_date=2020-07-01T00:01:00Z'
     ```
 
 - Name:`/api/getEstimatesForLocation`
@@ -185,4 +185,3 @@ There are several routes set up for accessing the data. Here are the names, allo
     ''http://127.0.0.1:8080/api/getEstimateMap?lat_lo=40.733534&lat_hi=40.780421&lon_lo=-111.906754&lon_hi=-111.846383&lat_size=100&lon_size=100&date=2019-01-04T00:08:00Z
     ```
  
-
