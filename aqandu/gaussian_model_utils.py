@@ -9,6 +9,8 @@ import statistics
 
 JANUARY1ST = datetime(2000, 1, 1, 0, 0, 0, 0, pytz.timezone('UTC'))
 TIME_COORDINATE_BIN_NUMBER_KEY = 'time_coordinate_bin_number'
+
+##  These are indices into the sensor map
 UTM_X_INDEX = 0
 UTM_Y_INDEX = 1
 ELEV_INDEX = 2
@@ -19,13 +21,17 @@ TIME_MAP_INDEX = 4
 # An array of time measurements after processing sets
 # indices for this array are same as data matrix
 TIME_ARRAY_INDEX = 5
+###################
+
+# some variables in binning and correcting data
 SENSOR_INTERPOLATE_DISTANCE = 5
+NUM_MINUTES_PER_BIN = 8
+
 
 def getTimeCoordinateBin(datetime, time_offset=0):
     delta = datetime - JANUARY1ST
     # this bin needs to be set to be a fraction of the time scale.
     # this is kind of an important variable and should probably not be hard coded like this
-    NUM_MINUTES_PER_BIN = 10
     # NUM_MINUTES_PER_BIN = 8
     # convert from seconds to minutes
     tmp = delta.total_seconds() / 60
@@ -41,21 +47,30 @@ def convertToTimeCoordinatesVector(dates, time_offset):
     return [getTimeCoordinateBin(date, time_offset=time_offset) for date in dates]
 
 
-def createTimeVector(sensor_data):
+def createTimeVector(sensor_data, time_lo_bound = -1.0, time_hi_bound = -1.0):
     time_coordinates = set()
+
+# check to see if there are bounds set on this query (typically to improve efficiency).
+    time_bounds = not ( (time_lo_bound == -1.0) or (time_hi_bound == -1.0) )
 
     lowest_bin_number = None
 
     for datum in sensor_data:
-        bin_number = getTimeCoordinateBin(datum['time'])
-        time_coordinates.add(bin_number)
-        datum[TIME_COORDINATE_BIN_NUMBER_KEY] = bin_number
+        this_time = datum['time']
+#  you only fill in the bin stuff for the dates that are in range
+        if (not time_bounds) or ((this_time >= time_lo_bound) and (this_time <= time_hi_bound)):
+            bin_number = getTimeCoordinateBin(this_time)
+            time_coordinates.add(bin_number)
+            datum[TIME_COORDINATE_BIN_NUMBER_KEY] = bin_number
 
-        if lowest_bin_number is None or bin_number < lowest_bin_number:
-            lowest_bin_number = bin_number
+            if lowest_bin_number is None or bin_number < lowest_bin_number:
+                lowest_bin_number = bin_number
 
+#  you only fill in the bin stuff for the dates that are in range
     for datum in sensor_data:
-        datum[TIME_COORDINATE_BIN_NUMBER_KEY] -= lowest_bin_number
+        this_time = datum['time']
+        if (not time_bounds) or ((this_time >= time_lo_bound) and (this_time <= time_hi_bound)):
+            datum[TIME_COORDINATE_BIN_NUMBER_KEY] -= lowest_bin_number
 
     time_coordinates = [bin_number - lowest_bin_number for bin_number in time_coordinates]
 #    print("time1")
@@ -69,18 +84,20 @@ def createTimeVector(sensor_data):
 
 
 # organize the measurement data into time bins for each sensor
-def assignTimeData(sensor_data, device_location_map, time_offset):
-# This loads the device_location_map with a set of bins, and each bin contains all of the measurements associated with that bin and that device.  Later we will average these or choose one of them (median)    
+def assignTimeData(sensor_data, device_location_map, time_offset, time_lo_bound = -1.0, time_hi_bound = -1.0):
+# This loads the device_location_map with a set of bins, and each bin contains all of the measurements associated with that bin and that device.  Later we will average these or choose one of them (median)
+    time_bounds = not ( (time_lo_bound == -1.0) or (time_hi_bound == -1.0) )
     for datum in sensor_data:
-        bin_number = getTimeCoordinateBin(datum['time']) - time_offset
-        this_id = datum['ID']
-        if not (bin_number in device_location_map[this_id][TIME_MAP_INDEX]):
-            device_location_map[this_id][TIME_MAP_INDEX].update({bin_number:{datum['PM2_5']}})
-#            print("got create time index on" + str(bin_number) + "with data " + str(datum['PM2_5']) + "and sensor id" + str(this_id))
-        else:
-            device_location_map[this_id][TIME_MAP_INDEX][bin_number].add(datum['PM2_5'])
-#            print("got add time index on" + str(bin_number) + "with data " + str(datum['PM2_5']) + "and sensor id" + str(this_id))
-        datum[TIME_COORDINATE_BIN_NUMBER_KEY] = bin_number
+        this_time = datum['time']
+        if (not time_bounds) or ((this_time >= time_lo_bound) and (this_time <= time_hi_bound)):
+            bin_number = getTimeCoordinateBin(this_time) - time_offset
+            this_id = datum['ID']
+            if not (bin_number in device_location_map[this_id][TIME_MAP_INDEX]):
+                device_location_map[this_id][TIME_MAP_INDEX].update({bin_number:{datum['PM2_5']}})
+            else:
+                device_location_map[this_id][TIME_MAP_INDEX][bin_number].add(datum['PM2_5'])
+    # this is already done in createTimeVector() -- do we need this
+    # datum[TIME_COORDINATE_BIN_NUMBER_KEY] = bin_number
 
     # for key in device_location_map.keys():
     #     loc = device_location_map[key]
@@ -113,8 +130,10 @@ def createSpaceVector(sensor_data):
 def createSpaceVector2(sensor_data, time_array_size):
     device_location_map = {}
 
+    # the time array allows us to keep track of how many entries this sensor has within each time bin
     for datum in sensor_data:
         if datum['ID'] not in device_location_map:
+            # for the meaning of these entries, see the index set at top of file
             device_location_map[datum['ID']] = [datum['utm_x'], datum['utm_y'], datum['Altitude'], -1, {}, numpy.full((time_array_size), -1.0)]
 
     space_coordinates = numpy.ndarray(shape=(0, 3), dtype=float)
@@ -123,7 +142,7 @@ def createSpaceVector2(sensor_data, time_array_size):
         toadd = numpy.asarray([loc[0], loc[1], loc[2]])
         toadd = numpy.expand_dims(toadd, axis=0)
         space_coordinates = numpy.append(space_coordinates, toadd, axis=0)
-#     this redefines the map to have a number instead of the data .. not yet        
+#     this redefines the map to have a unique number -- can be used in debugging.
         device_location_map[key][SPACE_COORD_INDEX] = space_coordinates.shape[0] - 1
 
     # for key in device_location_map.keys():
@@ -350,14 +369,15 @@ def computeTimeArrays(sensor_data, device_location_map, time_coordinates):
 # def flagUnderperformingSensors(device_location_map):
 
 # creates the gaussian_model object and loads it with the sensor data
-def createModel(sensor_data, latlon_length_scale, elevation_length_scale, time_length_scale, save_matrices=False):
+# Nov 2020 : This has been modified so that it takes bounds on the times considered.  This is for use in breaking up long time sequences into smaller chunks for efficiency
+def createModel(sensor_data, latlon_length_scale, elevation_length_scale, time_length_scale, time_lo_bound = -1.0, time_hi_bound = -1.0, save_matrices=False):
 
-    time_coordinates, time_offset = createTimeVector(sensor_data)
+    time_coordinates, time_offset = createTimeVector(sensor_data, time_lo_bound, time_hi_bound)
 ##    space_coordinates, device_location_map = createSpaceVector(sensor_data)
 # this builds up the first instance of the device_location_map
 # sucessive calls will process and fill in the time data
     space_coordinates, device_location_map = createSpaceVector2(sensor_data, time_coordinates.shape[0])
-    assignTimeData(sensor_data, device_location_map, time_offset)
+    assignTimeData(sensor_data, device_location_map, time_offset, time_lo_bound, time_hi_bound)
     computeTimeArrays(sensor_data, device_location_map, time_coordinates)
 #    data_matrix, space_coordinates, time_coordinates = setupDataMatrix(sensor_data, space_coordinates, time_coordinates, device_location_map)
     data_matrix, space_coordinates, time_coordinates = setupDataMatrix2(sensor_data, space_coordinates, time_coordinates, device_location_map)
@@ -385,7 +405,8 @@ def createModel(sensor_data, latlon_length_scale, elevation_length_scale, time_l
 
 # Ross changed this to do the formatting in the api_routes call instead of here
 def estimateUsingModel(model, lats, lons, elevations, query_dates, time_offset, save_matrices=False):
-    
+
+    # converts from absolute dates to the local time coordinate system (in hours).  time_offset is the date of the first bin in the sensor data
     time_coordinates = convertToTimeCoordinatesVector(query_dates, time_offset)
     x, y, zone_num, zone_let = utils.latlonToUTM(lats, lons)
 
