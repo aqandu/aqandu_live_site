@@ -21,6 +21,12 @@ VALID_SENSOR_SOURCES = ["AirU", "PurpleAir", "DAQ", "all"]
 TIME_KERNEL_FACTOR_PADDING = 3.0
 SPACE_KERNEL_FACTOR_PADDING = 2.
 
+# the size of time sequence chunks that are used to break the eatimation/data into pieces to speed up computation
+# in units of time-scale parameter
+# This is a tradeoff between looping through the data multiple times and having to do the fft inversion (n^2) of large time matrices
+# If the bin size is 10 mins, and the and the time scale is 20 mins, then a value of 30 would give 30*20/10, which is a matrix size of 60.  Which is not that big.  
+TIME_SEQUENCE_SIZE = 20.
+
 
 @app.route("/api/rawDataFrom", methods=["GET"])
 def rawDataFrom():
@@ -674,9 +680,9 @@ def getEstimatesForLocation():
         end_date=query_end_datetime + timedelta(hours=TIME_KERNEL_FACTOR_PADDING*time_length_scale))
 
     print("start date")
-    print(query_start_datetime - timedelta(hours=4.0*time_length_scale))
+    print(query_start_datetime - timedelta(hours=TIME_KERNEL_FACTOR_PADDING*time_length_scale))
     print("end date")
-    print(query_end_datetime + timedelta(hours=4.0*time_length_scale))
+    print(query_end_datetime + timedelta(hours=TIME_KERNEL_FACTOR_PADDING*time_length_scale))
     
 
     unique_sensors = {datum['ID'] for datum in sensor_data}
@@ -718,25 +724,49 @@ def getEstimatesForLocation():
         if 'Altitude' not in datum:
             datum['Altitude'] = elevation_interpolator([datum['Longitude']],[datum['Latitude']])[0]
 
-    # step 7, Create Model
-    model, time_offset = gaussian_model_utils.createModel(
-        sensor_data, latlon_length_scale, elevation_length_scale, time_length_scale, save_matrices=True)
-
-    # step 8, get estimates from model
+                # step 8, get estimates from model
     query_dates = utils.interpolateQueryDates(query_start_datetime, query_end_datetime, query_rate)
+    # print("query_dates are")
+    # print(query_dates)
     # NOTICE - the elevation object takes locations in the form "lon-lat"
     query_elevation = elevation_interpolator(np.array([query_lon]), np.array([query_lat]))[0]
-    yPred, yVar = gaussian_model_utils.estimateUsingModel(
-        model, np.array([query_lat]), np.array([query_lon]), query_elevation, query_dates, time_offset, save_matrices=True)
 
+    # here we break the query up into pieces for efficiency
+
+    time_padding = timedelta(hours=TIME_KERNEL_FACTOR_PADDING*time_length_scale)
+    time_sequence_length = timedelta(hours = TIME_SEQUENCE_SIZE*time_length_scale)
+    sensor_sequence, query_sequence = utils.chunkTimeQueryData(query_dates, time_sequence_length, time_padding)
+
+    yPred = np.empty((1, 0))
+    yVar = np.empty((1, 0))
+    for i in range(len(query_sequence)):
+    # step 7, Create Model
+        print(sensor_sequence[i])
+        print(query_sequence[i])
+        model, time_offset = gaussian_model_utils.createModel(
+            sensor_data, latlon_length_scale, elevation_length_scale, time_length_scale, sensor_sequence[i][0], sensor_sequence[i][1], save_matrices=False)
+        yPred_tmp, yVar_tmp = gaussian_model_utils.estimateUsingModel(
+        model, np.array([query_lat]), np.array([query_lon]), query_elevation, query_sequence[i], time_offset, save_matrices=True)
+        # put the estimates together into one matrix
+        yPred = np.concatenate((yPred, yPred_tmp), axis=1)
+        yVar = np.concatenate((yVar, yVar_tmp), axis=1)
+        
 # convert the arrays to lists of floats
-    yPred = yPred.tolist()
-    yVar = yVar.tolist()
-    
-    estimates = [
-        {'PM2_5': pred, 'variance': var, 'datetime': date.strftime('%Y-%m-%d %H:%M:%S%z'), 'Latitude': query_lat, 'Longitude': query_lon, 'Elevation': query_elevation}
-        for pred, var, date in zip(yPred, yVar, query_dates)
-        ]
+
+#
+# this index of the "0" in the first index of yPred and yVar has to do with how the data is stored and returned by the model.  Could be avoided with a tranpose of the returned data?
+#
+    num_times = len(query_dates)
+    estimates = []
+    for i in range(num_times):
+        estimates.append(
+            {'PM2_5': (yPred[0, i]), 'variance': (yVar[0, i]), 'datetime': query_dates[i].strftime('%Y-%m-%d %H:%M:%S%z'), 'Latitude': query_lat, 'Longitude': query_lon, 'Elevation': query_elevation}
+            )
+
+    # estimates = [
+    #     {'PM2_5': pred, 'variance': var, 'datetime': date.strftime('%Y-%m-%d %H:%M:%S%z'), 'Latitude': query_lat, 'Longitude': query_lon, 'Elevation': query_elevation}
+    #     for pred, var, date in zip(yPred, yVar, query_dates)
+    #     ]
 
     return jsonify(estimates)
 
@@ -873,15 +903,15 @@ def getEstimatesForLocations():
         if 'Altitude' not in datum:
             datum['Altitude'] = elevation_interpolator([datum['Longitude']],[datum['Latitude']])[0]
 
-    # step 7, Create Model
-    model, time_offset = gaussian_model_utils.createModel(
-        sensor_data, latlon_length_scale, elevation_length_scale, time_length_scale)
-
-    # step 8, get estimates from model
+    # step 7, get estimates from model
     query_dates = utils.interpolateQueryDates(query_start_datetime, query_end_datetime, query_rate)
-
     # note - the elevation grid is the wrong way around, so you need to put in lons first
     query_elevations = elevation_interpolator(query_lons, query_lats)
+            
+    # step 8, Create Model
+    model, time_offset = gaussian_model_utils.createModel(
+        sensor_data, latlon_length_scale, elevation_length_scale, time_length_scale)
+    # step 9, Compute estimates
     yPred, yVar = gaussian_model_utils.estimateUsingModel(
         model, query_lats, query_lons, query_elevations, query_dates, time_offset)
 
@@ -894,6 +924,7 @@ def getEstimatesForLocations():
             )
 
     return jsonify(estimates)
+
 
 
 
