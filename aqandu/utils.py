@@ -23,9 +23,44 @@ def parseDateString(datetime_string):
     """Parse date string into a datetime object"""
     return datetime.strptime(datetime_string, DATETIME_FORMAT).astimezone(pytz.timezone('US/Mountain'))
 
+#  this breaks the time part of the  eatimation/data into pieces to speed up computation
+# sequence_size_mins
+# assumes query_dates are sorted
+def chunkTimeQueryData(query_dates, time_sequence_size, time_padding):
+    # Careful.  Is the padding in date-time or just integer minutes.
+    start_date = query_dates[0]
+    end_date = query_dates[-1]
+    query_length = (end_date - start_date)
+#    query_length_mins = query_length.total_seconds()/60
+    num_short_queries = int(query_length/time_sequence_size)
+# cover the special corner case where the time series is shorter than the specified chunk size
+    if (num_short_queries == 0):
+        query_time_sequence = []
+        query_time_sequence.append(query_dates)
+    else:
+        short_query_length = query_length/num_short_queries
+        time_index = 0
+        query_time_sequence = []
+        for i in range(0,num_short_queries - 1):
+            query_time_sequence.append([])
+            while query_dates[time_index] < start_date + (i+1)*short_query_length:
+                query_time_sequence[-1].append(query_dates[time_index])
+                time_index += 1
+# put the last sequence in place
+        query_time_sequence.append([])
+        for i in range(time_index,len(query_dates)):
+            query_time_sequence[-1].append(query_dates[time_index])
+            time_index += 1
+
+# now build the endpoints we will need for the sensor data that feeds the estimates of each of these ranges of queries (they overlap)
+    sensor_time_sequence = []
+    for i in range(len(query_time_sequence)):
+        sensor_time_sequence.append([query_time_sequence[i][0] - time_padding, query_time_sequence[i][-1] + time_padding])
+
+    return sensor_time_sequence, query_time_sequence
 
 # Load up elevation grid
-# BE CAREFUL - this object, given the way the data is saved, seems to talk "lon-lat" order
+# BE CAREFUL - this object, given the way the data is saved, seems to talk "lxbon-lat" order
 def setupElevationInterpolator(filename):
     data = loadmat(filename)
     elevation_grid = data['elevs']
