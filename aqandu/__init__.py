@@ -1,26 +1,23 @@
-from assets import init
+import assets
 import config
-from os import getenv, environ
+import os
 from dotenv import load_dotenv
 from flask import Flask
-from flask_caching import Cache
-from google.cloud.bigquery import Client
+from google.cloud import bigquery
 
 load_dotenv()
-PROJECT_ID = getenv("PROJECTID")
+PROJECT_ID = os.getenv("PROJECTID")
 
 app = Flask(__name__)
 app.config.from_object(config)
-app.config["CACHE_TYPE"] = "simple"
-app.config["CACHE_DEFAULT_TIMEOUT"] = 1
-init(app)
+assets.init(app)
 
-cache = Cache(app)
-
-environ["GOOGLE_APPLICATION_CREDENTIALS"] = "aqandu/aqandu.json"
-bq_client = Client(project=PROJECT_ID)
+os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "aqandu/aqandu.json"
+bq_client = bigquery.Client(project=PROJECT_ID)
 
 from aqandu import utils
 elevation_interpolator = utils.setupElevationInterpolator('elevation_map.mat')
+print("meters")
+print(elevation_interpolator(-111.8721,40.7343))
 
 from aqandu import api_routes, basic_routes
