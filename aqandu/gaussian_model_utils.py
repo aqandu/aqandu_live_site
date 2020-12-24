@@ -73,12 +73,13 @@ def createTimeVector(sensor_data, time_lo_bound = -1.0, time_hi_bound = -1.0):
             datum[TIME_COORDINATE_BIN_NUMBER_KEY] -= lowest_bin_number
 
     time_coordinates = [bin_number - lowest_bin_number for bin_number in time_coordinates]
+    time_coordinates.sort()
+    
 #    print("time1")
 #    print(time_coordinates)
-    time_coordinates.sort()
-#    print("time2")
-#    print(time_coordinates)
+#    time_coordinates.sort()
     time_coordinates = numpy.expand_dims(numpy.asarray(time_coordinates), axis=1)
+    
 
     return time_coordinates, lowest_bin_number
 
@@ -186,7 +187,7 @@ def interpolateBadElements(matrix, bad_value = 0):
                     prevValueIndex = curValueIndex
 
 
-def trimEdgeZeroElements(matrix, time_coordinates):
+def trimBadEdgeElements(matrix, time_coordinates, bad_value=-1):
     # record index of edge values for each row
     firstValues = {}
     lastValues = {}
@@ -194,10 +195,10 @@ def trimEdgeZeroElements(matrix, time_coordinates):
         inverse_col_index = -1 - col_index
         for row_index in range(matrix.shape[0]):
             if row_index not in firstValues:
-                if matrix[row_index][col_index] != 0:
+                if matrix[row_index][col_index] != bad_value:
                     firstValues[row_index] = col_index
             if row_index not in lastValues:
-                if matrix[row_index, inverse_col_index] != 0:
+                if matrix[row_index, inverse_col_index] != bad_value:
                     lastValues[row_index] = inverse_col_index
         if len(firstValues) == matrix.shape[0] and len(lastValues) == matrix.shape[0]:
             break
@@ -214,8 +215,8 @@ def trimEdgeZeroElements(matrix, time_coordinates):
 # if a sensor doesn't have enough data then it gets taken out of calculations
 def removeBadSensors(data_matrix, space_coordinates, ratio):
     toKeep = [(numpy.count_nonzero(row != -1.0) / len(row)) > ratio for row in data_matrix]
-    print("in remove bad data")
-    print(toKeep)
+#    print("in remove bad data")
+#    print(toKeep)
     data_matrix = data_matrix[toKeep]
     space_coordinates = space_coordinates[toKeep]
     return data_matrix, space_coordinates
@@ -239,9 +240,6 @@ def setupDataMatrix(sensor_data, space_coordinates, time_coordinates, device_loc
 #    data_matrix = numpy.zeros(shape=(space_coordinates.shape[0], time_coordinates.shape[0]))
     shape=(space_coordinates.shape[0], time_coordinates.shape[0])
     data_matrix = numpy.full(shape, -1.0)
-    print("space-time shape")
-    print(space_coordinates.shape)
-    print(time_coordinates.shape)
     for datum in sensor_data:
         date_index = numpy.nonzero(time_coordinates == datum[TIME_COORDINATE_BIN_NUMBER_KEY])[0][0]
         location_index = device_location_map[datum['ID']]
@@ -253,8 +251,11 @@ def setupDataMatrix(sensor_data, space_coordinates, time_coordinates, device_loc
 #    saveMatrixToFile(data_matrix, '2interpolated.txt')
     data_matrix, space_coordinates = removeBadSensors(data_matrix, space_coordinates, 0.6)
 #    saveMatrixToFile(data_matrix, '3matrix_removed_bad.txt')
-#    data_matrix, time_coordinates = trimEdgeZeroElements(data_matrix, time_coordinates)
-#    saveMatrixToFile(data_matrix, '4matrixtrimmed.txt')
+
+#  This is important because bins on either end of the time range might not have enough measurements
+#    data_matrix, time_coordinates = trimBadEdgeElements(data_matrix, time_coordinates)
+
+    #    saveMatrixToFile(data_matrix, '4matrixtrimmed.txt')
 
 # for debugging report id of last sensor in matrix - to get raw data
     # print("ID of last sensor is")
@@ -313,6 +314,11 @@ def setupDataMatrix2(sensor_data, space_coordinates, time_coordinates, device_lo
 #    saveMatrixToFile(data_matrix, '3matrix_removed_bad.txt')
 #    numpy.savetxt('3removed_bad.csv', data_matrix, delimiter=',')
     # fill in missing readings using the average values for each time slice
+
+#  This is important because bins on either end of the time range might not have enough measurements
+    data_matrix, time_coordinates = trimBadEdgeElements(data_matrix, time_coordinates)
+
+    
     data_matrix = fillInMissingReadings(data_matrix, -1)
 #    saveMatrixToFile(data_matrix, '4matrix_filled_bad.txt')
 #    numpy.savetxt('4filled_bad.csv', data_matrix, delimiter=',')
@@ -332,12 +338,14 @@ def setupDataMatrix2(sensor_data, space_coordinates, time_coordinates, device_lo
 
 #####  fill in missing values with time averages.
 # keep an eye out for time slices with too few good values and fill those in (print warning)
-def fillInMissingReadings(data_matrix, bad_value = 0):
+def fillInMissingReadings(data_matrix, bad_value = 0.):
     data_mask = (data_matrix != bad_value)
     data_counts = numpy.sum(data_mask, 0)
     if (float(numpy.min(data_counts))/float(data_matrix.shape[0]) < 0.75):
         print("WARNING: got time slice with too few data sensor values with value " + str(float(numpy.min(data_counts))/float(data_matrix.shape[0])) + " and index "  + str(numpy.nonzero((data_counts/data_matrix.shape[0]) < 0.75)))
-    time_averages = numpy.divide(numpy.sum(numpy.multiply(data_matrix,data_mask), 0), data_counts)
+    sum_tmp = numpy.sum(numpy.multiply(data_matrix,data_mask), 0)
+    time_averages = numpy.divide(sum_tmp, data_counts, out=numpy.zeros_like(sum_tmp), where=(data_counts!=0))
+#    print("time_averages is " + str(time_averages))
     for idx in numpy.ndindex(data_matrix.shape):
         if data_matrix[idx] == bad_value:
             data_matrix[idx] = time_averages[idx[1]]
@@ -362,7 +370,6 @@ def computeTimeArrays(sensor_data, device_location_map, time_coordinates):
             if (measurement_set != -1) and (len(measurement_set) > 0):
                 device[TIME_ARRAY_INDEX][i] = statistics.median(list(measurement_set))
                 # else there is no data and we leave the value at the initialized value above for later processing
-
 
 # look a the time arrays and flat sensors with too much missing data for removal
 # not needed because taken care of in the dataMatrix routine
