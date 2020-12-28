@@ -26,6 +26,8 @@ TIME_ARRAY_INDEX = 5
 # some variables in binning and correcting data
 SENSOR_INTERPOLATE_DISTANCE = 5
 NUM_MINUTES_PER_BIN = 8
+# this is the percentage of sensors recording measurements within a time slice/bin before a warning is reported
+TIME_SLICE_MIN_SENSOR_RATE = 0.65
 
 
 def getTimeCoordinateBin(datetime, time_offset=0):
@@ -169,14 +171,15 @@ def saveMatrixToFile(matrix, filename):
 # goal is to fill in zero/bad elements in between two values
 # only do short distances, e.g.  1 > <  SENSOR_INTERPOLATE_DISTANCE (missing bins)
 def interpolateBadElements(matrix, bad_value = 0):
-    row_index = 0
     for row in matrix:
-        row_index += 1
         prevValueIndex = None
         for i in range(row.shape[0]):
             if row[i] != bad_value:
                 if prevValueIndex is None:
                     prevValueIndex = i
+# this takes care of the boundary at the beginning of the time sequence
+                    if (i > 0) and (i < SENSOR_INTERPOLATE_DISTANCE):
+                        row[0:i] = row[i]
                 else:
                     curValueIndex = i
                     distance = curValueIndex - prevValueIndex
@@ -185,6 +188,16 @@ def interpolateBadElements(matrix, bad_value = 0):
                         terp = numpy.interp(range(prevValueIndex + 1, curValueIndex), [prevValueIndex, curValueIndex], [row[prevValueIndex], row[curValueIndex]])
                         row[prevValueIndex + 1:curValueIndex] = terp
                     prevValueIndex = curValueIndex
+        # take care of bad values and end of time range
+        if row[-1] == bad_value:
+            curValueIndex = row.shape[0]-1
+            if (prevValueIndex != None):
+                distance = curValueIndex - prevValueIndex
+                if (distance < SENSOR_INTERPOLATE_DISTANCE):            
+                    row[prevValueIndex + 1:curValueIndex] = row[prevValueIndex]
+#            else:
+#                print("got full row of bad indices?")
+ #               print(row)
 
 
 def trimBadEdgeElements(matrix, time_coordinates, bad_value=-1):
@@ -312,13 +325,14 @@ def setupDataMatrix2(sensor_data, space_coordinates, time_coordinates, device_lo
 #    numpy.savetxt('2interpolated.csv', data_matrix, delimiter=',')
     data_matrix, space_coordinates = removeBadSensors(data_matrix, space_coordinates, 0.75)
 #    saveMatrixToFile(data_matrix, '3matrix_removed_bad.txt')
-#    numpy.savetxt('3removed_bad.csv', data_matrix, delimiter=',')
+    numpy.savetxt('3removed_bad.csv', data_matrix, delimiter=',')
     # fill in missing readings using the average values for each time slice
 
 #  This is important because bins on either end of the time range might not have enough measurements
-    data_matrix, time_coordinates = trimBadEdgeElements(data_matrix, time_coordinates)
+#    data_matrix, time_coordinates = trimBadEdgeElements(data_matrix, time_coordinates)
+#    saveMatrixToFile(data_matrix, '4matrixtrimmed.txt')
+#    numpy.savetxt('4matrixtrimmed.csv', data_matrix, delimiter=',')
 
-    
     data_matrix = fillInMissingReadings(data_matrix, -1)
 #    saveMatrixToFile(data_matrix, '4matrix_filled_bad.txt')
 #    numpy.savetxt('4filled_bad.csv', data_matrix, delimiter=',')
@@ -341,7 +355,7 @@ def setupDataMatrix2(sensor_data, space_coordinates, time_coordinates, device_lo
 def fillInMissingReadings(data_matrix, bad_value = 0.):
     data_mask = (data_matrix != bad_value)
     data_counts = numpy.sum(data_mask, 0)
-    if (float(numpy.min(data_counts))/float(data_matrix.shape[0]) < 0.75):
+    if (float(numpy.min(data_counts))/float(data_matrix.shape[0]) < TIME_SLICE_MIN_SENSOR_RATE):
         print("WARNING: got time slice with too few data sensor values with value " + str(float(numpy.min(data_counts))/float(data_matrix.shape[0])) + " and index "  + str(numpy.nonzero((data_counts/data_matrix.shape[0]) < 0.75)))
     sum_tmp = numpy.sum(numpy.multiply(data_matrix,data_mask), 0)
     time_averages = numpy.divide(sum_tmp, data_counts, out=numpy.zeros_like(sum_tmp), where=(data_counts!=0))
