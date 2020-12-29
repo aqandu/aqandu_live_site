@@ -608,10 +608,8 @@ def getEstimatesForLocation():
     query_elevations = np.array(elevation_interpolator(query_lon, query_lat))
     query_locations = np.column_stack((np.array((query_lat)), np.array((query_lon))))
 
-    print((
-        f"Query parameters: lat={query_lat} lon={query_lon} start_date={query_start_datetime}"
-        f" end_date={query_end_datetime} estimaterate={query_rate}"
-    ))
+    app.logger.info(
+        "Query parameters: lat= %f lon= %f start_date= %s end_date=%s estimaterate=%f hours/estimate" %(query_lat, query_lon, query_start_datetime, query_end_datetime, query_rate))
 
     yPred, yVar = computeEstimatesForLocations(query_dates, query_locations, query_elevations)
 
@@ -709,7 +707,7 @@ def computeEstimatesForLocations(query_dates, query_locations, query_elevations)
             
     # step 0, load up the bounding box from file and check that request is within it
     bounding_box_vertices = utils.loadBoundingBox('bounding_box.csv')
-#    print(f'Loaded {len(bounding_box_vertices)} bounding box vertices.')
+    app.logger.info("Loaded " + str(len(bounding_box_vertices)) + " bounding box vertices.")
 
     for i in range(num_locations):
         if not utils.isQueryInBoundingBox(bounding_box_vertices, query_lats[i], query_lons[i]):
@@ -761,7 +759,7 @@ def computeEstimatesForLocations(query_dates, query_locations, query_elevations)
 
 
     unique_sensors = {datum['ID'] for datum in sensor_data}
-    print(f'Loaded {len(sensor_data)} data points for {len(unique_sensors)} unique devices from bgquery.')
+    app.logger.info(f'Loaded {len(sensor_data)} data points for {len(unique_sensors)} unique devices from bgquery.')
 
     # step 3.5, convert lat/lon to UTM coordinates
     try:
@@ -772,7 +770,7 @@ def computeEstimatesForLocations(query_dates, query_locations, query_elevations)
     sensor_data = [datum for datum in sensor_data if datum['zone_num'] == 12]
 
     unique_sensors = {datum['ID'] for datum in sensor_data}
-    print((
+    app.logger.info((
         "After removing points with zone num != 12: "
         f"{len(sensor_data)} data points for {len(unique_sensors)} unique devices."
     ))
@@ -783,7 +781,7 @@ def computeEstimatesForLocations(query_dates, query_locations, query_elevations)
     for datum in sensor_data:
         datum['type'] =  sensor_source_to_type[datum['SensorSource']]
 
-    print(f'Fields: {sensor_data[0].keys()}')
+    app.logger.info(f'Fields: {sensor_data[0].keys()}')
 
     # step 4.5, Data Screening
 #    print('Screening data')
@@ -828,7 +826,7 @@ def computeEstimatesForLocations(query_dates, query_locations, query_elevations)
         yVar = np.concatenate((yVar, yVar_tmp), axis=1)
 
     if np.min(yPred) < MIN_ACCEPTABLE_ESTIMATE:
-        print("WARNING: got estimate below level " + str(MIN_ACCEPTABLE_ESTIMATE))
+        app.logger.warn("got estimate below level " + str(MIN_ACCEPTABLE_ESTIMATE))
         
 # Here we clamp values to ensure that small negative values to do not appear
     yPred = np.clip(yPred, a_min = 0., a_max = None)

@@ -5,6 +5,7 @@ from aqandu import gaussian_model
 from aqandu import utils
 import torch
 import statistics
+import logging
 
 
 JANUARY1ST = datetime(2000, 1, 1, 0, 0, 0, 0, pytz.timezone('UTC'))
@@ -24,10 +25,12 @@ TIME_ARRAY_INDEX = 5
 ###################
 
 # some variables in binning and correcting data
-SENSOR_INTERPOLATE_DISTANCE = 5
+SENSOR_INTERPOLATE_DISTANCE = 6
 NUM_MINUTES_PER_BIN = 8
 # this is the percentage of sensors recording measurements within a time slice/bin before a warning is reported
 TIME_SLICE_MIN_SENSOR_RATE = 0.65
+# a general number for reporting warnings about sensors that fail to report, interpolate, etc.
+FRACTION_SIGNIFICANT_FAILS = 0.30
 
 
 def getTimeCoordinateBin(datetime, time_offset=0):
@@ -171,8 +174,10 @@ def saveMatrixToFile(matrix, filename):
 # goal is to fill in zero/bad elements in between two values
 # only do short distances, e.g.  1 > <  SENSOR_INTERPOLATE_DISTANCE (missing bins)
 def interpolateBadElements(matrix, bad_value = 0):
+    num_interp_fails = 0
     for row in matrix:
         prevValueIndex = None
+        this_fail = False
         for i in range(row.shape[0]):
             if row[i] != bad_value:
                 if prevValueIndex is None:
@@ -183,22 +188,30 @@ def interpolateBadElements(matrix, bad_value = 0):
                 else:
                     curValueIndex = i
                     distance = curValueIndex - prevValueIndex
-                    if (distance > 1) and (distance < SENSOR_INTERPOLATE_DISTANCE):
+                    if (distance > 1):
+                        if (distance < SENSOR_INTERPOLATE_DISTANCE):
                         # interpolate zeros between prev and cur
-                        terp = numpy.interp(range(prevValueIndex + 1, curValueIndex), [prevValueIndex, curValueIndex], [row[prevValueIndex], row[curValueIndex]])
-                        row[prevValueIndex + 1:curValueIndex] = terp
-                    prevValueIndex = curValueIndex
+                            terp = numpy.interp(range(prevValueIndex + 1, curValueIndex), [prevValueIndex, curValueIndex], [row[prevValueIndex], row[curValueIndex]])
+                            row[prevValueIndex + 1:curValueIndex] = terp
+                            prevValueIndex = curValueIndex
+                        else:
+                            this_fail = True
+        if this_fail:
+            num_interp_fails += 1
         # take care of bad values and end of time range
         if row[-1] == bad_value:
             curValueIndex = row.shape[0]-1
             if (prevValueIndex != None):
                 distance = curValueIndex - prevValueIndex
                 if (distance < SENSOR_INTERPOLATE_DISTANCE):            
-                    row[prevValueIndex + 1:curValueIndex] = row[prevValueIndex]
-#            else:
-#                print("got full row of bad indices?")
- #               print(row)
-
+                    row[prevValueIndex+1: curValueIndex+1] = row[prevValueIndex]
+            else:
+                logging.debug("got full row of bad indices?" + str(row))
+        if (float(num_interp_fails)/matrix.shape[0]) > FRACTION_SIGNIFICANT_FAILS:
+            logging.warn("got %d interp failures out of %d sensors", num_interp_fails, matrix.shape[0])
+            saveMatrixToFile(matrix, 'failed_interp_matrix.txt')            
+                
+        
 
 def trimBadEdgeElements(matrix, time_coordinates, bad_value=-1):
     # record index of edge values for each row
@@ -228,8 +241,12 @@ def trimBadEdgeElements(matrix, time_coordinates, bad_value=-1):
 # if a sensor doesn't have enough data then it gets taken out of calculations
 def removeBadSensors(data_matrix, space_coordinates, ratio):
     toKeep = [(numpy.count_nonzero(row != -1.0) / len(row)) > ratio for row in data_matrix]
-#    print("in remove bad data")
-#    print(toKeep)
+    fraction_removed = (1.0 - float(numpy.sum(toKeep))/float(data_matrix.shape[0]))
+    if (fraction_removed > FRACTION_SIGNIFICANT_FAILS):
+        logging.warn("Removed %f percent of sensors due to insufficient measurements", 100.0*fraction_removed)
+        logging.debug("time slices in remove data to keep " + str(toKeep))
+    else:
+        logging.info("Removed %f percent of sensors due to insufficient measurements", 100.0*fraction_removed)
     data_matrix = data_matrix[toKeep]
     space_coordinates = space_coordinates[toKeep]
     return data_matrix, space_coordinates
@@ -318,13 +335,13 @@ def setupDataMatrix2(sensor_data, space_coordinates, time_coordinates, device_lo
 #            data_matrix[space_index,i] = time_data_array[i,0]
         data_matrix[space_index,:] = time_data_array
 
-#    saveMatrixToFile(data_matrix, '1matrix.txt')
-#    numpy.savetxt('1matrix.csv', data_matrix, delimiter=',')
+    saveMatrixToFile(data_matrix, '1matrix.txt')
+    numpy.savetxt('1matrix.csv', data_matrix, delimiter=',')
     interpolateBadElements(data_matrix, -1)
-#    saveMatrixToFile(data_matrix, '2interpolated.txt')
-#    numpy.savetxt('2interpolated.csv', data_matrix, delimiter=',')
+    saveMatrixToFile(data_matrix, '2interpolated.txt')
+    numpy.savetxt('2interpolated.csv', data_matrix, delimiter=',')
     data_matrix, space_coordinates = removeBadSensors(data_matrix, space_coordinates, 0.75)
-#    saveMatrixToFile(data_matrix, '3matrix_removed_bad.txt')
+    saveMatrixToFile(data_matrix, '3matrix_removed_bad.txt')
     numpy.savetxt('3removed_bad.csv', data_matrix, delimiter=',')
     # fill in missing readings using the average values for each time slice
 
@@ -334,8 +351,8 @@ def setupDataMatrix2(sensor_data, space_coordinates, time_coordinates, device_lo
 #    numpy.savetxt('4matrixtrimmed.csv', data_matrix, delimiter=',')
 
     data_matrix = fillInMissingReadings(data_matrix, -1)
-#    saveMatrixToFile(data_matrix, '4matrix_filled_bad.txt')
-#    numpy.savetxt('4filled_bad.csv', data_matrix, delimiter=',')
+    saveMatrixToFile(data_matrix, '4matrix_filled_bad.txt')
+    numpy.savetxt('4filled_bad.csv', data_matrix, delimiter=',')
     # fill in missing readings using the average values for each time slice
 
 #    data_matrix, time_coordinates = trimEdgeZeroElements(data_matrix, time_coordinates)
@@ -356,7 +373,7 @@ def fillInMissingReadings(data_matrix, bad_value = 0.):
     data_mask = (data_matrix != bad_value)
     data_counts = numpy.sum(data_mask, 0)
     if (float(numpy.min(data_counts))/float(data_matrix.shape[0]) < TIME_SLICE_MIN_SENSOR_RATE):
-        print("WARNING: got time slice with too few data sensor values with value " + str(float(numpy.min(data_counts))/float(data_matrix.shape[0])) + " and index "  + str(numpy.nonzero((data_counts/data_matrix.shape[0]) < 0.75)))
+        logging.warn("WARNING: got time slice with too few data sensor values with value " + str(float(numpy.min(data_counts))/float(data_matrix.shape[0])) + " and index "  + str(numpy.nonzero((data_counts/data_matrix.shape[0]) < 0.75)))
     sum_tmp = numpy.sum(numpy.multiply(data_matrix,data_mask), 0)
     time_averages = numpy.divide(sum_tmp, data_counts, out=numpy.zeros_like(sum_tmp), where=(data_counts!=0))
 #    print("time_averages is " + str(time_averages))
@@ -467,10 +484,7 @@ def estimateUsingModel(model, lats, lons, elevations, query_dates, time_offset, 
     yPred, yVar = model(query_space, query_time)
     yPred = yPred.numpy()
     yVar = yVar.numpy()
-#    yPred = [float(value) for value in yPred]
-#    yVar = [float(value) for value in yVar]
 
-#    print(yPred)
     return yPred, yVar
 
 # 

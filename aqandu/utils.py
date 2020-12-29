@@ -6,6 +6,7 @@ import numpy as np
 from scipy import interpolate
 from scipy.io import loadmat
 import csv
+import logging
 
 
 DATETIME_FORMAT = "%Y-%m-%dT%H:%M:%SZ"
@@ -69,9 +70,6 @@ def setupElevationInterpolator(filename):
     np.savetxt('grid_lats.txt',gridLats)
     np.savetxt('grid_lons.txt',gridLongs)
     np.savetxt('elev_grid.txt', elevation_grid)
-    print(gridLongs.shape)
-    print(gridLats.shape)
-    print(elevation_grid.shape)
     return interpolate.interp2d(gridLongs, gridLats, elevation_grid, kind='cubic')
 
 
@@ -160,7 +158,7 @@ def removeInvalidSensors(sensor_data):
         keysToRemoveSet.add((key[0] + 1, key[1]))
         keysToRemoveSet.add((key[0] - 1, key[1]))
 
-    print(f'Removing these days from data due to exceeding 350 ug/m3 avg: {keysToRemoveSet}')
+    logging.info(f'Removing these days from data due to exceeding 350 ug/m3 avg: {keysToRemoveSet}')
     sensor_data = [datum for datum in sensor_data if (datum['daysSinceEpoch'], datum['ID']) not in keysToRemoveSet]
 
     # TODO NEEDS TESTING!
@@ -196,7 +194,7 @@ def removeInvalidSensors(sensor_data):
                     keysToRemoveSet.add((key2[0] + 1, key2[1]))
                     keysToRemoveSet.add((key2[0] - 1, key2[1]))
 
-    print((
+    logging.info((
         "Removing these days from data due to pair of 5003 sensors with both > 5 "
         f"daily reading and smaller is 16% different reading from larger : {keysToRemoveSet}"
     ))
@@ -268,7 +266,7 @@ def latlonBoundingBox(lat, lon, distance_meters):
     lat_hi, lon_tmp = utm.to_latlon(E, N+distance_meters, zone_num, zone_let)
     lat_tmp, lon_lo = utm.to_latlon(E-distance_meters, N, zone_num, zone_let)
     lat_tmp, lon_hi = utm.to_latlon(E+distance_meters, N, zone_num, zone_let)
-    print(lat_lo, lat_hi, lon_lo, lon_hi)
+    logging.info("Query bounding box is %f %f %f %f" %(lat_lo, lat_hi, lon_lo, lon_hi))
     return lat_lo, lat_hi, lon_lo, lon_hi
 
 # when you have multiple queries at once, you need to build bounding boxes that include all of the sensors
