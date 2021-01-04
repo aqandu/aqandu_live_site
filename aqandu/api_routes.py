@@ -485,7 +485,7 @@ def submit_sensor_query(lat_lo, lat_hi, lon_lo, lon_hi, start_date, end_date):
         )
         UNION ALL
         (
-            SELECT ID, time, PM2_5, Latitude, Longitude, "" as SensorModel, 'PurpleAir' as SensorSource
+            SELECT ID, time, PM2_5, Latitude, Longitude, '' as SensorModel, 'PurpleAir' as SensorSource
             FROM `{PURPLEAIR_TABLE_ID}`
             WHERE time > @start_date AND time < @end_date
         )
@@ -704,9 +704,9 @@ def getEstimatesForLocation():
 
     # Step 4, parse sensor type from the version
     sensor_source_to_type = {'AirU': '3003', 'PurpleAir': '5003', 'DAQ': '0000'}
-# DAQ does not need a correction factor
+    # DAQ does not need a correction factor
     for datum in sensor_data:
-        datum['type'] =  sensor_source_to_type[datum['SensorSource']]
+        datum['type'] = sensor_source_to_type[datum['SensorSource']]
 
     print(f'Fields: {sensor_data[0].keys()}')
 
@@ -740,7 +740,7 @@ def getEstimatesForLocation():
     yPred = np.empty((1, 0))
     yVar = np.empty((1, 0))
     for i in range(len(query_sequence)):
-    # step 7, Create Model
+        # step 7, Create Model
         print(sensor_sequence[i])
         print(query_sequence[i])
         model, time_offset = gaussian_model_utils.createModel(
@@ -750,12 +750,10 @@ def getEstimatesForLocation():
         # put the estimates together into one matrix
         yPred = np.concatenate((yPred, yPred_tmp), axis=1)
         yVar = np.concatenate((yVar, yVar_tmp), axis=1)
-        
-# convert the arrays to lists of floats
+      
+    # convert the arrays to lists of floats
 
-#
-# this index of the "0" in the first index of yPred and yVar has to do with how the data is stored and returned by the model.  Could be avoided with a tranpose of the returned data?
-#
+    # this index of the "0" in the first index of yPred and yVar has to do with how the data is stored and returned by the model.  Could be avoided with a tranpose of the returned data?
     num_times = len(query_dates)
     estimates = []
     for i in range(num_times):
@@ -772,7 +770,7 @@ def getEstimatesForLocation():
 
 
 # get estimates within a time frame for a multiple locations, given as a list of lat/lons in the query parameters
-### this allows multi lats/lons to be specified.  
+# this allows multi lats/lons to be specified.  
 @app.route("/api/getEstimatesForLocations", methods=['GET'])
 def getEstimatesForLocations():
     # Check that the arguments we want exist
@@ -785,7 +783,7 @@ def getEstimatesForLocations():
     except ValueError:
         return 'estimaterate must be floats.', 400
 
-## regular expression for floats
+    # regular expression for floats
     regex = '[+-]?[0-9]+\.[0-9]+'
     query_lats = np.array(re.findall(regex,request.args.get('lat'))).astype(np.float)
     query_lons = np.array(re.findall(regex,request.args.get('lon'))).astype(np.float)
@@ -845,14 +843,18 @@ def getEstimatesForLocations():
 
     # step 3, query relevent data
 
+    # these conversions were when we were messing around with specifying radius in miles and so forth.      
 # these conversions were when we were messing around with specifying radius in miles and so forth.      
-#    NUM_METERS_IN_MILE = 1609.34
-#    radius = latlon_length_scale / NUM_METERS_IN_MILE  # convert meters to miles for db query
+    # these conversions were when we were messing around with specifying radius in miles and so forth.      
+    #    NUM_METERS_IN_MILE = 1609.34
+    #    radius = latlon_length_scale / NUM_METERS_IN_MILE  # convert meters to miles for db query
 
-#    radius = latlon_length_scale / 70000
+    #    radius = latlon_length_scale / 70000
 
 
+    # radius is in meters, as is the length scale and UTM.
 # radius is in meters, as is the length scale and UTM.    
+    # radius is in meters, as is the length scale and UTM.
     radius = SPACE_KERNEL_FACTOR_PADDING*latlon_length_scale
 
     sensor_data = request_model_data_local(
@@ -924,9 +926,3 @@ def getEstimatesForLocations():
             )
 
     return jsonify(estimates)
-
-
-
-
-
-
