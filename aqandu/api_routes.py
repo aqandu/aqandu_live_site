@@ -97,9 +97,8 @@ def liveSensors():
         msg = f"sensor_source is invalid. It must be one of {VALID_SENSOR_SOURCES}"
         return msg, 400
 
-    # Define the BigQuery query
-    one_hour_ago = datetime.utcnow() - timedelta(hours=1)  # AirU + PurpleAir sensors have reported in the last hour
-    three_hours_ago = datetime.utcnow() - timedelta(hours=3)  # DAQ sensors have reported in the 3 hours
+    # Define the BigQuery query -- DAQ sensors have reported in the 3 hours, airU, usually within an hour
+    twelve_hours_ago = datetime.utcnow() - timedelta(hours=12)
     query_list = []
 
     if sensor_source == "AirU" or sensor_source == "all":
@@ -110,10 +109,10 @@ def liveSensors():
                 INNER JOIN (
                     SELECT ID, max(time) AS LATEST_MEASUREMENT
                     FROM `{AIRU_TABLE_ID}`
-                    WHERE time >= '{str(one_hour_ago)}'
+                    WHERE time >= '{str(twelve_hours_ago)}'
                     GROUP BY ID
                 ) AS b ON a.ID = b.ID AND a.time = b.LATEST_MEASUREMENT
-                WHERE time >= '{str(one_hour_ago)}'
+                WHERE time >= '{str(twelve_hours_ago)}'
             )"""
         )
 
@@ -125,10 +124,10 @@ def liveSensors():
                 INNER JOIN (
                     SELECT ID, max(time) AS LATEST_MEASUREMENT
                     FROM `{PURPLEAIR_TABLE_ID}`
-                    WHERE time >= '{str(one_hour_ago)}'
+                    WHERE time >= '{str(twelve_hours_ago)}'
                     GROUP BY ID
                 ) AS b ON a.ID = b.ID AND a.time = b.LATEST_MEASUREMENT
-                WHERE time >= '{str(one_hour_ago)}'
+                WHERE time >= '{str(twelve_hours_ago)}'
             )"""
         )
 
@@ -140,10 +139,10 @@ def liveSensors():
                 INNER JOIN (
                     SELECT ID, max(time) AS LATEST_MEASUREMENT
                     FROM `{DAQ_TABLE_ID}`
-                    WHERE time >= '{str(three_hours_ago)}'
+                    WHERE time >= '{str(twelve_hours_ago)}'
                     GROUP BY ID
                 ) AS b ON a.ID = b.ID AND a.time = b.LATEST_MEASUREMENT
-                WHERE time >= '{str(three_hours_ago)}'
+                WHERE time >= '{str(twelve_hours_ago)}'
             )"""
         )
 
