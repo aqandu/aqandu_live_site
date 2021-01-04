@@ -30,38 +30,6 @@ This will start building the containers that serve the website. You can check fo
 
 **NOTE**: If you're getting `Error Response: [4] DEADLINE_EXCEEDED` then you need to increase the timeout for the build to 20 minutes using `gcloud config set app/cloud_build_timeout 1200`.
 
-# AQandU
-These are instructions for setting up the Python Virtual Environment and frontend of AQandU. We use Python 3 at its latest version (on GCP) which, at the time of writing, is 3.7. These instructions assume that you have python 3.7 and pip installed locally.
-
-## Table of Contents
-
-1. [Development Environment Quick Start](#development-environment-quick-start)
-1. [Deploying In Production](#deploying-in-production)
-1. [Route Documentation](#route-documentation)
-
-  
-## Development Environment Quick Start
-
-This project uses `pipenv` for python package version management, so make sure you have that installed. If you need instructions for setting it up, check [here](https://pipenv.pypa.io/en/latest/install/#installing-pipenv). Once  `pipenv` is installed, you can set up a virtual environment and install all python dependencies with `pipenv install`.
-
-Now, copy the .env.prod to .env using `cp .env.prod .env` to use the bigquery database. You may need to acquire this file from an admin.
-
-Next, we need to generate some flask assets with `pipenv run build-assets`. Then you may launch the application with `pipenv run serve`.
-
-
-## Deploying in Production
-
-To deploy the application, you have to use the command line and the gcloud tools. Once you have the production config (from Jack or another admin) and you've set up gcloud cli with the correct default project, run the following commands:
-
-```
-cp config.production.py config.py
-gcloud app deploy app.yaml
-```
-
-This will start building the containers that serve the website. You can check for a successful deployment from the app engine versions dashboard in GCP. The app usually builds and deploys within a few minutes, but sometimes, Google can be a little slow with the building.
-
-**NOTE**: If you're getting `Error Response: [4] DEADLINE_EXCEEDED` then you need to increase the timeout for the build to 20 minutes using `gcloud config set app/cloud_build_timeout 1200`.
-
 ## Route Documentation 
 
 There are several routes set up for accessing the data. Here are the names, allowed methods, parameters, and descriptions:
