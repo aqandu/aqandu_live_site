@@ -107,8 +107,7 @@ There are several routes set up for accessing the data. Here are the names, allo
   - Return: Array of Objects with keys (Elevation, Latitude, Longitude, PM2_5, datetime, variance).
   - Example:
     ```
-    curl
-    '127.0.0.1:8080/api/getEstimatesForLocation?lat=40.7688&lon=-111.8462&estimatesrate=0.5&start_date=2020-06-30T00:00:00Z&end_date=2020-07-01T00:01:00Z'
+    curl '127.0.0.1:8080/api/getEstimatesForLocation?lat=40.7688&lon=-111.8462&estimatesrate=0.5&start_date=2020-06-30T00:00:00Z&end_date=2020-07-01T00:01:00Z'
     ```
 
 
@@ -126,8 +125,7 @@ There are several routes set up for accessing the data. Here are the names, allo
   - Return: Array of Objects with keys (Elevation, Latitude, Longitude, PM2_5, datetime, variance).
   - Example:
     ```
-    curl
-    '127.0.0.1:8080/api/getEstimatesForLocation?lat=40.7688,40.7698&lon=-111.8462,-111.8472&estimatesrate=0.5&start_date=2020-06-30T00:00:00Z&end_date=2020-07-01T00:01:00Z'
+    curl '127.0.0.1:8080/api/getEstimatesForLocation?lat=40.7688,40.7698&lon=-111.8462,-111.8472&estimatesrate=0.5&start_date=2020-06-30T00:00:00Z&end_date=2020-07-01T00:01:00Z'
     ```
 
 - Name:`/api/getEstimateMap`
@@ -149,7 +147,6 @@ There are several routes set up for accessing the data. Here are the names, allo
     Elevations(array), PM2_5(array), PM2.5 variance(array)).
   - Example:
     ```
-    curl
-    ''http://127.0.0.1:8080/api/getEstimateMap?lat_lo=40.733534&lat_hi=40.780421&lon_lo=-111.906754&lon_hi=-111.846383&lat_size=100&lon_size=100&date=2019-01-04T00:08:00Z
+    curl 'http://127.0.0.1:8080/api/getEstimateMap?lat_lo=40.733534&lat_hi=40.780421&lon_lo=-111.906754&lon_hi=-111.846383&lat_size=100&lon_size=100&date=2019-01-04T00:08:00Z'
     ```
  
