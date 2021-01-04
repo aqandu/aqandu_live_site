@@ -1236,7 +1236,7 @@ function createNewMarker(location) {
   const randomClickMarker = [{ 'ID': markerID, 'SensorSource': 'sensorLayerRandomMarker', 'Latitude': String(location.latlng.lat), 'Longitude': String(location.latlng.lng) }]
   sensorLayerRandomMarker(randomClickMarker)
 
-  const predictionsForLocationURL = generateURL('/getPredictionsForLocation', { 'location': { 'lat':  String(location.latlng.lat), 'lon': String(location.latlng.lng) }, 'start': formatDateTime(pastDate), 'end': formatDateTime(todaysDate), 'predictionsperhour': 1 })
+  const predictionsForLocationURL = generateURL('/getEstimatesForLocation', { 'location': { 'lat':  String(location.latlng.lat), 'lon': String(location.latlng.lng) }, 'start': formatDateTime(pastDate), 'end': formatDateTime(todaysDate), 'estimatesrate': 1 })
 
   getDataFromDB(predictionsForLocationURL).then(data => {
     // parse the incoming bilinear interpolated data
