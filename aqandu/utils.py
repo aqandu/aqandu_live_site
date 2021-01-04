@@ -66,8 +66,8 @@ def setupElevationInterpolator(filename):
     elevation_grid = data['elevs']
     gridLongs = data['gridLongs']
     gridLats = data['gridLats']
-    np.savetxt('grid_lats.txt',gridLats)
-    np.savetxt('grid_lons.txt',gridLongs)
+    np.savetxt('grid_lats.txt', gridLats)
+    np.savetxt('grid_lons.txt', gridLongs)
     np.savetxt('elev_grid.txt', elevation_grid)
     print(gridLongs.shape)
     print(gridLats.shape)
@@ -217,8 +217,7 @@ def applyCorrectionFactor(factors, data_timestamp, data, sensor_type):
                 return data * factor['3003_slope'] + factor['3003_intercept']
             elif sensor_type == '5003':
                 return data * factor['5003_slope'] + factor['5003_intercept']
-###  print('\nNo correction factor found for ', data_timestamp)
-#  no correction factor will be considered identity
+    #  no correction factor will be considered identity
     return data
 
 
@@ -243,7 +242,7 @@ def interpolateQueryDates(start_datetime, end_datetime, period):
 
 # Not yet sure if this is needed
 # build a grid of coordinates that will consistute the "map"
-#def interpolateQueryLocationsUTM(lat_lo, lat_hi, lon_lo, lon_hi, spatial_res): 
+# def interpolateQueryLocationsUTM(lat_lo, lat_hi, lon_lo, lon_hi, spatial_res): 
     # # create the north sound and east west locations in UTM coordinates
     # E_range = np.arrange(lon_low, lon_hi, spatial_res)
     # N_range = np.arrange(lat_low, lat_hi, spatial_res)
@@ -251,8 +250,6 @@ def interpolateQueryDates(start_datetime, end_datetime, period):
 
 # build a grid of coordinates that will consistute the "map"  - used for getEstimateMap() in the api
 def interpolateQueryLocations(lat_lo, lat_hi, lon_lo, lon_hi, lat_res, lon_res): 
-#    lat_step = (lat_hi-lat_low)/float(lat_size)
-#    lon_step = (lon_hi-lon_low)/float(lon_size)
     lat_range = np.arange(lon_lo, lon_hi, lon_res)
     lon_range = np.arange(lat_lo, lat_hi, lat_res)
     return lat_range, lon_range
@@ -264,10 +261,10 @@ def interpolateQueryLocations(lat_lo, lat_hi, lon_lo, lon_hi, lat_res, lon_res):
 # computes an approximate latlon bounding box that includes the given point and all points within the radius of distance_meters.  Used to limit the query of "relevant sensors".  Note the return order...
 def latlonBoundingBox(lat, lon, distance_meters):
     E, N, zone_num, zone_let  = utm.from_latlon(lat, lon)
-    lat_lo, lon_tmp = utm.to_latlon(E, N-distance_meters, zone_num, zone_let)
-    lat_hi, lon_tmp = utm.to_latlon(E, N+distance_meters, zone_num, zone_let)
-    lat_tmp, lon_lo = utm.to_latlon(E-distance_meters, N, zone_num, zone_let)
-    lat_tmp, lon_hi = utm.to_latlon(E+distance_meters, N, zone_num, zone_let)
+    lat_lo, lon_tmp = utm.to_latlon(E, N - distance_meters, zone_num, zone_let)
+    lat_hi, lon_tmp = utm.to_latlon(E, N + distance_meters, zone_num, zone_let)
+    lat_tmp, lon_lo = utm.to_latlon(E - distance_meters, N, zone_num, zone_let)
+    lat_tmp, lon_hi = utm.to_latlon(E + distance_meters, N, zone_num, zone_let)
     print(lat_lo, lat_hi, lon_lo, lon_hi)
     return lat_lo, lat_hi, lon_lo, lon_hi
 
