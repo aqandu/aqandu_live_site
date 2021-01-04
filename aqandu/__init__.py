@@ -4,7 +4,7 @@ from os import getenv, environ
 from dotenv import load_dotenv
 from flask import Flask
 from flask_caching import Cache
-from google.cloud.bigquery import Client
+from google.cloud import bigquery
 
 load_dotenv()
 PROJECT_ID = getenv("PROJECTID")
@@ -18,7 +18,7 @@ init(app)
 cache = Cache(app)
 
 environ["GOOGLE_APPLICATION_CREDENTIALS"] = "aqandu/aqandu.json"
-bq_client = Client(project=PROJECT_ID)
+bq_client = bigquery.Client(project=PROJECT_ID)
 
 from aqandu import utils
 elevation_interpolator = utils.setupElevationInterpolator('elevation_map.mat')
