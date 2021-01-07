@@ -217,7 +217,8 @@ def applyCorrectionFactor(factors, data_timestamp, data, sensor_type):
                 return data * factor['5003_slope'] + factor['5003_intercept']
 ###  print('\nNo correction factor found for ', data_timestamp)
 #  no correction factor will be considered identity
-    return data
+# make sure corrected values are positive
+    return np.maximum(data, 0.0)
 
 
 def getScalesInTimeRange(scales, start_time, end_time):

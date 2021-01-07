@@ -79,7 +79,7 @@ def createTimeVector(sensor_data, time_lo_bound = -1.0, time_hi_bound = -1.0):
 
     time_coordinates = [bin_number - lowest_bin_number for bin_number in time_coordinates]
     time_coordinates.sort()
-    
+
 #    print("time1")
 #    print(time_coordinates)
 #    time_coordinates.sort()
@@ -301,21 +301,6 @@ def setupDataMatrix2(sensor_data, space_coordinates, time_coordinates, device_lo
     data_shape=(space_coordinates.shape[0], time_coordinates.shape[0])
     data_matrix = numpy.full(data_shape, -1.0)
 
-    # THIS IS THE OLD METHOD -- STILL USED ABOVE
-    # for datum in sensor_data:
-    #     date_index = numpy.nonzero(time_coordinates == datum[TIME_COORDINATE_BIN_NUMBER_KEY])[0][0]
-    #     location_index = device_location_map[datum['ID']]
-    #     # bound sensor data below by 0
-    #     data_matrix[location_index][date_index] = datum['PM2_5'] if datum['PM2_5'] >= 0 else 0
-
-    # print("setupdatamatrix")
-    # for key in device_location_map.keys():
-    #     loc = device_location_map[key]
-    #     if loc[SPACE_COORD_INDEX] <= 5:
-    #         print(loc)
-    #         print(loc[SPACE_COORD_INDEX])
-    #         print(loc[UTM_X_INDEX])
-    #         print(loc[TIME_MAP_INDEX])
 
 #    print(time_coordinates.shape)
     for key in device_location_map.keys():
@@ -346,17 +331,16 @@ def setupDataMatrix2(sensor_data, space_coordinates, time_coordinates, device_lo
     # fill in missing readings using the average values for each time slice
 
 #  This is important because bins on either end of the time range might not have enough measurements
-#    data_matrix, time_coordinates = trimBadEdgeElements(data_matrix, time_coordinates)
-#    saveMatrixToFile(data_matrix, '4matrixtrimmed.txt')
-#    numpy.savetxt('4matrixtrimmed.csv', data_matrix, delimiter=',')
+#  This is now taken care of again.  Once full tested, remove this.
+#  data_matrix, time_coordinates = trimBadEdgeElements(data_matrix, time_coordinates)
+#  saveMatrixToFile(data_matrix, '4matrixtrimmed.txt')
+#  numpy.savetxt('4matrixtrimmed.csv', data_matrix, delimiter=',')
 
+    # fill in missing readings using the average values for each time slice
     data_matrix = fillInMissingReadings(data_matrix, -1)
     saveMatrixToFile(data_matrix, '4matrix_filled_bad.txt')
     numpy.savetxt('4filled_bad.csv', data_matrix, delimiter=',')
-    # fill in missing readings using the average values for each time slice
 
-#    data_matrix, time_coordinates = trimEdgeZeroElements(data_matrix, time_coordinates)
-#    saveMatrixToFile(data_matrix, '4matrixtrimmed.txt')
 
 # for debugging report id of last sensor in matrix - to get raw data
     # print("ID of last sensor is")

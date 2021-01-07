@@ -715,13 +715,12 @@ def computeEstimatesForLocations(query_dates, query_locations, query_elevations)
 
     # step 1, load up correction factors from file
     correction_factors = utils.loadCorrectionFactors('correction_factors.csv')
-#    print(f'Loaded {len(correction_factors)} correction factors.')
+    app.logger.debug(f'Loaded {len(correction_factors)} correction factors.')
 
     # step 2, load up length scales from file
     length_scales = utils.loadLengthScales('length_scales.csv')
-#    print(f'Loaded {len(length_scales)} length scales.')
+    app.logger.debug('Loaded length scales:', length_scales, '\n')
 
-#    print('Loaded length scales:', length_scales, '\n')
     length_scales = utils.getScalesInTimeRange(length_scales, query_start_datetime, query_end_datetime)
     if len(length_scales) < 1:
         msg = (
@@ -734,9 +733,7 @@ def computeEstimatesForLocations(query_dates, query_locations, query_elevations)
     elevation_length_scale = length_scales[0]['elevation']
     time_length_scale = length_scales[0]['time']
 
-#    print(
-#        f'Using length scales: latlon={latlon_length_scale} elevation={elevation_length_scale} time={time_length_scale}'
-#    )
+    app.logger.debug(f'Using length scales: latlon={latlon_length_scale} elevation={elevation_length_scale} time={time_length_scale}')
 
     # step 3, query relevent data
 
@@ -797,7 +794,7 @@ def computeEstimatesForLocations(query_dates, query_locations, query_elevations)
         if 'Altitude' not in datum:
             datum['Altitude'] = elevation_interpolator([datum['Longitude']],[datum['Latitude']])[0]
 
-
+    # This does the calculation in one step --- old method --- less efficient.  Below we break it into pieces.  Remove this once the code below (step 7) is fully tested.
     # step 7, get estimates from model
     # # step 8, Create Model
     # model, time_offset = gaussian_model_utils.createModel(
@@ -815,8 +812,6 @@ def computeEstimatesForLocations(query_dates, query_locations, query_elevations)
     yVar = np.empty((num_locations, 0))
     for i in range(len(query_sequence)):
     # step 7, Create Model
-#        print(sensor_sequence[i])
-#        print(query_sequence[i])
         model, time_offset = gaussian_model_utils.createModel(
             sensor_data, latlon_length_scale, elevation_length_scale, time_length_scale, sensor_sequence[i][0], sensor_sequence[i][1], save_matrices=False)
         yPred_tmp, yVar_tmp = gaussian_model_utils.estimateUsingModel(
