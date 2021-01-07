@@ -179,7 +179,7 @@ def interpolateBadElements(matrix, bad_value = 0):
             if row[i] != bad_value:
                 if prevValueIndex is None:
                     prevValueIndex = i
-# this takes care of the boundary at the beginning of the time sequence
+                    # this takes care of the boundary at the beginning of the time sequence
                     if (i > 0) and (i < SENSOR_INTERPOLATE_DISTANCE):
                         row[0:i] = row[i]
                 else:
