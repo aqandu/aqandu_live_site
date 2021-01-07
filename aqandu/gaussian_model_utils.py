@@ -373,7 +373,6 @@ def fillInMissingReadings(data_matrix, bad_value = 0.):
         logging.warn("WARNING: got time slice with too few data sensor values with value " + str(float(numpy.min(data_counts))/float(data_matrix.shape[0])) + " and index "  + str(numpy.nonzero((data_counts/data_matrix.shape[0]) < 0.75)))
     sum_tmp = numpy.sum(numpy.multiply(data_matrix,data_mask), 0)
     time_averages = numpy.divide(sum_tmp, data_counts, out=numpy.zeros_like(sum_tmp), where=(data_counts!=0))
-#    print("time_averages is " + str(time_averages))
     for idx in numpy.ndindex(data_matrix.shape):
         if data_matrix[idx] == bad_value:
             data_matrix[idx] = time_averages[idx[1]]
