@@ -482,8 +482,10 @@ def estimateUsingModel(model, lats, lons, elevations, query_dates, time_offset, 
         numpy.savetxt('query_time_coords.csv', query_time, delimiter=',')
     
     yPred, yVar = model(query_space, query_time)
-    yPred = yPred.numpy()
+    yPred = numpy.maximum(yPred.numpy(), 0.0)
     yVar = yVar.numpy()
+    if numpy.amin(yVar) < 0.0:
+        logging.warn("Got negative values in variance, suggesting a numerical problem")
 
     return yPred, yVar
 
