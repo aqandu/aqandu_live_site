@@ -79,10 +79,6 @@ def createTimeVector(sensor_data, time_lo_bound = -1.0, time_hi_bound = -1.0):
 
     time_coordinates = [bin_number - lowest_bin_number for bin_number in time_coordinates]
     time_coordinates.sort()
-
-#    print("time1")
-#    print(time_coordinates)
-#    time_coordinates.sort()
     time_coordinates = numpy.expand_dims(numpy.asarray(time_coordinates), axis=1)
     
 
@@ -182,7 +178,7 @@ def interpolateBadElements(matrix, bad_value = 0):
             if row[i] != bad_value:
                 if prevValueIndex is None:
                     prevValueIndex = i
-# this takes care of the boundary at the beginning of the time sequence
+                    # this takes care of the boundary at the beginning of the time sequence
                     if (i > 0) and (i < SENSOR_INTERPOLATE_DISTANCE):
                         row[0:i] = row[i]
                 else:
@@ -360,7 +356,6 @@ def fillInMissingReadings(data_matrix, bad_value = 0.):
         logging.warn("WARNING: got time slice with too few data sensor values with value " + str(float(numpy.min(data_counts))/float(data_matrix.shape[0])) + " and index "  + str(numpy.nonzero((data_counts/data_matrix.shape[0]) < 0.75)))
     sum_tmp = numpy.sum(numpy.multiply(data_matrix,data_mask), 0)
     time_averages = numpy.divide(sum_tmp, data_counts, out=numpy.zeros_like(sum_tmp), where=(data_counts!=0))
-#    print("time_averages is " + str(time_averages))
     for idx in numpy.ndindex(data_matrix.shape):
         if data_matrix[idx] == bad_value:
             data_matrix[idx] = time_averages[idx[1]]
