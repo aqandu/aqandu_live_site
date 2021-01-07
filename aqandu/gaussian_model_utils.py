@@ -80,9 +80,6 @@ def createTimeVector(sensor_data, time_lo_bound = -1.0, time_hi_bound = -1.0):
     time_coordinates = [bin_number - lowest_bin_number for bin_number in time_coordinates]
     time_coordinates.sort()
     
-#    print("time1")
-#    print(time_coordinates)
-#    time_coordinates.sort()
     time_coordinates = numpy.expand_dims(numpy.asarray(time_coordinates), axis=1)
     
 
