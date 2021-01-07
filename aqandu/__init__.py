@@ -22,6 +22,10 @@ logging.error('And non-ASCII stuff, too, like Øresund and Malmö')
 
 app = Flask(__name__)
 app.config.from_object(config)
+app.config["CACHE_TYPE"] = "simple"
+app.config["CACHE_DEFAULT_TIMEOUT"] = 1
+cache = Cache(app)
+
 assets.init(app)
 
 os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "aqandu/aqandu.json"
