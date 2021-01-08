@@ -3,6 +3,7 @@ import config
 import os
 from dotenv import load_dotenv
 from flask import Flask
+from flask_caching import Cache
 from google.cloud import bigquery
 import logging
 import time
@@ -15,9 +16,6 @@ PROJECT_ID = os.getenv("PROJECTID")
 logfile = "serve.log"
 logging.basicConfig(filename=logfile, level=logging.DEBUG, format = '%(levelname)s: %(filename)s: %(message)s')
 logging.info('API server started at %s', time.asctime(time.localtime()))
-logging.debug('This message should go to the log file')
-logging.warning('And this, too')
-logging.error('And non-ASCII stuff, too, like Øresund and Malmö')
 
 app = Flask(__name__)
 app.config.from_object(config)
