@@ -26,7 +26,7 @@ MIN_ACCEPTABLE_ESTIMATE = -5.0
 # in units of time-scale parameter
 # This is a tradeoff between looping through the data multiple times and having to do the fft inversion (n^2) of large time matrices
 # If the bin size is 10 mins, and the and the time scale is 20 mins, then a value of 30 would give 30*20/10, which is a matrix size of 60.  Which is not that big.  
-TIME_SEQUENCE_SIZE = 30.
+TIME_SEQUENCE_SIZE = 20.
 
 
 @app.route("/api/rawDataFrom", methods=["GET"])
@@ -239,8 +239,8 @@ def getEstimateMap():
     locations_lon, locations_lat = np.meshgrid(lon_vector, lat_vector)
     query_lats = locations_lat.flatten()
     query_lons= locations_lon.flatten()
-    elevations = elevations.flatten()
-    query_dates = numpy.array((query_datetime))
+    query_elevations = elevations.flatten()
+    query_dates = np.array([query_datetime])
     query_locations = np.column_stack((query_lats, query_lons))    
 
 #   # step 3, query relevent data
@@ -265,12 +265,13 @@ def getEstimateMap():
     # yPred, yVar = gaussian_model_utils.estimateUsingModel(
     #     model, locations_lat, locations_lon, elevations, [query_datetime], time_offset)
 
-    elevations = (elevations.reshape((lat_size, lon_size))).tolist()
+    elevations = (elevations).tolist()
     yPred = yPred.reshape((lat_size, lon_size))
     yVar = yVar.reshape((lat_size, lon_size))
     estimates = yPred.tolist()
     variances = yVar.tolist()
     return jsonify({"Elevations":elevations, "PM2.5":estimates, "PM2.5 variance":variances, "Latitudes":lat_vector.tolist(), "Longitudes":lon_vector.tolist()})
+    
     
 
 @app.route("/api/timeAggregatedDataFrom", methods=["GET"])
@@ -442,7 +443,8 @@ def submit_sensor_query(lat_lo, lat_hi, lon_lo, lon_hi, start_date, end_date):
     if query_job.error_result:
         print(query_job.error_result)
         return "Invalid API call - check documentation.", 400
-    sensor_data = query_job.result()  # Waits for query to finish
+    # Waits for query to finish
+    sensor_data = query_job.result()  
 
     return(sensor_data)
 
@@ -476,7 +478,9 @@ def request_model_data_local(lats, lons, radius, start_date, end_date):
             for i in range(1, num_points):
                 lat_lo, lat_hi, lon_lo, lon_hi = utils.boundingBoxUnion((utils.latlonBoundingBox(lats[i], lons[i], radius)), (lat_lo, lat_hi, lon_lo, lon_hi))
     else:
-        return "lats,lons data structure misalignment in request sensor data", 400               
+        return "lats,lons data structure misalignment in request sensor data", 400
+    app.logger.info("Query bounding box is %f %f %f %f" %(lat_lo, lat_hi, lon_lo, lon_hi))
+
    
     rows = submit_sensor_query(lat_lo, lat_hi, lon_lo, lon_hi, start_date, end_date)
     
@@ -654,7 +658,7 @@ def computeEstimatesForLocations(query_dates, query_locations, query_elevations)
 
     # step 2, load up length scales from file
     length_scales = utils.loadLengthScales('length_scales.csv')
-    app.logger.debug('Loaded length scales:', length_scales, '\n')
+    app.logger.debug("Loaded length scales: " + str(length_scales))
 
     length_scales = utils.getScalesInTimeRange(length_scales, query_start_datetime, query_end_datetime)
     if len(length_scales) < 1:
