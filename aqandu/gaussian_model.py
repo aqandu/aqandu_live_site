@@ -15,7 +15,7 @@ import math
 import scipy
 
 
-JITTER = 1e-6
+JITTER = 1e-3
 
 # this does an eigen analysis of a symmetric circulant matrix using an FFT
 #def symeigCirculant(data_first_row, eigenvectors=True):
