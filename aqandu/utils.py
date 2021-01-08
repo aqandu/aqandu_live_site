@@ -267,7 +267,6 @@ def latlonBoundingBox(lat, lon, distance_meters):
     lat_hi, lon_tmp = utm.to_latlon(E, N+distance_meters, zone_num, zone_let)
     lat_tmp, lon_lo = utm.to_latlon(E-distance_meters, N, zone_num, zone_let)
     lat_tmp, lon_hi = utm.to_latlon(E+distance_meters, N, zone_num, zone_let)
-    logging.info("Query bounding box is %f %f %f %f" %(lat_lo, lat_hi, lon_lo, lon_hi))
     return lat_lo, lat_hi, lon_lo, lon_hi
 
 # when you have multiple queries at once, you need to build bounding boxes that include all of the sensors
