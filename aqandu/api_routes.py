@@ -20,6 +20,7 @@ SOURCE_TABLE_MAP = {
 VALID_SENSOR_SOURCES = ["AirU", "PurpleAir", "DAQ", "all"]
 TIME_KERNEL_FACTOR_PADDING = 3.0
 SPACE_KERNEL_FACTOR_PADDING = 2.
+MIN_ACCEPTABLE_ESTIMATE = -5.0
 
 # the size of time sequence chunks that are used to break the eatimation/data into pieces to speed up computation
 # in units of time-scale parameter
@@ -206,107 +207,23 @@ def getEstimateMap():
 
     query_datetime = utils.parseDateString(query_date)
 
-    print((
+    app.logger.info((
         f"Query parameters: lat_lo={lat_lo} lat_hi={lat_hi}  lon_lo={lon_lo} lon_hi={lon_hi} lat_res={lat_res} lon_res={lon_res} date={query_datetime}"
     ))
 
-    # step 0, load up the bounding box from file and check that request is within it
-    bounding_box_vertices = utils.loadBoundingBox('bounding_box.csv')
-    print(f'Loaded {len(bounding_box_vertices)} bounding box vertices.')
+    # # step 0, load up the bounding box from file and check that request is within it
+    # bounding_box_vertices = utils.loadBoundingBox('bounding_box.csv')
+    # print(f'Loaded {len(bounding_box_vertices)} bounding box vertices.')
 
-    if not (
-        utils.isQueryInBoundingBox(bounding_box_vertices, lat_lo, lon_lo) and
-        utils.isQueryInBoundingBox(bounding_box_vertices, lat_lo, lon_hi) and
-        utils.isQueryInBoundingBox(bounding_box_vertices, lat_hi, lon_hi) and
-        utils.isQueryInBoundingBox(bounding_box_vertices, lat_hi, lon_lo)):
-        return 'One of the query locations is outside of the bounding box for the database', 400
+    # if not (
+    #     utils.isQueryInBoundingBox(bounding_box_vertices, lat_lo, lon_lo) and
+    #     utils.isQueryInBoundingBox(bounding_box_vertices, lat_lo, lon_hi) and
+    #     utils.isQueryInBoundingBox(bounding_box_vertices, lat_hi, lon_hi) and
+    #     utils.isQueryInBoundingBox(bounding_box_vertices, lat_hi, lon_lo)):
+    #     return 'One of the query locations is outside of the bounding box for the database', 400
 
-    # step 1, load up correction factors from file
-    correction_factors = utils.loadCorrectionFactors('correction_factors.csv')
-    print(f'Loaded {len(correction_factors)} correction factors.')
-
-    # step 2, load up length scales from file
-    length_scales = utils.loadLengthScales('length_scales.csv')
-    print(f'Loaded {len(length_scales)} length scales.')
-
-    print('Loaded length scales:', length_scales, '\n')
-    length_scales = utils.getScalesInTimeRange(length_scales, query_datetime, query_datetime)
-    if len(length_scales) < 1:
-        msg = (
-            f"Incorrect number of length scales({len(length_scales)}) "
-            f"found in between {query_start_datetime} and {query_end_datetime}"
-        )
-        return msg, 400
-
-    latlon_length_scale = length_scales[0]['latlon']
-    elevation_length_scale = length_scales[0]['elevation']
-    time_length_scale = length_scales[0]['time']
-
-    print(
-        f'Using length scales: latlon={latlon_length_scale} elevation={elevation_length_scale} time={time_length_scale}'
-    )
-
-  # step 3, query relevent data
-  # for this compute a circle center at the query volume.  Radius is related to lenth scale + the size fo the box.
-    lat = (lat_lo + lat_hi)/2.0
-    lon = (lon_lo + lon_hi)/2.0
-#    NUM_METERS_IN_MILE = 1609.34
-#    radius = latlon_length_scale / NUM_METERS_IN_MILE  # convert meters to miles for db query
-
-    UTM_N_hi, UTM_E_hi, zone_num_hi, zone_let_hi = utils.latlonToUTM(lat_hi, lon_hi)
-    UTM_N_lo, UTM_E_lo, zone_num_lo, zone_let_lo = utils.latlonToUTM(lat_lo, lon_lo)
-# compute the lenght of the diagonal of the lat-lon box.  This units here are **meters**
-    lat_diff = UTM_N_hi - UTM_N_lo
-    lon_diff = UTM_E_hi - UTM_E_lo
-    radius = SPACE_KERNEL_FACTOR_PADDING*latlon_length_scale + np.sqrt(lat_diff**2 + lon_diff**2)/2.0
-
-    if not ((zone_num_lo == zone_num_hi) and (zone_let_lo == zone_let_hi)):
-        return 'Requested region spans UTM zones', 400        
-
-
-#    radius = latlon_length_scale / 70000 + box_diag/2.0
-    sensor_data = request_model_data_local(
-        lats=lat,
-        lons=lon,
-        radius=radius,
-        start_date=query_datetime - TIME_KERNEL_FACTOR_PADDING*timedelta(hours=time_length_scale),
-        end_date=query_datetime + TIME_KERNEL_FACTOR_PADDING*timedelta(hours=time_length_scale))
-
-    unique_sensors = {datum['ID'] for datum in sensor_data}
-    print(f'Loaded {len(sensor_data)} data points for {len(unique_sensors)} unique devices from bgquery.')
-
-    # step 3.5, convert lat/lon to UTM coordinates
-    try:
-        utils.convertLatLonToUTM(sensor_data)
-    except ValueError as err:
-        return f'{str(err)}', 400
-
-    # Step 4, parse sensor type from the version
-    sensor_source_to_type = {'AirU': '3003', 'PurpleAir': '5003', 'DAQ': '0000'}
-    for datum in sensor_data:
-        datum['type'] = sensor_source_to_type[datum['SensorSource']]
-
-    print(f'Fields: {sensor_data[0].keys()}')
-
-    # step 4.5, Data Screening
-    print('Screening data')
-    sensor_data = utils.removeInvalidSensors(sensor_data)
-
-        # step 5, apply correction factors to the data
-    for datum in sensor_data:
-        datum['PM2_5'] = utils.applyCorrectionFactor(correction_factors, datum['time'], datum['PM2_5'], datum['type'])
-
-    # step 6, add elevation values to the data
-    for datum in sensor_data:
-        if 'Altitude' not in datum:
-            datum['Altitude'] = elevation_interpolator([datum['Longitude']],[datum['Latitude']])[0]
-
-    # step 7, Create Model
-    model, time_offset = gaussian_model_utils.createModel(
-        sensor_data, latlon_length_scale, elevation_length_scale, time_length_scale)
-
-    
-# step 8, build the grid of query locations
+        
+# build the grid of query locations
     if not UTM:
         lon_vector, lat_vector = utils.interpolateQueryLocations(lat_lo, lat_hi, lon_lo, lon_hi, lat_res, lon_res)
 #        locations_UTM = utm.from_latlon(query_locations_latlon)
@@ -318,42 +235,43 @@ def getEstimateMap():
 #        query_locations_
         return 'UTM not yet supported', 400
 
-
-#    locations_lat = locations_lat.flatten()
-#    locations_lon = locations_lon.flatten()
-#    print(locations_lat.shape)
-#    print(locations_lon.shape)
     elevations = elevation_interpolator(lon_vector, lat_vector)
-    print(elevations.shape)
-
     locations_lon, locations_lat = np.meshgrid(lon_vector, lat_vector)
-    # print("B")
-    # print(locations_lat)
-    # print(locations_lon)
+    query_lats = locations_lat.flatten()
+    query_lons= locations_lon.flatten()
+    query_elevations = elevations.flatten()
+    query_dates = np.array([query_datetime])
+    query_locations = np.column_stack((query_lats, query_lons))    
 
-    locations_lat = locations_lat.flatten()
-    locations_lon = locations_lon.flatten()
-    elevations = elevations.flatten()
-    # print("C")
-    # print(locations_lat)
-    # print(locations_lon)
+#   # step 3, query relevent data
+#   # for this compute a circle center at the query volume.  Radius is related to lenth scale + the size fo the box.
+#     lat = (lat_lo + lat_hi)/2.0
+#     lon = (lon_lo + lon_hi)/2.0
+# #    NUM_METERS_IN_MILE = 1609.34
+# #    radius = latlon_length_scale / NUM_METERS_IN_MILE  # convert meters to miles for db query
 
-    # print("D")
-    # print(locations_lat.reshape((lat_size, lon_size)))
-    # print(locations_lon.reshape((lat_size, lon_size)))
+#     UTM_N_hi, UTM_E_hi, zone_num_hi, zone_let_hi = utils.latlonToUTM(lat_hi, lon_hi)
+#     UTM_N_lo, UTM_E_lo, zone_num_lo, zone_let_lo = utils.latlonToUTM(lat_lo, lon_lo)
+# # compute the lenght of the diagonal of the lat-lon box.  This units here are **meters**
+#     lat_diff = UTM_N_hi - UTM_N_lo
+#     lon_diff = UTM_E_hi - UTM_E_lo
+#     radius = SPACE_KERNEL_FACTOR_PADDING*latlon_length_scale + np.sqrt(lat_diff**2 + lon_diff**2)/2.0
 
+#     if not ((zone_num_lo == zone_num_hi) and (zone_let_lo == zone_let_hi)):
+#         return 'Requested region spans UTM zones', 400        
 
-    yPred, yVar = gaussian_model_utils.estimateUsingModel(
-        model, locations_lat, locations_lon, elevations, [query_datetime], time_offset)
+    yPred, yVar = computeEstimatesForLocations(query_dates, query_locations, query_elevations)
+    
+    # yPred, yVar = gaussian_model_utils.estimateUsingModel(
+    #     model, locations_lat, locations_lon, elevations, [query_datetime], time_offset)
 
-    elevations = (elevations.reshape((lat_size, lon_size))).tolist()
+    elevations = (elevations).tolist()
     yPred = yPred.reshape((lat_size, lon_size))
     yVar = yVar.reshape((lat_size, lon_size))
     estimates = yPred.tolist()
     variances = yVar.tolist()
-    print(lat_vector.tolist())
-    print(lon_vector.tolist())
     return jsonify({"Elevations":elevations, "PM2.5":estimates, "PM2.5 variance":variances, "Latitudes":lat_vector.tolist(), "Longitudes":lon_vector.tolist()})
+    
     
 
 @app.route("/api/timeAggregatedDataFrom", methods=["GET"])
@@ -525,7 +443,8 @@ def submit_sensor_query(lat_lo, lat_hi, lon_lo, lon_hi, start_date, end_date):
     if query_job.error_result:
         print(query_job.error_result)
         return "Invalid API call - check documentation.", 400
-    sensor_data = query_job.result()  # Waits for query to finish
+    # Waits for query to finish
+    sensor_data = query_job.result()  
 
     return(sensor_data)
 
@@ -559,7 +478,9 @@ def request_model_data_local(lats, lons, radius, start_date, end_date):
             for i in range(1, num_points):
                 lat_lo, lat_hi, lon_lo, lon_hi = utils.boundingBoxUnion((utils.latlonBoundingBox(lats[i], lons[i], radius)), (lat_lo, lat_hi, lon_lo, lon_hi))
     else:
-        return "lats,lons data structure misalignment in request sensor data", 400               
+        return "lats,lons data structure misalignment in request sensor data", 400
+    app.logger.info("Query bounding box is %f %f %f %f" %(lat_lo, lat_hi, lon_lo, lon_hi))
+
    
     rows = submit_sensor_query(lat_lo, lat_hi, lon_lo, lon_hi, start_date, end_date)
     
@@ -590,7 +511,7 @@ def request_model_data():
 
     start_date = query_parameters.get('start_date')
     end_date = query_parameters.get('end_date')
-    print("model requuest api with " + str(lat) + ":" + str(lon) + " and radius " + str(radius) + " and start " + str(start_date) + " and end " + str(end_date))
+#    print("model requuest api with " + str(lat) + ":" + str(lon) + " and radius " + str(radius) + " and start " + str(start_date) + " and end " + str(end_date))
     # must format these for database
     start_datetime = utils.parseDateString(start_date)
     end_datetime = utils.parseDateString(end_date)
@@ -622,135 +543,18 @@ def getEstimatesForLocation():
 
     query_start_datetime = utils.parseDateString(query_start_date)
     query_end_datetime = utils.parseDateString(query_end_date)
-
-    print((
-        f"Query parameters: lat={query_lat} lon={query_lon} start_date={query_start_datetime}"
-        f" end_date={query_end_datetime} estimaterate={query_rate}"
-    ))
-
-    # step 0, load up the bounding box from file and check that request is within it
-    bounding_box_vertices = utils.loadBoundingBox('bounding_box.csv')
-    print(f'Loaded {len(bounding_box_vertices)} bounding box vertices.')
-
-    if not utils.isQueryInBoundingBox(bounding_box_vertices, query_lat, query_lon):
-        return 'The query location is outside of the bounding box.', 400
-
-    # step 1, load up correction factors from file
-    correction_factors = utils.loadCorrectionFactors('correction_factors.csv')
-    print(f'Loaded {len(correction_factors)} correction factors.')
-
-    # step 2, load up length scales from file
-    length_scales = utils.loadLengthScales('length_scales.csv')
-    print(f'Loaded {len(length_scales)} length scales.')
-
-    print('Loaded length scales:', length_scales, '\n')
-    length_scales = utils.getScalesInTimeRange(length_scales, query_start_datetime, query_end_datetime)
-    if len(length_scales) < 1:
-        msg = (
-            f"Incorrect number of length scales({len(length_scales)}) "
-            f"found in between {query_start_datetime} and {query_end_datetime}"
-        )
-        return msg, 400
-
-    latlon_length_scale = length_scales[0]['latlon']
-    elevation_length_scale = length_scales[0]['elevation']
-    time_length_scale = length_scales[0]['time']
-
-    print(
-        f'Using length scales: latlon={latlon_length_scale} elevation={elevation_length_scale} time={time_length_scale}'
-    )
-
-    # step 3, query relevent data
-
-# these conversions were when we were messing around with specifying radius in miles and so forth.      
-#    NUM_METERS_IN_MILE = 1609.34
-#    radius = latlon_length_scale / NUM_METERS_IN_MILE  # convert meters to miles for db query
-
-#    radius = latlon_length_scale / 70000
-
-
-# radius is in meters, as is the length scale and UTM.    
-    radius = SPACE_KERNEL_FACTOR_PADDING*latlon_length_scale
-
-    sensor_data = request_model_data_local(
-        lats=query_lat,
-        lons=query_lon,
-        radius=radius,
-        start_date=query_start_datetime - timedelta(hours=TIME_KERNEL_FACTOR_PADDING*time_length_scale),
-        end_date=query_end_datetime + timedelta(hours=TIME_KERNEL_FACTOR_PADDING*time_length_scale))
-
-    print("start date")
-    print(query_start_datetime - timedelta(hours=TIME_KERNEL_FACTOR_PADDING*time_length_scale))
-    print("end date")
-    print(query_end_datetime + timedelta(hours=TIME_KERNEL_FACTOR_PADDING*time_length_scale))
-    
-
-    unique_sensors = {datum['ID'] for datum in sensor_data}
-    print(f'Loaded {len(sensor_data)} data points for {len(unique_sensors)} unique devices from bgquery.')
-
-    # step 3.5, convert lat/lon to UTM coordinates
-    try:
-        utils.convertLatLonToUTM(sensor_data)
-    except ValueError as err:
-        return f'{str(err)}', 400
-
-    sensor_data = [datum for datum in sensor_data if datum['zone_num'] == 12]
-
-    unique_sensors = {datum['ID'] for datum in sensor_data}
-    print((
-        "After removing points with zone num != 12: "
-        f"{len(sensor_data)} data points for {len(unique_sensors)} unique devices."
-    ))
-
-    # Step 4, parse sensor type from the version
-    sensor_source_to_type = {'AirU': '3003', 'PurpleAir': '5003', 'DAQ': '0000'}
-# DAQ does not need a correction factor
-    for datum in sensor_data:
-        datum['type'] =  sensor_source_to_type[datum['SensorSource']]
-
-    print(f'Fields: {sensor_data[0].keys()}')
-
-    # step 4.5, Data Screening
-    print('Screening data')
-    sensor_data = utils.removeInvalidSensors(sensor_data)
-
-    # step 5, apply correction factors to the data
-    for datum in sensor_data:
-        datum['PM2_5'] = utils.applyCorrectionFactor(correction_factors, datum['time'], datum['PM2_5'], datum['type'])
-
-    # step 6, add elevation values to the data
-    # NOTICE - the elevation object takes locations in the form "lon-lat"
-    for datum in sensor_data:
-        if 'Altitude' not in datum:
-            datum['Altitude'] = elevation_interpolator([datum['Longitude']],[datum['Latitude']])[0]
-
-                # step 8, get estimates from model
     query_dates = utils.interpolateQueryDates(query_start_datetime, query_end_datetime, query_rate)
-    # print("query_dates are")
-    # print(query_dates)
-    # NOTICE - the elevation object takes locations in the form "lon-lat"
-    query_elevation = elevation_interpolator(np.array([query_lon]), np.array([query_lat]))[0]
+    query_elevations = np.array(elevation_interpolator(query_lon, query_lat))
+    query_locations = np.column_stack((np.array((query_lat)), np.array((query_lon))))
 
-    # here we break the query up into pieces for efficiency
+    app.logger.info(
+        "Query parameters: lat= %f lon= %f start_date= %s end_date=%s estimaterate=%f hours/estimate" %(query_lat, query_lon, query_start_datetime, query_end_datetime, query_rate))
 
-    time_padding = timedelta(hours=TIME_KERNEL_FACTOR_PADDING*time_length_scale)
-    time_sequence_length = timedelta(hours = TIME_SEQUENCE_SIZE*time_length_scale)
-    sensor_sequence, query_sequence = utils.chunkTimeQueryData(query_dates, time_sequence_length, time_padding)
+    yPred, yVar = computeEstimatesForLocations(query_dates, query_locations, query_elevations)
 
-    yPred = np.empty((1, 0))
-    yVar = np.empty((1, 0))
-    for i in range(len(query_sequence)):
-    # step 7, Create Model
-        print(sensor_sequence[i])
-        print(query_sequence[i])
-        model, time_offset = gaussian_model_utils.createModel(
-            sensor_data, latlon_length_scale, elevation_length_scale, time_length_scale, sensor_sequence[i][0], sensor_sequence[i][1], save_matrices=False)
-        yPred_tmp, yVar_tmp = gaussian_model_utils.estimateUsingModel(
-        model, np.array([query_lat]), np.array([query_lon]), query_elevation, query_sequence[i], time_offset, save_matrices=True)
-        # put the estimates together into one matrix
-        yPred = np.concatenate((yPred, yPred_tmp), axis=1)
-        yVar = np.concatenate((yVar, yVar_tmp), axis=1)
-        
+
+
+    
 # convert the arrays to lists of floats
 
 #
@@ -760,7 +564,7 @@ def getEstimatesForLocation():
     estimates = []
     for i in range(num_times):
         estimates.append(
-            {'PM2_5': (yPred[0, i]), 'variance': (yVar[0, i]), 'datetime': query_dates[i].strftime('%Y-%m-%d %H:%M:%S%z'), 'Latitude': query_lat, 'Longitude': query_lon, 'Elevation': query_elevation}
+            {'PM2_5': (yPred[0, i]), 'variance': (yVar[0, i]), 'datetime': query_dates[i].strftime('%Y-%m-%d %H:%M:%S%z'), 'Latitude': query_lat, 'Longitude': query_lon, 'Elevation': query_elevations[0]}
             )
 
     # estimates = [
@@ -805,14 +609,44 @@ def getEstimatesForLocations():
     query_start_datetime = utils.parseDateString(query_start_date)
     query_end_datetime = utils.parseDateString(query_end_date)
 
-    print((
-        f"Query parameters: lat={query_lats} lon={query_lons} start_date={query_start_datetime}"
-        f" end_date={query_end_datetime} estimaterate={query_rate}"
-    ))
+#    print((
+#        f"Query parameters: lat={query_lats} lon={query_lons} start_date={query_start_datetime}"
+#        f" end_date={query_end_datetime} estimaterate={query_rate}"
+#    ))
 
+################  start of generic code
+### we know:     query locations, query start date, query end data
+    query_dates = utils.interpolateQueryDates(query_start_datetime, query_end_datetime, query_rate)
+    query_locations = np.column_stack((query_lats, query_lons))
+# note - the elevation grid is the wrong way around, so you need to put in lons first
+    query_elevations = elevation_interpolator(query_lons, query_lats)
+
+    
+    yPred, yVar = computeEstimatesForLocations(query_dates, query_locations, query_elevations)
+
+    num_times = len(query_dates)
+    estimates = []
+
+    for i in range(num_times):
+        estimates.append(
+            {'PM2_5': (yPred[:,i]).tolist(), 'variance': (yVar[:,i]).tolist(), 'datetime': query_dates[i].strftime('%Y-%m-%d %H:%M:%S%z'), 'Latitude': query_lats.tolist(), 'Longitude': query_lons.tolist(), 'Elevation': query_elevations.tolist()}
+            )
+
+    return jsonify(estimates)
+
+
+# this is a generic helper function that sets everything up and runs the model
+def computeEstimatesForLocations(query_dates, query_locations, query_elevations):
+    num_locations = query_locations.shape[0]
+    query_lats = query_locations[:,0]
+    query_lons = query_locations[:,1]
+    query_start_datetime = query_dates[0]
+    query_end_datetime = query_dates[-1]
+
+            
     # step 0, load up the bounding box from file and check that request is within it
     bounding_box_vertices = utils.loadBoundingBox('bounding_box.csv')
-    print(f'Loaded {len(bounding_box_vertices)} bounding box vertices.')
+    app.logger.info("Loaded " + str(len(bounding_box_vertices)) + " bounding box vertices.")
 
     for i in range(num_locations):
         if not utils.isQueryInBoundingBox(bounding_box_vertices, query_lats[i], query_lons[i]):
@@ -820,13 +654,12 @@ def getEstimatesForLocations():
 
     # step 1, load up correction factors from file
     correction_factors = utils.loadCorrectionFactors('correction_factors.csv')
-    print(f'Loaded {len(correction_factors)} correction factors.')
+    app.logger.debug(f'Loaded {len(correction_factors)} correction factors.')
 
     # step 2, load up length scales from file
     length_scales = utils.loadLengthScales('length_scales.csv')
-    print(f'Loaded {len(length_scales)} length scales.')
+    app.logger.debug("Loaded length scales: " + str(length_scales))
 
-    print('Loaded length scales:', length_scales, '\n')
     length_scales = utils.getScalesInTimeRange(length_scales, query_start_datetime, query_end_datetime)
     if len(length_scales) < 1:
         msg = (
@@ -839,9 +672,7 @@ def getEstimatesForLocations():
     elevation_length_scale = length_scales[0]['elevation']
     time_length_scale = length_scales[0]['time']
 
-    print(
-        f'Using length scales: latlon={latlon_length_scale} elevation={elevation_length_scale} time={time_length_scale}'
-    )
+    app.logger.debug(f'Using length scales: latlon={latlon_length_scale} elevation={elevation_length_scale} time={time_length_scale}')
 
     # step 3, query relevent data
 
@@ -862,10 +693,9 @@ def getEstimatesForLocations():
         start_date=query_start_datetime - timedelta(hours=TIME_KERNEL_FACTOR_PADDING*time_length_scale),
         end_date=query_end_datetime + timedelta(hours=TIME_KERNEL_FACTOR_PADDING*time_length_scale))
 
-    
 
     unique_sensors = {datum['ID'] for datum in sensor_data}
-    print(f'Loaded {len(sensor_data)} data points for {len(unique_sensors)} unique devices from bgquery.')
+    app.logger.info(f'Loaded {len(sensor_data)} data points for {len(unique_sensors)} unique devices from bgquery.')
 
     # step 3.5, convert lat/lon to UTM coordinates
     try:
@@ -876,7 +706,7 @@ def getEstimatesForLocations():
     sensor_data = [datum for datum in sensor_data if datum['zone_num'] == 12]
 
     unique_sensors = {datum['ID'] for datum in sensor_data}
-    print((
+    app.logger.info((
         "After removing points with zone num != 12: "
         f"{len(sensor_data)} data points for {len(unique_sensors)} unique devices."
     ))
@@ -887,10 +717,10 @@ def getEstimatesForLocations():
     for datum in sensor_data:
         datum['type'] =  sensor_source_to_type[datum['SensorSource']]
 
-    print(f'Fields: {sensor_data[0].keys()}')
+    app.logger.info(f'Fields: {sensor_data[0].keys()}')
 
     # step 4.5, Data Screening
-    print('Screening data')
+#    print('Screening data')
     sensor_data = utils.removeInvalidSensors(sensor_data)
 
     # step 5, apply correction factors to the data
@@ -903,28 +733,39 @@ def getEstimatesForLocations():
         if 'Altitude' not in datum:
             datum['Altitude'] = elevation_interpolator([datum['Longitude']],[datum['Latitude']])[0]
 
+    # This does the calculation in one step --- old method --- less efficient.  Below we break it into pieces.  Remove this once the code below (step 7) is fully tested.
     # step 7, get estimates from model
-    query_dates = utils.interpolateQueryDates(query_start_datetime, query_end_datetime, query_rate)
-    # note - the elevation grid is the wrong way around, so you need to put in lons first
-    query_elevations = elevation_interpolator(query_lons, query_lats)
-            
-    # step 8, Create Model
-    model, time_offset = gaussian_model_utils.createModel(
-        sensor_data, latlon_length_scale, elevation_length_scale, time_length_scale)
-    # step 9, Compute estimates
-    yPred, yVar = gaussian_model_utils.estimateUsingModel(
-        model, query_lats, query_lons, query_elevations, query_dates, time_offset)
+    # # step 8, Create Model
+    # model, time_offset = gaussian_model_utils.createModel(
+    #     sensor_data, latlon_length_scale, elevation_length_scale, time_length_scale)
+    # # step 9, Compute estimates
+    # yPred, yVar = gaussian_model_utils.estimateUsingModel(
+    #     model, query_lats, query_lons, query_elevations, query_dates, time_offset)
 
-    num_times = len(query_dates)
-    estimates = []
+    
+    time_padding = timedelta(hours=TIME_KERNEL_FACTOR_PADDING*time_length_scale)
+    time_sequence_length = timedelta(hours = TIME_SEQUENCE_SIZE*time_length_scale)
+    sensor_sequence, query_sequence = utils.chunkTimeQueryData(query_dates, time_sequence_length, time_padding)
 
-    for i in range(num_times):
-        estimates.append(
-            {'PM2_5': (yPred[:,i]).tolist(), 'variance': (yVar[:,i]).tolist(), 'datetime': query_dates[i].strftime('%Y-%m-%d %H:%M:%S%z'), 'Latitude': query_lats.tolist(), 'Longitude': query_lons.tolist(), 'Elevation': query_elevations.tolist()}
-            )
+    yPred = np.empty((num_locations, 0))
+    yVar = np.empty((num_locations, 0))
+    for i in range(len(query_sequence)):
+    # step 7, Create Model
+        model, time_offset = gaussian_model_utils.createModel(
+            sensor_data, latlon_length_scale, elevation_length_scale, time_length_scale, sensor_sequence[i][0], sensor_sequence[i][1], save_matrices=False)
+        yPred_tmp, yVar_tmp = gaussian_model_utils.estimateUsingModel(
+        model, query_lats, query_lons, query_elevations, query_sequence[i], time_offset, save_matrices=True)
+        # put the estimates together into one matrix
+        yPred = np.concatenate((yPred, yPred_tmp), axis=1)
+        yVar = np.concatenate((yVar, yVar_tmp), axis=1)
 
-    return jsonify(estimates)
+    if np.min(yPred) < MIN_ACCEPTABLE_ESTIMATE:
+        app.logger.warn("got estimate below level " + str(MIN_ACCEPTABLE_ESTIMATE))
+        
+# Here we clamp values to ensure that small negative values to do not appear
+    yPred = np.clip(yPred, a_min = 0., a_max = None)
 
+    return yPred, yVar
 
 
 
