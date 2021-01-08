@@ -407,7 +407,7 @@ def createModel(sensor_data, latlon_length_scale, elevation_length_scale, time_l
                                           latlon_length_scale=float(latlon_length_scale),
                                           elevation_length_scale=float(elevation_length_scale),
                                           time_length_scale=float(time_length_scale),
-                                          noise_variance=36.0, signal_variance=400.0)
+                                          noise_variance=36.0, signal_variance=400.0, time_structured=False)
 
     if save_matrices:
         numpy.savetxt('space_coords.csv', space_coordinates, delimiter=',')
