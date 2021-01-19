@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta
 import os
-from aqandu import app, bq_client, bigquery, utils, elevation_interpolator, gaussian_model_utils
+from aqandu import app, bq_client, bigquery, utils, elevation_interpolator, gaussian_model_utils, cache
 from dotenv import load_dotenv
 from flask import request, jsonify
 # regular expression stuff for decoding quer 
@@ -88,6 +88,7 @@ def rawDataFrom():
 
 
 @app.route("/api/liveSensors", methods=["GET"])
+@cache.cached(timeout=59)
 def liveSensors():
     # Get the arguments from the query string
     sensor_source = request.args.get('sensorSource')
