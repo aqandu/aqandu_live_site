@@ -530,9 +530,9 @@ def getEstimatesForLocation():
     try:
         query_lat = float(request.args.get('lat'))
         query_lon = float(request.args.get('lon'))
-        query_rate = float(request.args.get('estimaterate'))
+        query_rate = float(request.args.get('estimatesrate'))
     except ValueError:
-        return 'lat, lon, estimaterate must be floats.', 400
+        return 'lat, lon, estimatesrate must be floats.', 400
 
     query_start_date = request.args.get('start_date')
     query_end_date = request.args.get('end_date')
@@ -549,7 +549,7 @@ def getEstimatesForLocation():
     query_locations = np.column_stack((np.array((query_lat)), np.array((query_lon))))
 
     app.logger.info(
-        "Query parameters: lat= %f lon= %f start_date= %s end_date=%s estimaterate=%f hours/estimate" %(query_lat, query_lon, query_start_datetime, query_end_datetime, query_rate))
+        "Query parameters: lat= %f lon= %f start_date= %s end_date=%s estimatesrate=%f hours/estimate" %(query_lat, query_lon, query_start_datetime, query_end_datetime, query_rate))
 
     yPred, yVar = computeEstimatesForLocations(query_dates, query_locations, query_elevations)
 
@@ -586,9 +586,9 @@ def getEstimatesForLocations():
 
     # step -1, parse query parameters
     try:
-        query_rate = float(request.args.get('estimaterate'))
+        query_rate = float(request.args.get('estimatesrate'))
     except ValueError:
-        return 'estimaterate must be floats.', 400
+        return 'estimatesrate must be floats.', 400
 
 ## regular expression for floats
     regex = '[+-]?[0-9]+\.[0-9]+'
@@ -612,7 +612,7 @@ def getEstimatesForLocations():
 
 #    print((
 #        f"Query parameters: lat={query_lats} lon={query_lons} start_date={query_start_datetime}"
-#        f" end_date={query_end_datetime} estimaterate={query_rate}"
+#        f" end_date={query_end_datetime} estimatesrate={query_rate}"
 #    ))
 
 ################  start of generic code
