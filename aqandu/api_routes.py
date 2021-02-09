@@ -88,7 +88,7 @@ def rawDataFrom():
 
 
 @app.route("/api/liveSensors", methods=["GET"])
-@cache.cached(timeout=59)
+@cache.cached(timeout=59, query_string=True)
 def liveSensors():
     # Get the arguments from the query string
     sensor_source = request.args.get('sensorSource')
