@@ -205,7 +205,7 @@ def interpolateBadElements(matrix, bad_value = 0):
                 logging.debug("got full row of bad indices?" + str(row))
         if (float(num_interp_fails)/matrix.shape[0]) > FRACTION_SIGNIFICANT_FAILS:
             logging.warn("got %d interp failures out of %d sensors", num_interp_fails, matrix.shape[0])
-            saveMatrixToFile(matrix, 'failed_interp_matrix.txt')            
+            # saveMatrixToFile(matrix, 'failed_interp_matrix.txt')            
                 
         
 
@@ -316,26 +316,28 @@ def setupDataMatrix2(sensor_data, space_coordinates, time_coordinates, device_lo
 #            data_matrix[space_index,i] = time_data_array[i,0]
         data_matrix[space_index,:] = time_data_array
 
-    saveMatrixToFile(data_matrix, '1matrix.txt')
-    numpy.savetxt('1matrix.csv', data_matrix, delimiter=',')
-    interpolateBadElements(data_matrix, -1)
-    saveMatrixToFile(data_matrix, '2interpolated.txt')
-    numpy.savetxt('2interpolated.csv', data_matrix, delimiter=',')
-    data_matrix, space_coordinates = removeBadSensors(data_matrix, space_coordinates, 0.75)
-    saveMatrixToFile(data_matrix, '3matrix_removed_bad.txt')
-    numpy.savetxt('3removed_bad.csv', data_matrix, delimiter=',')
-    # fill in missing readings using the average values for each time slice
+# check to make sure we have data        
+    if (data_matrix.size > 0):
+        # saveMatrixToFile(data_matrix, '1matrix.txt')
+        # numpy.savetxt('1matrix.csv', data_matrix, delimiter=',')
+        interpolateBadElements(data_matrix, -1)
+        # saveMatrixToFile(data_matrix, '2interpolated.txt')
+        # numpy.savetxt('2interpolated.csv', data_matrix, delimiter=',')
+        data_matrix, space_coordinates = removeBadSensors(data_matrix, space_coordinates, 0.75)
+        # saveMatrixToFile(data_matrix, '3matrix_removed_bad.txt')
+        # numpy.savetxt('3removed_bad.csv', data_matrix, delimiter=',')
+        # fill in missing readings using the average values for each time slice
 
-#  This is important because bins on either end of the time range might not have enough measurements
-#  This is now taken care of again.  Once full tested, remove this.
-#  data_matrix, time_coordinates = trimBadEdgeElements(data_matrix, time_coordinates)
-#  saveMatrixToFile(data_matrix, '4matrixtrimmed.txt')
-#  numpy.savetxt('4matrixtrimmed.csv', data_matrix, delimiter=',')
+        #  This is important because bins on either end of the time range might not have enough measurements
+        #  This is now taken care of again.  Once full tested, remove this.
+        #  data_matrix, time_coordinates = trimBadEdgeElements(data_matrix, time_coordinates)
+        #  saveMatrixToFile(data_matrix, '4matrixtrimmed.txt')
+        #  numpy.savetxt('4matrixtrimmed.csv', data_matrix, delimiter=',')
 
-    # fill in missing readings using the average values for each time slice
-    data_matrix = fillInMissingReadings(data_matrix, -1)
-    saveMatrixToFile(data_matrix, '4matrix_filled_bad.txt')
-    numpy.savetxt('4filled_bad.csv', data_matrix, delimiter=',')
+        # fill in missing readings using the average values for each time slice
+        data_matrix = fillInMissingReadings(data_matrix, -1)
+        # saveMatrixToFile(data_matrix, '4matrix_filled_bad.txt')
+        # numpy.savetxt('4filled_bad.csv', data_matrix, delimiter=',')
 
 
 # for debugging report id of last sensor in matrix - to get raw data
@@ -399,25 +401,30 @@ def createModel(sensor_data, latlon_length_scale, elevation_length_scale, time_l
 #    data_matrix, space_coordinates, time_coordinates = setupDataMatrix(sensor_data, space_coordinates, time_coordinates, device_location_map)
     data_matrix, space_coordinates, time_coordinates = setupDataMatrix2(sensor_data, space_coordinates, time_coordinates, device_location_map)
 
-    space_coordinates = torch.tensor(space_coordinates)     # convert data to pytorch tensor
-    time_coordinates = torch.tensor(time_coordinates)   # convert data to pytorch tensor
-    data_matrix = torch.tensor(data_matrix)   # convert data to pytorch tensor
+    if (data_matrix.size > 0):
+        space_coordinates = torch.tensor(space_coordinates)     # convert data to pytorch tensor
+        time_coordinates = torch.tensor(time_coordinates)   # convert data to pytorch tensor
+        data_matrix = torch.tensor(data_matrix)   # convert data to pytorch tensor
 
-    model = gaussian_model.gaussian_model(space_coordinates, time_coordinates, data_matrix,
-                                          latlon_length_scale=float(latlon_length_scale),
-                                          elevation_length_scale=float(elevation_length_scale),
-                                          time_length_scale=float(time_length_scale),
-                                          noise_variance=36.0, signal_variance=400.0, time_structured=False)
+        model = gaussian_model.gaussian_model(space_coordinates, time_coordinates, data_matrix,
+                                                  latlon_length_scale=float(latlon_length_scale),
+                                                  elevation_length_scale=float(elevation_length_scale),
+                                                  time_length_scale=float(time_length_scale),
+                                                  noise_variance=36.0, signal_variance=400.0, time_structured=False)
+        status = ""
+    else:
+        model = None
+        status = "0 measurements"
+        
+    # if save_matrices:
+        # numpy.savetxt('space_coords.csv', space_coordinates, delimiter=',')
+        # numpy.savetxt('time_coords.csv', time_coordinates, delimiter=',')
+        # numpy.savetxt('PM_data.csv', data_matrix, delimiter=',')
+        # numpy.savetxt('latlon_scale.csv', numpy.full([1], latlon_length_scale), delimiter=',')
+        # numpy.savetxt('time_scale.csv', numpy.full([1], time_length_scale), delimiter=',')
+        # numpy.savetxt('elevation_scale.csv', numpy.full([1], elevation_length_scale), delimiter=',')
 
-    if save_matrices:
-        numpy.savetxt('space_coords.csv', space_coordinates, delimiter=',')
-        numpy.savetxt('time_coords.csv', time_coordinates, delimiter=',')
-        numpy.savetxt('PM_data.csv', data_matrix, delimiter=',')
-        numpy.savetxt('latlon_scale.csv', numpy.full([1], latlon_length_scale), delimiter=',')
-        numpy.savetxt('time_scale.csv', numpy.full([1], time_length_scale), delimiter=',')
-        numpy.savetxt('elevation_scale.csv', numpy.full([1], elevation_length_scale), delimiter=',')
-
-    return model, time_offset
+    return model, time_offset, status
 
 
 # Ross changed this to do the formatting in the api_routes call instead of here
@@ -456,17 +463,17 @@ def estimateUsingModel(model, lats, lons, elevations, query_dates, time_offset, 
     query_dates2 = numpy.transpose(numpy.asarray([time_coordinates]))
     query_time = torch.tensor(query_dates2)
 
-    if save_matrices:
-        numpy.savetxt('query_space_coords.csv', space_coordinates, delimiter=',')
-        numpy.savetxt('query_time_coords.csv', query_time, delimiter=',')
+    # if save_matrices:
+        # numpy.savetxt('query_space_coords.csv', space_coordinates, delimiter=',')
+        # numpy.savetxt('query_time_coords.csv', query_time, delimiter=',')
     
-    yPred, yVar = model(query_space, query_time)
+    yPred, yVar, status = model(query_space, query_time)
     yPred = numpy.maximum(yPred.numpy(), 0.0)
     yVar = yVar.numpy()
     if numpy.amin(yVar) < 0.0:
         logging.warn("Got negative values in variance, suggesting a numerical problem")
 
-    return yPred, yVar
+    return yPred, yVar, status
 
 # 
 # this kind of formatting of data is now done in the API (api_routes), because it will get formatted differently for different types of queries. 

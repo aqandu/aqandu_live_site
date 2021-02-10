@@ -49,7 +49,7 @@ def rawDataFrom():
 
     # Check that the data is formatted correctly
     if not utils.validateDate(start) or not utils.validateDate(end):
-        msg = "Incorrect date format, should be {utils.DATETIME_FORMAT}, e.g.: 2018-01-03T20:00:00Z"
+        msg = f"Incorrect date format, should be {utils.DATETIME_FORMAT}, e.g.: 2018-01-03T20:00:00Z"
         return msg, 400
 
     # Define the BigQuery query
@@ -442,7 +442,7 @@ def submit_sensor_query(lat_lo, lat_hi, lon_lo, lon_hi, start_date, end_date):
     query_job = bq_client.query(query, job_config=job_config)
 
     if query_job.error_result:
-        print(query_job.error_result)
+        app.logger.error(query_job.error_result)
         return "Invalid API call - check documentation.", 400
     # Waits for query to finish
     sensor_data = query_job.result()  
@@ -551,9 +551,7 @@ def getEstimatesForLocation():
     app.logger.info(
         "Query parameters: lat= %f lon= %f start_date= %s end_date=%s estimatesrate=%f hours/estimate" %(query_lat, query_lon, query_start_datetime, query_end_datetime, query_rate))
 
-    yPred, yVar = computeEstimatesForLocations(query_dates, query_locations, query_elevations)
-
-
+    yPred, yVar, status = computeEstimatesForLocations(query_dates, query_locations, query_elevations)
 
     
 # convert the arrays to lists of floats
@@ -565,7 +563,7 @@ def getEstimatesForLocation():
     estimates = []
     for i in range(num_times):
         estimates.append(
-            {'PM2_5': (yPred[0, i]), 'variance': (yVar[0, i]), 'datetime': query_dates[i].strftime('%Y-%m-%d %H:%M:%S%z'), 'Latitude': query_lat, 'Longitude': query_lon, 'Elevation': query_elevations[0]}
+            {'PM2_5': (yPred[0, i]), 'variance': (yVar[0, i]), 'datetime': query_dates[i].strftime('%Y-%m-%d %H:%M:%S%z'), 'Latitude': query_lat, 'Longitude': query_lon, 'Elevation': query_elevations[0], 'Status': status[i]}
             )
 
     # estimates = [
@@ -630,7 +628,7 @@ def getEstimatesForLocations():
 
     for i in range(num_times):
         estimates.append(
-            {'PM2_5': (yPred[:,i]).tolist(), 'variance': (yVar[:,i]).tolist(), 'datetime': query_dates[i].strftime('%Y-%m-%d %H:%M:%S%z'), 'Latitude': query_lats.tolist(), 'Longitude': query_lons.tolist(), 'Elevation': query_elevations.tolist()}
+            {'PM2_5': (yPred[:,i]).tolist(), 'variance': (yVar[:,i]).tolist(), 'datetime': query_dates[i].strftime('%Y-%m-%d %H:%M:%S%z'), 'Latitude': query_lats.tolist(), 'Longitude': query_lons.tolist(), 'Elevation': query_elevations.tolist(), 'Status': status[i]}
             )
 
     return jsonify(estimates)
@@ -750,15 +748,23 @@ def computeEstimatesForLocations(query_dates, query_locations, query_elevations)
 
     yPred = np.empty((num_locations, 0))
     yVar = np.empty((num_locations, 0))
+    status = []
     for i in range(len(query_sequence)):
     # step 7, Create Model
-        model, time_offset = gaussian_model_utils.createModel(
+        model, time_offset, model_status = gaussian_model_utils.createModel(
             sensor_data, latlon_length_scale, elevation_length_scale, time_length_scale, sensor_sequence[i][0], sensor_sequence[i][1], save_matrices=False)
-        yPred_tmp, yVar_tmp = gaussian_model_utils.estimateUsingModel(
-        model, query_lats, query_lons, query_elevations, query_sequence[i], time_offset, save_matrices=True)
+        # check to see if there is a valid model
+        if (model == None):
+            yPred_tmp = np.full((query_lats.shape[0], len(query_sequence[i])), 0.0)
+            yVar_tmp = np.full((query_lats.shape[0], len(query_sequence[i])), np.nan)
+            status_estimate_tmp = [model_status for i in range(len(query_sequence[i]))]
+        else:
+            yPred_tmp, yVar_tmp, status_estimate_tmp = gaussian_model_utils.estimateUsingModel(
+                model, query_lats, query_lons, query_elevations, query_sequence[i], time_offset, save_matrices=True)
         # put the estimates together into one matrix
         yPred = np.concatenate((yPred, yPred_tmp), axis=1)
         yVar = np.concatenate((yVar, yVar_tmp), axis=1)
+        status = status + status_estimate_tmp
 
     if np.min(yPred) < MIN_ACCEPTABLE_ESTIMATE:
         app.logger.warn("got estimate below level " + str(MIN_ACCEPTABLE_ESTIMATE))
@@ -766,7 +772,7 @@ def computeEstimatesForLocations(query_dates, query_locations, query_elevations)
 # Here we clamp values to ensure that small negative values to do not appear
     yPred = np.clip(yPred, a_min = 0., a_max = None)
 
-    return yPred, yVar
+    return yPred, yVar, status
 
 
 
