@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import pytz
 import utm
 from matplotlib.path import Path
@@ -22,7 +22,7 @@ def validateDate(dateString):
 
 def parseDateString(datetime_string):
     """Parse date string into a datetime object"""
-    return datetime.strptime(datetime_string, DATETIME_FORMAT).astimezone(pytz.timezone('US/Mountain'))
+    return datetime.strptime(datetime_string, DATETIME_FORMAT).replace(tzinfo=timezone.utc)
 
 #  this breaks the time part of the  eatimation/data into pieces to speed up computation
 # sequence_size_mins
@@ -136,7 +136,7 @@ def isQueryInBoundingBox(bounding_box_vertices, query_lat, query_lon):
 def removeInvalidSensors(sensor_data):
     # sensor is invalid if its average reading for any day exceeds 350 ug/m3
     epoch = datetime(1970, 1, 1)
-    epoch = pytz.timezone('US/Mountain').localize(epoch)
+    epoch = pytz.timezone('UTC').localize(epoch)
     dayCounts = {}
     dayReadings = {}
     for datum in sensor_data:

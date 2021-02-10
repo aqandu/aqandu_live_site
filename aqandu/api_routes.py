@@ -49,7 +49,7 @@ def rawDataFrom():
 
     # Check that the data is formatted correctly
     if not utils.validateDate(start) or not utils.validateDate(end):
-        msg = "Incorrect date format, should be {utils.DATETIME_FORMAT}, e.g.: 2018-01-03T20:00:00Z"
+        msg = f"Incorrect date format, should be {utils.DATETIME_FORMAT}, e.g.: 2018-01-03T20:00:00Z"
         return msg, 400
 
     # Define the BigQuery query

@@ -1235,10 +1235,7 @@ function createNewMarker(location) {
   // create Dot
   const randomClickMarker = [{ 'ID': markerID, 'SensorSource': 'sensorLayerRandomMarker', 'Latitude': String(location.latlng.lat), 'Longitude': String(location.latlng.lng) }]
   sensorLayerRandomMarker(randomClickMarker)
-
-    console.log(pastDate, todaysDate)
-    console.log(formatDateTime(pastDate), formatDateTime(todaysDate))
-    const predictionsForLocationURL = generateURL('/getEstimatesForLocation', { 'location': { 'lat':  String(location.latlng.lat), 'lon': String(location.latlng.lng) }, 'start_date': formatDateTime(pastDate), 'end_date': formatDateTime(todaysDate), 'estimatesrate': 1.0 })
+  const predictionsForLocationURL = generateURL('/getEstimatesForLocation', { 'location': { 'lat':  String(location.latlng.lat), 'lon': String(location.latlng.lng) }, 'start_date': formatDateTime(pastDate), 'end_date': formatDateTime(todaysDate), 'estimatesrate': 1.0 })
 
   getDataFromDB(predictionsForLocationURL).then(data => {
     // parse the incoming bilinear interpolated data
@@ -1298,11 +1295,7 @@ function showSlider() {
 }
 
 function formatDateTime(dateTime) {
-    var tzoffset = (new Date()).getTimezoneOffset() * 60000; //offset in milliseconds
-    var localISOTime = (new Date(dateTime - tzoffset)).toISOString()
-    console.log('debugging', tzoffset, dateTime, localISOTime)
-    return localISOTime
-//    return `${dateTime.toISOString().substr(0, 19)}Z`
+  return `${dateTime.toISOString().substr(0, 19)}Z`
 }
 
 function updateNumberOfSensors(data) {
