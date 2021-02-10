@@ -7,14 +7,16 @@ from flask_caching import Cache
 from google.cloud import bigquery
 import logging
 import time
+import sys
 
 
 load_dotenv()
 PROJECT_ID = os.getenv("PROJECTID")
 
 
-logfile = "serve.log"
-logging.basicConfig(filename=logfile, level=logging.DEBUG, format = '%(levelname)s: %(filename)s: %(message)s')
+# logfile = "serve.log"
+# logging.basicConfig(filename=logfile, level=logging.DEBUG, format = '%(levelname)s: %(filename)s: %(message)s')
+logging.basicConfig(stream=sys.stdout, level=logging.DEBUG, format = '%(levelname)s: %(filename)s: %(message)s')
 logging.info('API server started at %s', time.asctime(time.localtime()))
 
 app = Flask(__name__)
