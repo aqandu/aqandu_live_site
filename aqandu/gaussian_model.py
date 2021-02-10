@@ -217,7 +217,7 @@ class gaussian_model(nn.Module):
                 self.time_coordinates,
                 torch.exp(self.log_time_length_scale)
                 ) + torch.eye(self.time_coordinates.size(0)) * JITTER
-            np.savetxt('temp_kernel_unstructured.csv', (temporal_kernel).detach().numpy(), delimiter = ';')
+            # np.savetxt('temp_kernel_unstructured.csv', (temporal_kernel).detach().numpy(), delimiter = ';')
             eigen_value_t, eigen_vector_t = torch.symeig(temporal_kernel, eigenvectors=True)
             eigen_vector_st = kronecker(eigen_vector_t, eigen_vector_s)
             eigen_value_st = kronecker(eigen_value_t.view(-1, 1), eigen_value_s.view(-1, 1)).view(-1)

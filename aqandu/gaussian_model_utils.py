@@ -205,7 +205,7 @@ def interpolateBadElements(matrix, bad_value = 0):
                 logging.debug("got full row of bad indices?" + str(row))
         if (float(num_interp_fails)/matrix.shape[0]) > FRACTION_SIGNIFICANT_FAILS:
             logging.warn("got %d interp failures out of %d sensors", num_interp_fails, matrix.shape[0])
-            saveMatrixToFile(matrix, 'failed_interp_matrix.txt')            
+            # saveMatrixToFile(matrix, 'failed_interp_matrix.txt')            
                 
         
 
@@ -318,14 +318,14 @@ def setupDataMatrix2(sensor_data, space_coordinates, time_coordinates, device_lo
 
 # check to make sure we have data        
     if (data_matrix.size > 0):
-        saveMatrixToFile(data_matrix, '1matrix.txt')
-        numpy.savetxt('1matrix.csv', data_matrix, delimiter=',')
+        # saveMatrixToFile(data_matrix, '1matrix.txt')
+        # numpy.savetxt('1matrix.csv', data_matrix, delimiter=',')
         interpolateBadElements(data_matrix, -1)
-        saveMatrixToFile(data_matrix, '2interpolated.txt')
-        numpy.savetxt('2interpolated.csv', data_matrix, delimiter=',')
+        # saveMatrixToFile(data_matrix, '2interpolated.txt')
+        # numpy.savetxt('2interpolated.csv', data_matrix, delimiter=',')
         data_matrix, space_coordinates = removeBadSensors(data_matrix, space_coordinates, 0.75)
-        saveMatrixToFile(data_matrix, '3matrix_removed_bad.txt')
-        numpy.savetxt('3removed_bad.csv', data_matrix, delimiter=',')
+        # saveMatrixToFile(data_matrix, '3matrix_removed_bad.txt')
+        # numpy.savetxt('3removed_bad.csv', data_matrix, delimiter=',')
         # fill in missing readings using the average values for each time slice
 
         #  This is important because bins on either end of the time range might not have enough measurements
@@ -336,8 +336,8 @@ def setupDataMatrix2(sensor_data, space_coordinates, time_coordinates, device_lo
 
         # fill in missing readings using the average values for each time slice
         data_matrix = fillInMissingReadings(data_matrix, -1)
-        saveMatrixToFile(data_matrix, '4matrix_filled_bad.txt')
-        numpy.savetxt('4filled_bad.csv', data_matrix, delimiter=',')
+        # saveMatrixToFile(data_matrix, '4matrix_filled_bad.txt')
+        # numpy.savetxt('4filled_bad.csv', data_matrix, delimiter=',')
 
 
 # for debugging report id of last sensor in matrix - to get raw data
@@ -416,13 +416,13 @@ def createModel(sensor_data, latlon_length_scale, elevation_length_scale, time_l
         model = None
         status = "0 measurements"
         
-    if save_matrices:
-        numpy.savetxt('space_coords.csv', space_coordinates, delimiter=',')
-        numpy.savetxt('time_coords.csv', time_coordinates, delimiter=',')
-        numpy.savetxt('PM_data.csv', data_matrix, delimiter=',')
-        numpy.savetxt('latlon_scale.csv', numpy.full([1], latlon_length_scale), delimiter=',')
-        numpy.savetxt('time_scale.csv', numpy.full([1], time_length_scale), delimiter=',')
-        numpy.savetxt('elevation_scale.csv', numpy.full([1], elevation_length_scale), delimiter=',')
+    # if save_matrices:
+        # numpy.savetxt('space_coords.csv', space_coordinates, delimiter=',')
+        # numpy.savetxt('time_coords.csv', time_coordinates, delimiter=',')
+        # numpy.savetxt('PM_data.csv', data_matrix, delimiter=',')
+        # numpy.savetxt('latlon_scale.csv', numpy.full([1], latlon_length_scale), delimiter=',')
+        # numpy.savetxt('time_scale.csv', numpy.full([1], time_length_scale), delimiter=',')
+        # numpy.savetxt('elevation_scale.csv', numpy.full([1], elevation_length_scale), delimiter=',')
 
     return model, time_offset, status
 
@@ -463,9 +463,9 @@ def estimateUsingModel(model, lats, lons, elevations, query_dates, time_offset, 
     query_dates2 = numpy.transpose(numpy.asarray([time_coordinates]))
     query_time = torch.tensor(query_dates2)
 
-    if save_matrices:
-        numpy.savetxt('query_space_coords.csv', space_coordinates, delimiter=',')
-        numpy.savetxt('query_time_coords.csv', query_time, delimiter=',')
+    # if save_matrices:
+        # numpy.savetxt('query_space_coords.csv', space_coordinates, delimiter=',')
+        # numpy.savetxt('query_time_coords.csv', query_time, delimiter=',')
     
     yPred, yVar, status = model(query_space, query_time)
     yPred = numpy.maximum(yPred.numpy(), 0.0)

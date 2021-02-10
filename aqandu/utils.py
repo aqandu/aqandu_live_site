@@ -67,9 +67,9 @@ def setupElevationInterpolator(filename):
     elevation_grid = data['elevs']
     gridLongs = data['gridLongs']
     gridLats = data['gridLats']
-    np.savetxt('grid_lats.txt',gridLats)
-    np.savetxt('grid_lons.txt',gridLongs)
-    np.savetxt('elev_grid.txt', elevation_grid)
+    # np.savetxt('grid_lats.txt',gridLats)
+    # np.savetxt('grid_lons.txt',gridLongs)
+    # np.savetxt('elev_grid.txt', elevation_grid)
     return interpolate.interp2d(gridLongs, gridLats, elevation_grid, kind='cubic')
 
 
