@@ -8,14 +8,15 @@ from google.cloud import bigquery
 import logging
 import time
 import sys
+import json
 
 
 load_dotenv()
 PROJECT_ID = os.getenv("PROJECTID")
 
 
-# logfile = "serve.log"
-# logging.basicConfig(filename=logfile, level=logging.DEBUG, format = '%(levelname)s: %(filename)s: %(message)s')
+logfile = "serve.log"
+logging.basicConfig(filename=logfile, level=logging.DEBUG, format = '%(levelname)s: %(filename)s: %(message)s')
 logging.basicConfig(stream=sys.stdout, level=logging.DEBUG, format = '%(levelname)s: %(filename)s: %(message)s')
 logging.info('API server started at %s', time.asctime(time.localtime()))
 
@@ -26,12 +27,14 @@ app.config["CACHE_DEFAULT_TIMEOUT"] = 1
 cache = Cache(app)
 assets.init(app)
 
-os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "aqandu/aqandu.json"
+os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "aqandu/tetrad.json"
 bq_client = bigquery.Client(project=PROJECT_ID)
 
-from aqandu import utils
+from aqandu import jsonutils
 # WARNING - current status of the elevation_map.mat files is that longitude is the first coordinate
-elevation_interpolator = utils.setupElevationInterpolator('elevation_map.mat')
-
+#elevation_interpolator = utils.setupElevationInterpolator('elevation_map.mat')
+with open('area_params.json') as json_file:
+        json_temp = json.load(json_file)
+_area_models = jsonutils.buildAreaModelsFromJson(json_temp)
 
 from aqandu import api_routes, basic_routes

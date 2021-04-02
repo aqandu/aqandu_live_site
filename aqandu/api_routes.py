@@ -1,11 +1,16 @@
 from datetime import datetime, timedelta
 import os
-from aqandu import app, bq_client, bigquery, utils, elevation_interpolator, gaussian_model_utils, cache
+import json
+from aqandu import app, bq_client, bigquery, utils, gaussian_model_utils, cache, jsonutils
+from aqandu import _area_models
 from dotenv import load_dotenv
 from flask import request, jsonify
 # regular expression stuff for decoding quer 
 import re
 import numpy as np
+# Find timezone based on longitude and latitude
+from timezonefinder import TimezoneFinder 
+
 
 # Load in .env and set the table name
 load_dotenv()  # Required for compatibility with GCP, can't use pipenv there
@@ -202,26 +207,34 @@ def getEstimateMap():
         lon_res = (lon_hi-lon_lo)/float(lon_size)
 
     query_date = request.args.get('date')
-    if not utils.validateDate(query_date):
-        msg = f"Incorrect date format, should be {utils.DATETIME_FORMAT}, e.g.: 2018-01-03T20:00:00Z"
+    if query_date == None:
+        print("got nonsingle date case")
+        query_startdate = request.args.get('startdate')
+        query_enddate = request.args.get('enddate')
+        if (query_startdate == None) or (query_enddate == None):
+            return 'requires valid date or startdate/enddate', 400
+        datesequence=True
+        try:
+            query_rate = float(request.args.get('estimatesrate', 0.25))
+        except ValueError:
+            return 'estimatesrate must be floats.', 400
+    else:
+        datesequence=False
+
+    if "area_model" in request.args:
+        area_string = request.args.get('area_model')
+    else:
+        area_string = None
+
+    area_model = jsonutils.getAreaModelByLocation(_area_models, lat=lat_hi, lon=lon_lo, string = area_string)
+    if area_model == None:
+        msg = f"The query location, lat={lat_hi}, lon={lon_lo}, and/or area string {area_string} does not have a corresponding area model"
         return msg, 400
 
-    query_datetime = utils.parseDateString(query_date)
 
     app.logger.info((
-        f"Query parameters: lat_lo={lat_lo} lat_hi={lat_hi}  lon_lo={lon_lo} lon_hi={lon_hi} lat_res={lat_res} lon_res={lon_res} date={query_datetime}"
+        f"Query parameters: lat_lo={lat_lo} lat_hi={lat_hi}  lon_lo={lon_lo} lon_hi={lon_hi} lat_res={lat_res} lon_res={lon_res}"
     ))
-
-    # # step 0, load up the bounding box from file and check that request is within it
-    # bounding_box_vertices = utils.loadBoundingBox('bounding_box.csv')
-    # print(f'Loaded {len(bounding_box_vertices)} bounding box vertices.')
-
-    # if not (
-    #     utils.isQueryInBoundingBox(bounding_box_vertices, lat_lo, lon_lo) and
-    #     utils.isQueryInBoundingBox(bounding_box_vertices, lat_lo, lon_hi) and
-    #     utils.isQueryInBoundingBox(bounding_box_vertices, lat_hi, lon_hi) and
-    #     utils.isQueryInBoundingBox(bounding_box_vertices, lat_hi, lon_lo)):
-    #     return 'One of the query locations is outside of the bounding box for the database', 400
 
         
 # build the grid of query locations
@@ -236,13 +249,27 @@ def getEstimateMap():
 #        query_locations_
         return 'UTM not yet supported', 400
 
-    elevations = elevation_interpolator(lon_vector, lat_vector)
+    elevations = area_model['elevationinterpolator'](lon_vector, lat_vector)
     locations_lon, locations_lat = np.meshgrid(lon_vector, lat_vector)
     query_lats = locations_lat.flatten()
     query_lons= locations_lon.flatten()
     query_elevations = elevations.flatten()
-    query_dates = np.array([query_datetime])
-    query_locations = np.column_stack((query_lats, query_lons))    
+    query_locations = np.column_stack((query_lats, query_lons))
+
+# deal with single or time sequences.
+    if not datesequence:
+        query_datetime = jsonutils.parseDateString(query_date, area_model['timezone'])
+        if query_datetime == None:
+            msg = f"The query {query_date} is not a recognized date/time format; see also https://www.cl.cam.ac.uk/~mgk25/iso-time.html.  Default time zone is {area_model['timezone']}"
+            return msg, 400
+        query_dates = np.array([query_datetime])
+    else:
+        query_start_datetime = jsonutils.parseDateString(query_startdate, area_model['timezone'])
+        query_end_datetime = jsonutils.parseDateString(query_enddate, area_model['timezone'])
+        if query_start_datetime == None or query_end_datetime == None:
+            msg = f"The query ({query_startdate}, {query_enddate}) is not a recognized date/time format; see also https://www.cl.cam.ac.uk/~mgk25/iso-time.html.  Default time zone is {area_model['timezone']}"
+            return msg, 400
+        query_dates = utils.interpolateQueryDates(query_start_datetime, query_end_datetime, query_rate)
 
 #   # step 3, query relevent data
 #   # for this compute a circle center at the query volume.  Radius is related to lenth scale + the size fo the box.
@@ -261,18 +288,29 @@ def getEstimateMap():
 #     if not ((zone_num_lo == zone_num_hi) and (zone_let_lo == zone_let_hi)):
 #         return 'Requested region spans UTM zones', 400        
 
-    yPred, yVar = computeEstimatesForLocations(query_dates, query_locations, query_elevations)
+    yPred, yVar, status = computeEstimatesForLocations(query_dates, query_locations, query_elevations, area_model)
     
     # yPred, yVar = gaussian_model_utils.estimateUsingModel(
     #     model, locations_lat, locations_lon, elevations, [query_datetime], time_offset)
 
+    num_times = len(query_dates)
+
     elevations = (elevations).tolist()
-    yPred = yPred.reshape((lat_size, lon_size))
-    yVar = yVar.reshape((lat_size, lon_size))
+    yPred = yPred.reshape((lat_size, lon_size, num_times))
+    yVar = yVar.reshape((lat_size, lon_size, num_times))
     estimates = yPred.tolist()
     variances = yVar.tolist()
-    return jsonify({"Elevations":elevations, "PM2.5":estimates, "PM2.5 variance":variances, "Latitudes":lat_vector.tolist(), "Longitudes":lon_vector.tolist()})
-    
+    return_object = {"Area model": area_model["note"],"Elevations":elevations,"Latitudes":lat_vector.tolist(), "Longitudes":lon_vector.tolist()
+                         }
+
+    estimates = []
+    for i in range(num_times):
+        estimates.append(
+            {'PM2_5': (yPred[:,:,i]).tolist(), 'variance': (yVar[:,:,i]).tolist(), 'datetime': query_dates[i].strftime('%Y-%m-%d %H:%M:%S%z'), 'Status': status[i]}
+            )
+
+    return_object['estimates'] = estimates
+    return jsonify(return_object)
     
 
 @app.route("/api/timeAggregatedDataFrom", methods=["GET"])
@@ -392,32 +430,40 @@ def timeAggregatedDataFrom():
 # submit a query for a range of values
 # Ross Nov 2020
 # this has been consolidate and generalized so that multiple api calls can use the same query code
-def submit_sensor_query(lat_lo, lat_hi, lon_lo, lon_hi, start_date, end_date):
-    query = f"""
-    SELECT *
-    FROM
-    (
-        (
-            SELECT ID, time, PM2_5, Latitude, Longitude, SensorModel, 'AirU' as SensorSource
-            FROM `{AIRU_TABLE_ID}`
-            WHERE time > @start_date AND time < @end_date
-        )
-        UNION ALL
-        (
-            SELECT ID, time, PM2_5, Latitude, Longitude, "" as SensorModel, 'PurpleAir' as SensorSource
-            FROM `{PURPLEAIR_TABLE_ID}`
-            WHERE time > @start_date AND time < @end_date
-        )
-        UNION ALL
-        (
-            SELECT ID, time, PM2_5, Latitude, Longitude, '' as SensorModel, 'DAQ' as SensorSource
-            FROM `{DAQ_TABLE_ID}`
-            WHERE time > @start_date AND time < @end_date
-        )
-    ) WHERE (Latitude <= @lat_hi) AND (Latitude >= @lat_lo) AND (Longitude <= @lon_hi) AND (Longitude >= @lon_lo) AND time > @start_date AND time < @end_date
-    ORDER BY time ASC
-    """
+def submit_sensor_query(lat_lo, lat_hi, lon_lo, lon_hi, start_date, end_date, area_id_strings):
+#    print("aread_id_string: " + area_id_string)
+#    db_id_string = "tetrad-296715.telemetry.slc_ut"
+    with open('db_table_headings.json') as json_file:
+        db_table_headings = json.load(json_file)
 
+    query_list = []
+#loop over all of the tables associated with this area model
+    for area_id_string in area_id_strings:
+        time_string = db_table_headings[area_id_string]['time']
+        pm2_5_string = db_table_headings[area_id_string]['pm2_5']
+        lon_string = db_table_headings[area_id_string]['longitude']
+        lat_string = db_table_headings[area_id_string]['latitude']
+        id_string = db_table_headings[area_id_string]['id']
+        table_string = os.getenv(area_id_string)
+
+        column_string = " ".join([id_string, "AS id,", time_string, "AS time,", pm2_5_string, "AS pm2_5,", lat_string, "AS lat,", lon_string, "AS lon"])
+
+        if 'sensormodel' in db_table_headings[area_id_string]:
+            sensormodel_string = db_table_headings[area_id_string]['sensormodel']
+            column_string += ", " + sensormodel_string + " AS sensormodel"
+
+        if 'sensortype' in db_table_headings[area_id_string]:
+            sensortype_string = db_table_headings[area_id_string]['sensortype']
+            column_string += ", " + sensortype_string + " AS sensortype"
+
+        query_list.append(f"""(SELECT * FROM (SELECT {column_string} FROM `{table_string}` WHERE (({time_string} > @start_date) AND ({time_string} < @end_date))) WHERE ((lat <= @lat_hi) AND (lat >= @lat_lo) AND (lon <= @lon_hi) AND (lon >= @lon_lo)) )""")
+
+
+    query = " UNION ALL ".join(query_list) + " ORDER BY time ASC "
+
+#        query_string = f"""SELECT * FROM (SELECT {column_string} FROM `{db_id_string}` WHERE (({time_string} > {start_date}) AND ({time_string} < {end_date}))) WHERE ((lat <= {lat_hi}) AND (lat >= {lat_lo}) AND (lon <= {lon_hi}) AND (lon >= {lon_lo})) ORDER BY time ASC"""
+
+    print("query is: " + query)
     
 # Old code that does not compute distance correctly
 #    WHERE SQRT(POW(Latitude - @lat, 2) + POW(Longitude - @lon, 2)) <= @radius
@@ -445,7 +491,7 @@ def submit_sensor_query(lat_lo, lat_hi, lon_lo, lon_hi, start_date, end_date):
         app.logger.error(query_job.error_result)
         return "Invalid API call - check documentation.", 400
     # Waits for query to finish
-    sensor_data = query_job.result()  
+    sensor_data = query_job.result()
 
     return(sensor_data)
 
@@ -460,7 +506,7 @@ def submit_sensor_query(lat_lo, lat_hi, lon_lo, lon_hi, start_date, end_date):
 # this has been modified so that it now takes an array of lats/lons
 # the radius parameter is not implemented in a precise manner -- rather it is converted to a lat-lon bounding box and all within that box are returned
 # there could be an additional culling of sensors outside the radius done here after the query - if the radius parameter needs to be precise. 
-def request_model_data_local(lats, lons, radius, start_date, end_date):
+def request_model_data_local(lats, lons, radius, start_date, end_date, area_id_string):
     model_data = []
     # get the latest sensor data from each sensor
     # Modified by Ross for
@@ -482,24 +528,43 @@ def request_model_data_local(lats, lons, radius, start_date, end_date):
         return "lats,lons data structure misalignment in request sensor data", 400
     app.logger.info("Query bounding box is %f %f %f %f" %(lat_lo, lat_hi, lon_lo, lon_hi))
 
-   
-    rows = submit_sensor_query(lat_lo, lat_hi, lon_lo, lon_hi, start_date, end_date)
-    
+    rows = submit_sensor_query(lat_lo, lat_hi, lon_lo, lon_hi, start_date, end_date, area_id_string)
+
     for row in rows:
-        model_data.append({
-            "ID": str(row.ID),
-            "Latitude": row.Latitude,
-            "Longitude": row.Longitude,
+        new_row = {
+            "ID": str(row.id),
+            "Latitude": row.lat,
+            "Longitude": row.lon,
             "time": row.time,
-            "PM2_5": row.PM2_5,
-            "SensorModel": row.SensorModel,
-            "SensorSource": row.SensorSource,
-        })
+            "PM2_5": row.pm2_5,
+            }
+        if 'sensormodel' in row:
+            new_row["SensorModel"] = row.sensormodel
+        else:
+            new_row["SensorModel"] = "Default"
+
+        if 'sensorsource' in row:
+            new_row["SensorSodel"] = row.sensorsource
+        else:
+            new_row["SensorSource"] = "Default"
+
+        # try:
+        #     new_row["SensorModel"] = row.sensormodel
+        # except:
+        #     new_row["SensorModel"] = "Default"
+
+        # try:
+        #     new_row["SensorSource"] = row.sensorsource
+        # except:
+        #     new_row["SensorSource"] = "Default"
+
+        model_data.append(new_row)
 
     return model_data
 
 
-# returns sensor data for a range of times within a distance radius (meters) of the lat-lon location.  
+# returns sensor data for a range of times within a distance radius (meters) of the lat-lon location.
+# notice the times are assumed to be mountain time....
 @app.route("/api/request_model_data", methods=['GET'])
 def request_model_data():
     query_parameters = request.args
@@ -514,8 +579,13 @@ def request_model_data():
     end_date = query_parameters.get('end_date')
 #    print("model requuest api with " + str(lat) + ":" + str(lon) + " and radius " + str(radius) + " and start " + str(start_date) + " and end " + str(end_date))
     # must format these for database
-    start_datetime = utils.parseDateString(start_date)
-    end_datetime = utils.parseDateString(end_date)
+    tf = TimezoneFinder()
+    start_datetime = jsonutils.parseDateString(start_date, tf.timezone_at(lng=lon, lat=lat))
+    end_datetime = jsonutils.parseDateString(end_date, tf.timezone_at(lng=lon, lat=lat))
+    if start_datetime == None or end_datetime == None:
+        msg = f"The query ({start_date}, {end_date}) is not a recognized date/time format; see also https://www.cl.cam.ac.uk/~mgk25/iso-time.html.  Default time zone is {area_model['timezone']}"
+        return msg, 400
+
     model_data = request_model_data_local(lat, lon, radius, start_datetime, end_datetime)
     return jsonify(model_data)
 
@@ -542,17 +612,26 @@ def getEstimatesForLocation():
         msg = f"Incorrect date format, should be {utils.DATETIME_FORMAT}, e.g.: 2018-01-03T20:00:00Z"
         return msg, 400
 
-    query_start_datetime = utils.parseDateString(query_start_date)
-    query_end_datetime = utils.parseDateString(query_end_date)
+
+    area_model = jsonutils.getAreaModelByLocation(_area_models, query_lat, query_lon)
+    if area_model == None:
+        msg = f"The query location, lat={query_lat}, lon={query_lon}, does not have a corresponding area model"
+        return msg, 400
+
+    query_start_datetime = jsonutils.parseDateString(query_start_date, area_model['timezone'])
+    query_end_datetime = jsonutils.parseDateString(query_end_date, area_model['timezone'])
+    if query_start_datetime == None or query_end_datetime == None:
+        msg = f"The query ({query_start_date}, {query_end_date}) is not a recognized date/time format; see also https://www.cl.cam.ac.uk/~mgk25/iso-time.html.  Default time zone is {area_model['timezone']}"
+        return msg, 400
+
     query_dates = utils.interpolateQueryDates(query_start_datetime, query_end_datetime, query_rate)
-    query_elevations = np.array(elevation_interpolator(query_lon, query_lat))
+    query_elevations = area_model['elevationinterpolator'](query_lon, query_lat)
     query_locations = np.column_stack((np.array((query_lat)), np.array((query_lon))))
 
     app.logger.info(
         "Query parameters: lat= %f lon= %f start_date= %s end_date=%s estimatesrate=%f hours/estimate" %(query_lat, query_lon, query_start_datetime, query_end_datetime, query_rate))
 
-    yPred, yVar, status = computeEstimatesForLocations(query_dates, query_locations, query_elevations)
-
+    yPred, yVar, status = computeEstimatesForLocations(query_dates, query_locations, query_elevations, area_model)
     
 # convert the arrays to lists of floats
 
@@ -605,8 +684,18 @@ def getEstimatesForLocations():
         msg = f"Incorrect date format, should be {utils.DATETIME_FORMAT}, e.g.: 2018-01-03T20:00:00Z"
         return msg, 400
 
-    query_start_datetime = utils.parseDateString(query_start_date)
-    query_end_datetime = utils.parseDateString(query_end_date)
+
+    area_model = jsonutils.getAreaModelByLocation(_area_models, query_lats[0], query_lons[0])
+    if area_model == None:
+        msg = f"The query location, lat={query_lats[0]}, lon={query_lons[0]}, does not have a corresponding area model"
+        return msg, 400
+
+    query_start_datetime = jsonutils.parseDateString(query_start_date, area_model['timezone'])
+    query_end_datetime = jsonutils.parseDateString(query_end_date, area_model['timezone'])
+    if query_start_datetime == None or query_end_datetime == None:
+        msg = f"The query ({query_start_date}, {query_end_date}) is not a recognized date/time format; see also https://www.cl.cam.ac.uk/~mgk25/iso-time.html.  Default time zone is {area_model['timezone']}"
+        return msg, 400
+
 
 #    print((
 #        f"Query parameters: lat={query_lats} lon={query_lons} start_date={query_start_datetime}"
@@ -618,10 +707,10 @@ def getEstimatesForLocations():
     query_dates = utils.interpolateQueryDates(query_start_datetime, query_end_datetime, query_rate)
     query_locations = np.column_stack((query_lats, query_lons))
 # note - the elevation grid is the wrong way around, so you need to put in lons first
-    query_elevations = elevation_interpolator(query_lons, query_lats)
+    query_elevations = area_model['elevationinterpolator'](query_lons, query_lats)
 
     
-    yPred, yVar = computeEstimatesForLocations(query_dates, query_locations, query_elevations)
+    yPred, yVar = computeEstimatesForLocations(query_dates, query_locations, query_elevations, area_model)
 
     num_times = len(query_dates)
     estimates = []
@@ -635,41 +724,28 @@ def getEstimatesForLocations():
 
 
 # this is a generic helper function that sets everything up and runs the model
-def computeEstimatesForLocations(query_dates, query_locations, query_elevations):
+def computeEstimatesForLocations(query_dates, query_locations, query_elevations, area_model):
     num_locations = query_locations.shape[0]
     query_lats = query_locations[:,0]
     query_lons = query_locations[:,1]
     query_start_datetime = query_dates[0]
     query_end_datetime = query_dates[-1]
 
-            
     # step 0, load up the bounding box from file and check that request is within it
-    bounding_box_vertices = utils.loadBoundingBox('bounding_box.csv')
-    app.logger.info("Loaded " + str(len(bounding_box_vertices)) + " bounding box vertices.")
 
     for i in range(num_locations):
-        if not utils.isQueryInBoundingBox(bounding_box_vertices, query_lats[i], query_lons[i]):
-            return 'The query location, {query_lats[i]},{query_lons[i]},  is outside of the bounding box.', 400
-
-    # step 1, load up correction factors from file
-    correction_factors = utils.loadCorrectionFactors('correction_factors.csv')
-    app.logger.debug(f'Loaded {len(correction_factors)} correction factors.')
+        if not jsonutils.isQueryInBoundingBox(area_model['boundingbox'], query_lats[i], query_lons[i]):
+            app.logger.error(f"The query location, {query_lats[i]},{query_lons[i]},  is outside of the bounding box.")
+            return np.full((query_lats.shape[0], query_dates.shape[0]), 0.0), np.full((query_lats.shape[0], query_dates.shape[0]), np.nan), ["Query location error" for i in range(query_dates.shape[0])]
 
     # step 2, load up length scales from file
-    length_scales = utils.loadLengthScales('length_scales.csv')
-    app.logger.debug("Loaded length scales: " + str(length_scales))
 
-    length_scales = utils.getScalesInTimeRange(length_scales, query_start_datetime, query_end_datetime)
-    if len(length_scales) < 1:
-        msg = (
-            f"Incorrect number of length scales({len(length_scales)}) "
-            f"found in between {query_start_datetime} and {query_end_datetime}"
-        )
-        return msg, 400
+    latlon_length_scale, time_length_scale, elevation_length_scale = jsonutils.getLengthScalesForTime(area_model['lengthscales'], query_start_datetime)
+    if latlon_length_scale == None:
+            app.logger.error("No length scale found between dates {query_start_datetime} and {query_end_datetime}")
+            return np.full((query_lats.shape[0], query_dates.shape[0]), 0.0), np.full((query_lats.shape[0], query_dates.shape[0]), np.nan), ["Length scale parameter error" for i in range(query_dates.shape[0])]
+    app.logger.debug("Loaded length scales: space=" + str(latlon_length_scale) + " time=" + str(time_length_scale) + " elevation=" + str(elevation_length_scale))
 
-    latlon_length_scale = length_scales[0]['latlon']
-    elevation_length_scale = length_scales[0]['elevation']
-    time_length_scale = length_scales[0]['time']
 
     app.logger.debug(f'Using length scales: latlon={latlon_length_scale} elevation={elevation_length_scale} time={time_length_scale}')
 
@@ -686,12 +762,13 @@ def computeEstimatesForLocations(query_dates, query_locations, query_elevations)
     radius = SPACE_KERNEL_FACTOR_PADDING*latlon_length_scale
 
     sensor_data = request_model_data_local(
-        query_lats,
-        query_lons,
-        radius=radius,
-        start_date=query_start_datetime - timedelta(hours=TIME_KERNEL_FACTOR_PADDING*time_length_scale),
-        end_date=query_end_datetime + timedelta(hours=TIME_KERNEL_FACTOR_PADDING*time_length_scale))
-
+            query_lats,
+            query_lons,
+            radius=radius,
+            start_date=query_start_datetime - timedelta(hours=TIME_KERNEL_FACTOR_PADDING*time_length_scale),
+            end_date=query_end_datetime + timedelta(hours=TIME_KERNEL_FACTOR_PADDING*time_length_scale),
+            area_id_string=area_model['idstring']
+        )
 
     unique_sensors = {datum['ID'] for datum in sensor_data}
     app.logger.info(f'Loaded {len(sensor_data)} data points for {len(unique_sensors)} unique devices from bgquery.')
@@ -700,23 +777,29 @@ def computeEstimatesForLocations(query_dates, query_locations, query_elevations)
     try:
         utils.convertLatLonToUTM(sensor_data)
     except ValueError as err:
-        return f'{str(err)}', 400
+        app.logger.error(str(err))
+        return np.full((query_lats.shape[0], query_dates.shape[0]), 0.0), np.full((query_lats.shape[0], query_dates.shape[0]), np.nan), ["Failure to convert lat/lon" for i in range(query_dates.shape[0])]
 
-    sensor_data = [datum for datum in sensor_data if datum['zone_num'] == 12]
+# legacy code forcing sensors to like in UTM zone...
+#    sensor_data = [datum for datum in sensor_data if datum['zone_num'] == 12]
 
     unique_sensors = {datum['ID'] for datum in sensor_data}
     app.logger.info((
-        "After removing points with zone num != 12: "
-        f"{len(sensor_data)} data points for {len(unique_sensors)} unique devices."
+#        "After removing points with zone num != 12: "
+        "got " f"{len(sensor_data)} data points for {len(unique_sensors)} unique devices."
     ))
 
     # Step 4, parse sensor type from the version
-    sensor_source_to_type = {'AirU': '3003', 'PurpleAir': '5003', 'DAQ': '0000'}
+    sensor_source_to_type = {'AirU': '3003', 'PurpleAir': '5003', 'DAQ': '0000', 'Default':'Default'}
 # DAQ does not need a correction factor
     for datum in sensor_data:
         datum['type'] =  sensor_source_to_type[datum['SensorSource']]
 
-    app.logger.info(f'Fields: {sensor_data[0].keys()}')
+    if len(sensor_data) > 0:
+        app.logger.info(f'Fields: {sensor_data[0].keys()}')
+    else:
+        app.logger.info(f'Got zero sensor data')
+        return np.full((query_lats.shape[0], query_dates.shape[0]), 0.0), np.full((query_lats.shape[0], query_dates.shape[0]), np.nan), ["Zero sensor data" for i in range(query_dates.shape[0])]
 
     # step 4.5, Data Screening
 #    print('Screening data')
@@ -724,13 +807,14 @@ def computeEstimatesForLocations(query_dates, query_locations, query_elevations)
 
     # step 5, apply correction factors to the data
     for datum in sensor_data:
-        datum['PM2_5'] = utils.applyCorrectionFactor(correction_factors, datum['time'], datum['PM2_5'], datum['type'])
+        datum['PM2_5'] = jsonutils.applyCorrectionFactor(area_model['correctionfactors'], datum['time'], datum['PM2_5'], datum['type'])
 
     # step 6, add elevation values to the data
     # NOTICE - the elevation object takes locations in the form "lon-lat"
+    # this seems redundant since elevations are passed in...
     for datum in sensor_data:
         if 'Altitude' not in datum:
-            datum['Altitude'] = elevation_interpolator([datum['Longitude']],[datum['Latitude']])[0]
+            datum['Altitude'] = area_model['elevationinterpolator']([datum['Longitude']],[datum['Latitude']])[0]
 
     # This does the calculation in one step --- old method --- less efficient.  Below we break it into pieces.  Remove this once the code below (step 7) is fully tested.
     # step 7, get estimates from model
@@ -749,6 +833,9 @@ def computeEstimatesForLocations(query_dates, query_locations, query_elevations)
     yPred = np.empty((num_locations, 0))
     yVar = np.empty((num_locations, 0))
     status = []
+    if len(sensor_data) == 0:
+        status = "0 sensors/measurements"
+        return 
     for i in range(len(query_sequence)):
     # step 7, Create Model
         model, time_offset, model_status = gaussian_model_utils.createModel(

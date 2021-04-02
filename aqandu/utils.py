@@ -61,7 +61,7 @@ def chunkTimeQueryData(query_dates, time_sequence_size, time_padding):
     return sensor_time_sequence, query_time_sequence
 
 # Load up elevation grid
-# BE CAREFUL - this object, given the way the data is saved, seems to talk "lxbon-lat" order
+# BE CAREFUL - this object, given the way the data is saved, seems to talk "lon-lat" order
 def setupElevationInterpolator(filename):
     data = loadmat(filename)
     elevation_grid = data['elevs']
@@ -70,7 +70,7 @@ def setupElevationInterpolator(filename):
     # np.savetxt('grid_lats.txt',gridLats)
     # np.savetxt('grid_lons.txt',gridLongs)
     # np.savetxt('elev_grid.txt', elevation_grid)
-    return interpolate.interp2d(gridLongs, gridLats, elevation_grid, kind='cubic')
+    return interpolate.interp2d(gridLongs, gridLats, elevation_grid, kind='cubic', fill_value=0.0)
 
 
 def loadBoundingBox(filename):
