@@ -32,6 +32,9 @@ TIME_SLICE_MIN_SENSOR_RATE = 0.65
 # a general number for reporting warnings about sensors that fail to report, interpolate, etc.
 FRACTION_SIGNIFICANT_FAILS = 0.30
 
+# maximum valid that we would expect -- anything bigger may be a bad reading
+MAX_VALID_PM2_5 = 200.0
+
 
 def getTimeCoordinateBin(datetime, time_offset=0):
     delta = datetime - JANUARY1ST
@@ -270,7 +273,7 @@ def setupDataMatrix(sensor_data, space_coordinates, time_coordinates, device_loc
         date_index = numpy.nonzero(time_coordinates == datum[TIME_COORDINATE_BIN_NUMBER_KEY])[0][0]
         location_index = device_location_map[datum['ID']]
         # bound sensor data below by 0
-        data_matrix[location_index][date_index] = datum['PM2_5'] if datum['PM2_5'] >= 0 else 0
+        data_matrix[location_index][date_index] = datum['PM2_5'] if ((datum['PM2_5'] >= 0) and (datum['PM2_5'] < MAX_VALID_PM2_5)) else -1
 
 #    saveMatrixToFile(data_matrix, '1matrix.txt')
     interpolateBadElements(data_matrix,-1)
@@ -410,16 +413,19 @@ def createModel(sensor_data, latlon_length_scale, elevation_length_scale, time_l
                                                   latlon_length_scale=float(latlon_length_scale),
                                                   elevation_length_scale=float(elevation_length_scale),
                                                   time_length_scale=float(time_length_scale),
-                                                  noise_variance=36.0, signal_variance=400.0, time_structured=False)
+                                                  noise_variance=36.0, signal_variance=400.0, time_structured=True)
         status = ""
     else:
         model = None
         status = "0 measurements"
         
-    # if save_matrices:
+    if save_matrices:
         # numpy.savetxt('space_coords.csv', space_coordinates, delimiter=',')
         # numpy.savetxt('time_coords.csv', time_coordinates, delimiter=',')
-        # numpy.savetxt('PM_data.csv', data_matrix, delimiter=',')
+        print("about to save matrix - shape " + str(data_matrix.shape))
+        print("about to save matrix - max " + str(torch.max(data_matrix)))
+        
+        numpy.savetxt('PM_data.csv', data_matrix, delimiter=',')
         # numpy.savetxt('latlon_scale.csv', numpy.full([1], latlon_length_scale), delimiter=',')
         # numpy.savetxt('time_scale.csv', numpy.full([1], time_length_scale), delimiter=',')
         # numpy.savetxt('elevation_scale.csv', numpy.full([1], elevation_length_scale), delimiter=',')

@@ -313,7 +313,8 @@ class gaussian_model(nn.Module):
                 yPred = yPred.view(test_time_coordinates.size(0), test_space_coordinates.size(0)).transpose(-2, -1)
                 yVar = yVar.view(test_time_coordinates.size(0), test_space_coordinates.size(0)).transpose(-2, -1)
 
-            status_string = str(self.measurements) + " measurements"
+#            status_string = str(self.measurements) + " binned measurements"
+            status_string = str(self.stData.shape[0]) + " sensors"
             status = [status_string for i in range(test_time_coordinates.size(0))]
             return yPred, yVar, status
             

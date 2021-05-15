@@ -46,6 +46,7 @@ def loadCorrectionFactors(cfactor_info, dflt_tz_string=None):
                 new_row['endtime'] = parseDateString(row['endtime'], dflt_tz_string)
             new_row['slope'] = float(row['slope'])
             new_row['intercept'] = float(row['intercept'])
+            new_row['note'] = row['note']
             sensorDict.append(new_row)
 # put the default at the end of the list -- the system will use whichever one hits first
         for row in cfactor_info[sensor_type]:
@@ -54,6 +55,7 @@ def loadCorrectionFactors(cfactor_info, dflt_tz_string=None):
                 new_row['endtime'] = JAN_LAST
                 new_row['slope'] = float(row['slope'])
                 new_row['intercept'] = float(row['intercept'])
+                new_row['note'] = row['note']
                 sensorDict.append(new_row)
         cfactors[sensor_type] = sensorDict
     return cfactors
@@ -119,17 +121,29 @@ def buildAreaModelsFromJson(json_data):
         this_model['boundingbox'] = loadBoundingBox(json_data[key]['Boundingbox'])
         this_model['correctionfactors'] = loadCorrectionFactors(json_data[key]['Correction Factors'],json_data[key]['Timezone'])
         this_model['lengthscales'] = loadLengthScales(json_data[key]['Length Scales'], json_data[key]['Timezone'])
+        if 'Source table map' in json_data[key]:
+            this_model['sourcetablemap'] = json_data[key]['Source table map']
+        # else:
+        #     this_model['sourcetablemap'] = None
         area_models[key] = this_model
     return area_models
 
-def applyCorrectionFactor(factors, data_timestamp, data, sensor_type):
+def applyCorrectionFactor(factors, data_timestamp, data, sensor_type, status=False):
     for factor_type in factors:
         if sensor_type == factor_type:
             for i in range(len(factors[factor_type])):
                 if factors[factor_type][i]['starttime'] <= data_timestamp and factors[factor_type][i]['endtime'] > data_timestamp:
-                    return np.maximum(data * factors[factor_type][i]['slope'] + factors[factor_type][i]['intercept'], 0.0)
+                    if not status:
+                        return np.maximum(data * factors[factor_type][i]['slope'] + factors[factor_type][i]['intercept'], 0.0)
+                    else:
+                        # print(f"factor type is {factor_type} and case {i}")
+                        # print(factors[factor_type][i])
+                        return np.maximum(data * factors[factor_type][i]['slope'] + factors[factor_type][i]['intercept'], 0.0), factors[factor_type][i]['note']
 #  no correction factor will be considered identity
-    return data
+    if not status:
+        return data
+    else:
+        return data, "no correction"
 
 def getLengthScalesForTime(length_scales_array, datetime):
     for i in range(len(length_scales_array)):
