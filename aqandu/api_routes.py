@@ -487,7 +487,7 @@ def getEstimateMap():
 @app.route("/api/timeAggregatedDataFrom", methods=["GET"])
 def timeAggregatedDataFrom():
     # this is used to convert the parameter terms to those used in the database
-    group_tags = {"id":"ID", "sensorSource":"sensorsource", "area":"area_model"}
+    group_tags = {"id":"ID", "sensorModel":"sensormodel", "area":"areamodel"}
     # Get the arguments from the query string
     id = request.args.get('id')
     sensor_source = request.args.get('sensorSource')
@@ -498,21 +498,37 @@ def timeAggregatedDataFrom():
         timeInterval = int(request.args.get('timeInterval'))  # Time interval in minutes
     else:
         timeInterval = 60
-    if "group" in request.args:
+    if "applyCorrection" in request.args:
+        apply_correction = True
+    else:
+        apply_correction = False
+
+    if "groupBy" in request.args:
         group_by = request.args.get("groupBy")
-        if group_by in {"id", "sensorSource", "area"}:
+        if group_by in group_tags:
             group_string = f", {group_tags[group_by]}"
         else:
             msg = "Ground must be one of id, sensorSource, area"
             return msg, 400
     else:
         group_string = ""
+        group_by == None
+
+# if you are going to apply correction, you need to have data grouped by area and sensortype
+    if apply_correction:
+        print(f"group by is {group_by}")
+        if group_by == "id" or group_by == None:
+            group_string = ", " + ", ".join(list(group_tags.values())[0:3])
+        elif group_by == "sensorModel":
+            group_string = ", ".join([group_string, group_tags["area"]])
+        elif group_by == "area":
+            group_string = ", ".join([group_string, group_tags["sensorModel"]])
+        else:
+            app.logger.warn("got a problem with the groupby logic")
+            group_string = ""
+            
 
 
-    if "noCorrection" in request.args:
-        apply_correction = False
-    else:
-        apply_correction = True
 
     # Check ID is valid
     if id == "" or id == "undefined":
@@ -637,7 +653,7 @@ def timeAggregatedDataFrom():
                 THEN {SQL_FUNCTIONS.get(function)}(pm2_5)
                 ELSE 0
                 END AS PM2_5,
-            upper,  areamodel, sensormodel {group_string}
+            upper  {group_string}
         FROM intervals
             JOIN (
             {' UNION ALL '.join(tables_list)}
@@ -663,7 +679,7 @@ def timeAggregatedDataFrom():
     if group_string == "":
         for row in rows:
             if apply_correction:
-                new_pm2_5, status = jsonutils.applyCorrectionFactor(_area_models[row.areamodel]['correctionfactors'], row.time, row.PM2_5, row.sensormodel, status=True)
+                new_pm2_5, status = jsonutils.applyCorrectionFactor(_area_models[row.areamodel]['correctionfactors'], row.upper, row.PM2_5, row.sensormodel, status=True)
             else:
                 new_pm2_5 = row.PM2_5
                 status = "Not corrected"
@@ -671,7 +687,7 @@ def timeAggregatedDataFrom():
     else:
         for row in rows:
             if apply_correction:
-                new_pm2_5, status = jsonutils.applyCorrectionFactor(_area_models[row.areamodel]['correctionfactors'], row.time, row.PM2_5, row.sensormodel, status=True)
+                new_pm2_5, status = jsonutils.applyCorrectionFactor(_area_models[row.areamodel]['correctionfactors'], row.upper, row.PM2_5, row.sensormodel, status=True)
             else:
                 new_pm2_5 = row.PM2_5
                 status = "Not corrected"
