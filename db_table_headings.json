@@ -1,0 +1,36 @@
+{
+    "AIRU_TABLE_ID":{
+	"time":"time",
+	"id":"ID", 
+	"latitude":"Latitude",
+	"longitude":"Longitude",
+	"pm2_5":"PM2_5", 
+	"temp":"Temperature",
+	"humidity":"Humidity",
+	"sensorsource":"'AirU'",
+	"sensormodel":"'3003'"
+    },
+    "PURPLEAIR_TABLE_ID":{
+	"time":"time",
+	"id":"ID", 
+	"latitude":"Latitude",
+	"longitude":"Longitude",
+	"pm2_5":"PM2_5", 
+	"temp":"Temperature",
+	"humidity":"Humidity",
+	"sensorsource":"'PurpleAir'",
+	"sensormodel":"'5003'"
+    },
+    "DAQ_TABLE_ID":{
+	"time":"time",
+	"id":"ID", 
+	"latitude":"Latitude",
+	"longitude":"Longitude",
+	"pm2_5":"PM2_5", 
+	"temp":"Temperature",
+	"humidity":"Humidity",
+	"sensorsource":"'DAQ'",
+	"sensormodel":"'0000'"
+    }
+}
+
