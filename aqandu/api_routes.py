@@ -46,8 +46,8 @@ def rawDataFrom():
     # Get the arguments from the query string
     id = request.args.get('id')
     sensor_source = request.args.get('sensorSource')
-    start = request.args.get('start')
-    end = request.args.get('end')
+    start = request.args.get('startTime')
+    end = request.args.get('endTime')
     if "noCorrection" in request.args:
         apply_correction = False
     else:
@@ -60,7 +60,7 @@ def rawDataFrom():
 #        return msg, 400
 
     if "areamodel" in request.args:
-        area_string = request.args.get('areamodel')
+        area_string = request.args.get('areaModel')
     else:
         area_string = "all"
 
@@ -190,7 +190,7 @@ def liveSensors():
     # Get the arguments from the query string
     sensor_source = request.args.get('sensorSource')
     if "areamodel" in request.args:
-        area_string = request.args.get('areamodel')
+        area_string = request.args.get('areaModel')
     else:
         area_string = "all"
     if "noCorrection" in request.args:
@@ -362,37 +362,37 @@ def getEstimateMap():
     # Get the arguments from the query string
     if not UTM:
         try:
-            lat_hi = float(request.args.get('lat_hi'))
-            lat_lo = float(request.args.get('lat_lo'))
-            lon_hi = float(request.args.get('lon_hi'))
-            lon_lo = float(request.args.get('lon_lo'))
+            lat_hi = float(request.args.get('latHi'))
+            lat_lo = float(request.args.get('latLo'))
+            lon_hi = float(request.args.get('lonHi'))
+            lon_lo = float(request.args.get('lonLo'))
         except ValueError:
             return 'lat, lon, lat_res, be floats in the lat-lon (not UTM) case', 400
         try:
-            lat_size = int(request.args.get('lat_size'))
-            lon_size = int(request.args.get('lon_size'))
+            lat_size = int(request.args.get('latSize'))
+            lon_size = int(request.args.get('lonSize'))
         except ValueError:
             return 'lat, lon, sizes must be ints (not UTM) case', 400
 
         lat_res = (lat_hi-lat_lo)/float(lat_size)
         lon_res = (lon_hi-lon_lo)/float(lon_size)
 
-    query_date = request.args.get('date')
+    query_date = request.args.get('time')
     if query_date == None:
-        query_startdate = request.args.get('startdate')
-        query_enddate = request.args.get('enddate')
+        query_startdate = request.args.get('startTime')
+        query_enddate = request.args.get('endTime')
         if (query_startdate == None) or (query_enddate == None):
-            return 'requires valid date or startdate/enddate', 400
+            return 'requires valid date or start/end', 400
         datesequence=True
         try:
-            query_rate = float(request.args.get('estimatesrate', 0.25))
+            query_rate = float(request.args.get('timeInterval', 0.25))
         except ValueError:
-            return 'estimatesrate must be floats.', 400
+            return 'timeInterval must be floats.', 400
     else:
         datesequence=False
 
     if "area_model" in request.args:
-        area_string = request.args.get('area_model')
+        area_string = request.args.get('areaModel')
     else:
         area_string = None
 
@@ -491,12 +491,15 @@ def timeAggregatedDataFrom():
     # Get the arguments from the query string
     id = request.args.get('id')
     sensor_source = request.args.get('sensorSource')
-    start = request.args.get('start')
-    end = request.args.get('end')
+    start = request.args.get('startTime')
+    end = request.args.get('endTime')
     function = request.args.get('function')
-    timeInterval = request.args.get('timeInterval')  # Time interval in minutes
+    if "timeInterval" in request.args:
+        timeInterval = int(request.args.get('timeInterval'))  # Time interval in minutes
+    else:
+        timeInterval = 60
     if "group" in request.args:
-        group_by = request.args.get("group")
+        group_by = request.args.get("groupBy")
         if group_by in {"id", "sensorSource", "area"}:
             group_string = f", {group_tags[group_by]}"
         else:
@@ -504,7 +507,6 @@ def timeAggregatedDataFrom():
             return msg, 400
     else:
         group_string = ""
-            
 
 
     if "noCorrection" in request.args:
@@ -519,7 +521,7 @@ def timeAggregatedDataFrom():
 #        return msg, 400
 
     if "areamodel" in request.args:
-        area_string = request.args.get('areamodel')
+        area_string = request.args.get('areaModel')
     else:
         area_string = "all"
 
@@ -816,8 +818,8 @@ def request_model_data_local(lats, lons, radius, start_date, end_date, area_id_s
 
 # returns sensor data for a range of times within a distance radius (meters) of the lat-lon location.
 # notice the times are assumed to be mountain time....
-@app.route("/api/request_model_data", methods=['GET'])
-def request_model_data():
+@app.route("/api/getSensorData", methods=['GET'])
+def getSensorData():
     query_parameters = request.args
     try:
         lat = float(query_parameters.get('lat'))
@@ -826,8 +828,8 @@ def request_model_data():
     except ValueError:
         return 'lat, lon, radius, must be floats.', 400
 
-    start_date = query_parameters.get('start_date')
-    end_date = query_parameters.get('end_date')
+    start_date = query_parameters.get('startTime')
+    end_date = query_parameters.get('endTime')
 #    print("model requuest api with " + str(lat) + ":" + str(lon) + " and radius " + str(radius) + " and start " + str(start_date) + " and end " + str(end_date))
     # must format these for database
     tf = TimezoneFinder()
@@ -851,12 +853,12 @@ def getEstimatesForLocation():
     try:
         query_lat = float(request.args.get('lat'))
         query_lon = float(request.args.get('lon'))
-        query_rate = float(request.args.get('estimatesrate'))
+        query_rate = float(request.args.get('timeInterval'))
     except ValueError:
         return 'lat, lon, estimatesrate must be floats.', 400
 
-    query_start_date = request.args.get('start_date')
-    query_end_date = request.args.get('end_date')
+    query_start_date = request.args.get('startTime')
+    query_end_date = request.args.get('endTime')
 
     # Check that the data is formatted correctly
     if not utils.validateDate(query_start_date) or not utils.validateDate(query_end_date):
@@ -914,7 +916,7 @@ def getEstimatesForLocations():
 
     # step -1, parse query parameters
     try:
-        query_rate = float(request.args.get('estimatesrate'))
+        query_rate = float(request.args.get('timeInterval'))
     except ValueError:
         return 'estimatesrate must be floats.', 400
 
@@ -927,8 +929,8 @@ def getEstimatesForLocations():
 
     num_locations = query_lats.shape[0]
 
-    query_start_date = request.args.get('start_date')
-    query_end_date = request.args.get('end_date')
+    query_start_date = request.args.get('startTime')
+    query_end_date = request.args.get('endTime')
 
     # Check that the data is formatted correctly
     if not utils.validateDate(query_start_date) or not utils.validateDate(query_end_date):
