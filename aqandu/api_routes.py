@@ -41,8 +41,80 @@ TIME_SEQUENCE_SIZE = 20.
 MAX_ALLOWED_PM2_5 = 500.00
 
 
-@app.route("/api/rawDataFrom", methods=["GET"])
-def rawDataFrom():
+@app.route("/api/testingTemp", methods=["GET"])
+def testingTemp():
+    start = request.args.get('startTime')
+    end = request.args.get('endTime')
+    lat_hi = float(request.args.get('latHi'))
+    lat_lo = float(request.args.get('latLo'))
+    lon_hi = float(request.args.get('lonHi'))
+    lon_lo = float(request.args.get('lonLo'))
+    area_model = jsonutils.getAreaModelByLocation(_area_models, lat=lat_hi, lon=lon_lo, string = area_string)
+    if area_model == None:
+        msg = f"The query location, lat={lat_hi}, lon={lon_lo}, and/or area string {area_string} does not have a corresponding area model"
+        return msg, 400
+    query_startdatetime = jsonutils.parseDateString(start, area_model['timezone'])
+    query_enddatetime = jsonutils.parseDateString(end, area_model['timezone'])
+    
+    query_list = []
+#loop over all of the tables associated with this area model
+    for area_id_string in area_id_strings:
+        time_string = db_table_headings[area_id_string]['time']
+        pm2_5_string = db_table_headings[area_id_string]['pm2_5']
+        lon_string = db_table_headings[area_id_string]['longitude']
+        lat_string = db_table_headings[area_id_string]['latitude']
+        id_string = db_table_headings[area_id_string]['id']
+        table_string = os.getenv(area_id_string)
+
+        column_string = " ".join([id_string, "AS id,", time_string, "AS time,", pm2_5_string, "AS pm2_5,", lat_string, "AS lat,", lon_string, "AS lon"])
+
+        if 'sensormodel' in db_table_headings[area_id_string]:
+            sensormodel_string = db_table_headings[area_id_string]['sensormodel']
+            column_string += ", " + sensormodel_string + " AS sensormodel"
+
+        if 'sensortype' in db_table_headings[area_id_string]:
+            sensortype_string = db_table_headings[area_id_string]['sensortype']
+            column_string += ", " + sensortype_string + " AS sensortype"
+
+        query_list.append(f"""(SELECT * FROM (SELECT {column_string} FROM `{table_string}` WHERE (({time_string} > @start_date) AND ({time_string} < @end_date))) WHERE ((lat <= @lat_hi) AND (lat >= @lat_lo) AND (lon <= @lon_hi) AND (lon >= @lon_lo)) AND (pm2_5 < {MAX_ALLOWED_PM2_5}))""")
+
+
+    query = " UNION ALL ".join(query_list) + " ORDER BY time ASC "
+
+    query = f"SELECT PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY pm2_5) OVER () AS median FROM {query}"
+
+#        query_string = f"""SELECT * FROM (SELECT {column_string} FROM `{db_id_string}` WHERE (({time_string} > {start_date}) AND ({time_string} < {end_date}))) WHERE ((lat <= {lat_hi}) AND (lat >= {lat_lo}) AND (lon <= {lon_hi}) AND (lon >= {lon_lo})) ORDER BY time ASC"""
+
+    print("query is: " + query)
+
+    job_config = bigquery.QueryJobConfig(
+        query_parameters=[
+            # bigquery.ScalarQueryParameter("lat", "NUMERIC", lat),
+            # bigquery.ScalarQueryParameter("lon", "NUMERIC", lon),
+            # bigquery.ScalarQueryParameter("radius", "NUMERIC", radius),
+            bigquery.ScalarQueryParameter("start_date", "TIMESTAMP", start_date),
+            bigquery.ScalarQueryParameter("end_date", "TIMESTAMP", end_date),
+            bigquery.ScalarQueryParameter("lat_lo", "NUMERIC", lat_lo),
+            bigquery.ScalarQueryParameter("lat_hi", "NUMERIC", lat_hi),
+            bigquery.ScalarQueryParameter("lon_lo", "NUMERIC", lon_lo),
+            bigquery.ScalarQueryParameter("lon_hi", "NUMERIC", lon_hi),
+        ]
+    )
+
+    query_job = bq_client.query(query, job_config=job_config)
+
+    if query_job.error_result:
+        app.logger.error(query_job.error_result)
+        return "Invalid API call - check documentation.", 400
+
+    median_data = query_job.result()
+
+    print(median_data)
+    return("done median query")
+
+
+@app.route("/api/getSensorData", methods=["GET"])
+def getSensorData():
     # Get the arguments from the query string
     id = request.args.get('id')
     sensor_source = request.args.get('sensorSource')
@@ -184,7 +256,7 @@ def rawDataFrom():
     return jsonify(measurements)
 
 
-@app.route("/api/liveSensors", methods=["GET"])
+@app.route("/api/getLiveSensors", methods=["GET"])
 @cache.cached(timeout=59, query_string=True)
 def liveSensors():
     # Get the arguments from the query string
@@ -484,8 +556,8 @@ def getEstimateMap():
     return jsonify(return_object)
     
 
-@app.route("/api/timeAggregatedDataFrom", methods=["GET"])
-def timeAggregatedDataFrom():
+@app.route("/api/getTimeAggregatedData", methods=["GET"])
+def getTimeAggregatedData():
     # this is used to convert the parameter terms to those used in the database
     group_tags = {"id":"ID", "sensorModel":"sensormodel", "area":"areamodel"}
     # Get the arguments from the query string
@@ -813,7 +885,7 @@ def request_model_data_local(lats, lons, radius, start_date, end_date, area_id_s
             new_row["SensorModel"] = "Default"
 
         if 'sensorsource' in row:
-            new_row["SensorSodel"] = row.sensorsource
+            new_row["SensorModel"] = row.sensorsource
         else:
             new_row["SensorSource"] = "Default"
 
@@ -834,8 +906,8 @@ def request_model_data_local(lats, lons, radius, start_date, end_date, area_id_s
 
 # returns sensor data for a range of times within a distance radius (meters) of the lat-lon location.
 # notice the times are assumed to be mountain time....
-@app.route("/api/getSensorData", methods=['GET'])
-def getSensorData():
+@app.route("/api/getLocalSensorData", methods=['GET'])
+def getLocalSensorData():
     query_parameters = request.args
     try:
         lat = float(query_parameters.get('lat'))
@@ -1060,10 +1132,10 @@ def computeEstimatesForLocations(query_dates, query_locations, query_elevations,
     ))
 
     # Step 4, parse sensor type from the version
-    sensor_source_to_type = {'AirU': '3003', 'PurpleAir': '5003', 'DAQ': '0000', 'Default':'Default'}
+#    sensor_source_to_type = {'AirU': '3003', 'PurpleAir': '5003', 'DAQ': '0000', 'Default':'Default'}
 # DAQ does not need a correction factor
-    for datum in sensor_data:
-        datum['type'] =  sensor_source_to_type[datum['SensorSource']]
+#    for datum in sensor_data:
+#        datum['type'] =  sensor_source_to_type[datum['SensorSource']]
 
     if len(sensor_data) > 0:
         app.logger.info(f'Fields: {sensor_data[0].keys()}')
@@ -1077,7 +1149,7 @@ def computeEstimatesForLocations(query_dates, query_locations, query_elevations,
 
     # step 5, apply correction factors to the data
     for datum in sensor_data:
-        datum['PM2_5'] = jsonutils.applyCorrectionFactor(area_model['correctionfactors'], datum['time'], datum['PM2_5'], datum['type'])
+        datum['PM2_5'] = jsonutils.applyCorrectionFactor(area_model['correctionfactors'], datum['time'], datum['PM2_5'], datum['sensorModel'])
 
     # step 6, add elevation values to the data
     # NOTICE - the elevation object takes locations in the form "lon-lat"
