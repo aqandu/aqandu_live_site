@@ -49,13 +49,17 @@ def testingTemp():
     lat_lo = float(request.args.get('latLo'))
     lon_hi = float(request.args.get('lonHi'))
     lon_lo = float(request.args.get('lonLo'))
-    area_model = jsonutils.getAreaModelByLocation(_area_models, lat=lat_hi, lon=lon_lo, string = area_string)
+    area_model = jsonutils.getAreaModelByLocation(_area_models, lat=lat_hi, lon=lon_lo)
     if area_model == None:
         msg = f"The query location, lat={lat_hi}, lon={lon_lo}, and/or area string {area_string} does not have a corresponding area model"
         return msg, 400
-    query_startdatetime = jsonutils.parseDateString(start, area_model['timezone'])
-    query_enddatetime = jsonutils.parseDateString(end, area_model['timezone'])
-    
+    start_date = jsonutils.parseDateString(start, area_model['timezone'])
+    end_date = jsonutils.parseDateString(end, area_model['timezone'])
+
+    with open('db_table_headings.json') as json_file:
+        db_table_headings = json.load(json_file)
+
+    area_id_strings=area_model['idstring']
     query_list = []
 #loop over all of the tables associated with this area model
     for area_id_string in area_id_strings:
@@ -76,14 +80,15 @@ def testingTemp():
             sensortype_string = db_table_headings[area_id_string]['sensortype']
             column_string += ", " + sensortype_string + " AS sensortype"
 
-        query_list.append(f"""(SELECT * FROM (SELECT {column_string} FROM `{table_string}` WHERE (({time_string} > @start_date) AND ({time_string} < @end_date))) WHERE ((lat <= @lat_hi) AND (lat >= @lat_lo) AND (lon <= @lon_hi) AND (lon >= @lon_lo)) AND (pm2_5 < {MAX_ALLOWED_PM2_5}))""")
+        query_list.append(f"""(SELECT pm2_5, id FROM (SELECT {column_string} FROM `{table_string}` WHERE (({time_string} > @start_date) AND ({time_string} < @end_date))) WHERE ((lat <= @lat_hi) AND (lat >= @lat_lo) AND (lon <= @lon_hi) AND (lon >= @lon_lo)) AND (pm2_5 < {MAX_ALLOWED_PM2_5}))""")
 
+    query = "(" + " UNION ALL ".join(query_list) + ")"
 
-    query = " UNION ALL ".join(query_list) + " ORDER BY time ASC "
+#    query = f"SELECT PERCENTILE_DISC(pm2_5, 0.5) OVER ()  AS median FROM {query} LIMIT 1"
+#    query = f"WITH all_data as {query} SELECT COUNT (DISTINCT id) as num_sensors, PERCENTILE_DISC(pm2_5, 0.0) OVER ()  AS min,  PERCENTILE_DISC(pm2_5, 0.5) OVER ()  AS median, PERCENTILE_DISC(pm2_5, 1.0) OVER ()  AS max FROM all_data LIMIT 1"
+    query = f"WITH all_data as {query} SELECT * FROM (SELECT PERCENTILE_DISC(pm2_5, 0.5) OVER() AS median FROM all_data LIMIT 1) JOIN (SELECT COUNT(DISTINCT id) as num_sensors FROM all_data) ON TRUE"
 
-    query = f"SELECT PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY pm2_5) OVER () AS median FROM {query}"
-
-#        query_string = f"""SELECT * FROM (SELECT {column_string} FROM `{db_id_string}` WHERE (({time_string} > {start_date}) AND ({time_string} < {end_date}))) WHERE ((lat <= {lat_hi}) AND (lat >= {lat_lo}) AND (lon <= {lon_hi}) AND (lon >= {lon_lo})) ORDER BY time ASC"""
+#        query_string = f"""SELECT pm2_5 FROM (SELECT {column_string} FROM `{db_id_string}` WHERE (({time_string} > {start_date}) AND ({time_string} < {end_date}))) WHERE ((lat <= {lat_hi}) AND (lat >= {lat_lo}) AND (lon <= {lon_hi}) AND (lon >= {lon_lo})) ORDER BY time ASC"""
 
     print("query is: " + query)
 
@@ -108,9 +113,14 @@ def testingTemp():
         return "Invalid API call - check documentation.", 400
 
     median_data = query_job.result()
-
-    print(median_data)
-    return("done median query")
+    for row in median_data:
+#        print(f"min = {row.min}")
+#        print(f"median = {row.median}")
+#        print(f"max = {row.max}")
+#        print(f"num sensors = {row.num_sensors}")
+        summary = {"median":row.median, "count":row.num_sensors}
+    
+    return(jsonify(summary))
 
 
 @app.route("/api/getSensorData", methods=["GET"])
@@ -1149,7 +1159,7 @@ def computeEstimatesForLocations(query_dates, query_locations, query_elevations,
 
     # step 5, apply correction factors to the data
     for datum in sensor_data:
-        datum['PM2_5'] = jsonutils.applyCorrectionFactor(area_model['correctionfactors'], datum['time'], datum['PM2_5'], datum['sensorModel'])
+        datum['PM2_5'] = jsonutils.applyCorrectionFactor(area_model['correctionfactors'], datum['time'], datum['PM2_5'], datum['SensorModel'])
 
     # step 6, add elevation values to the data
     # NOTICE - the elevation object takes locations in the form "lon-lat"
