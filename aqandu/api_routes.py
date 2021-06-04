@@ -38,24 +38,15 @@ MIN_ACCEPTABLE_ESTIMATE = -5.0
 # If the bin size is 10 mins, and the and the time scale is 20 mins, then a value of 30 would give 30*20/10, which is a matrix size of 60.  Which is not that big.  
 TIME_SEQUENCE_SIZE = 20.
 
-MAX_ALLOWED_PM2_5 = 500.00
+# constants for outier, bad sensor removal
+MAX_ALLOWED_PM2_5 = 1000.0
+# constant to be used with MAD estimates
+DEFAULT_OUTLIER_LEVEL = 5.0
+# level below which outliers won't be removed 
+MIN_OUTLIER_LEVEL = 10.0
 
 
-@app.route("/api/testingTemp", methods=["GET"])
-def testingTemp():
-    start = request.args.get('startTime')
-    end = request.args.get('endTime')
-    lat_hi = float(request.args.get('latHi'))
-    lat_lo = float(request.args.get('latLo'))
-    lon_hi = float(request.args.get('lonHi'))
-    lon_lo = float(request.args.get('lonLo'))
-    area_model = jsonutils.getAreaModelByLocation(_area_models, lat=lat_hi, lon=lon_lo)
-    if area_model == None:
-        msg = f"The query location, lat={lat_hi}, lon={lon_lo}, and/or area string {area_string} does not have a corresponding area model"
-        return msg, 400
-    start_date = jsonutils.parseDateString(start, area_model['timezone'])
-    end_date = jsonutils.parseDateString(end, area_model['timezone'])
-
+def estimateMedianDeviation(start_date, end_date, lat_lo, lat_hi, lon_lo, lon_hi, area_model):
     with open('db_table_headings.json') as json_file:
         db_table_headings = json.load(json_file)
 
@@ -86,11 +77,11 @@ def testingTemp():
 
 #    query = f"SELECT PERCENTILE_DISC(pm2_5, 0.5) OVER ()  AS median FROM {query} LIMIT 1"
 #    query = f"WITH all_data as {query} SELECT COUNT (DISTINCT id) as num_sensors, PERCENTILE_DISC(pm2_5, 0.0) OVER ()  AS min,  PERCENTILE_DISC(pm2_5, 0.5) OVER ()  AS median, PERCENTILE_DISC(pm2_5, 1.0) OVER ()  AS max FROM all_data LIMIT 1"
-    query = f"WITH all_data as {query} SELECT * FROM (SELECT PERCENTILE_DISC(pm2_5, 0.5) OVER() AS median FROM all_data LIMIT 1) JOIN (SELECT COUNT(DISTINCT id) as num_sensors FROM all_data) ON TRUE"
+    full_query = f"WITH all_data as {query} SELECT * FROM (SELECT PERCENTILE_DISC(pm2_5, 0.5) OVER() AS median FROM all_data LIMIT 1) JOIN (SELECT COUNT(DISTINCT id) as num_sensors FROM all_data) ON TRUE"
 
 #        query_string = f"""SELECT pm2_5 FROM (SELECT {column_string} FROM `{db_id_string}` WHERE (({time_string} > {start_date}) AND ({time_string} < {end_date}))) WHERE ((lat <= {lat_hi}) AND (lat >= {lat_lo}) AND (lon <= {lon_hi}) AND (lon >= {lon_lo})) ORDER BY time ASC"""
 
-    print("query is: " + query)
+    print("query is: " + full_query)
 
     job_config = bigquery.QueryJobConfig(
         query_parameters=[
@@ -106,19 +97,69 @@ def testingTemp():
         ]
     )
 
-    query_job = bq_client.query(query, job_config=job_config)
-
+    query_job = bq_client.query(full_query, job_config=job_config)
     if query_job.error_result:
         app.logger.error(query_job.error_result)
         return "Invalid API call - check documentation.", 400
 
     median_data = query_job.result()
     for row in median_data:
+        median = row.median
+        count = row.num_sensors
+
+    full_query = f"WITH all_data as {query} SELECT PERCENTILE_DISC(ABS(pm2_5 - {median}), 0.5) OVER() AS median FROM all_data LIMIT 1"
+    query_job = bq_client.query(full_query, job_config=job_config)
+    if query_job.error_result:
+        app.logger.error(query_job.error_result)
+        return "Invalid API call - check documentation.", 400
+    MAD_data = query_job.result()
+    for row in MAD_data:
+        MAD = row.median
+
+    return median, MAD, count
+
+
+def filterUpperLowerBounds(lat_lo, lat_hi, lon_lo, lon_hi, start_date, end_date, area_model, filter_level = DEFAULT_OUTLIER_LEVEL):
+        median, MAD, count = estimateMedianDeviation(start_date, end_date, lat_lo, lat_hi, lon_lo, lon_hi, area_model)
+        lo = max(median - filter_level*MAD, 0.0)
+        hi = min(max(median + filter_level*MAD, MIN_OUTLIER_LEVEL), MAX_ALLOWED_PM2_5)
+        return lo, hi
+
+def filterUpperLowerBoundsForArea(start_date, end_date, area_model, filter_level = DEFAULT_OUTLIER_LEVEL):
+        bbox_array = np.array(area_model['boundingbox'])[:,1:3]
+        lo = bbox_array.min(axis=0)
+        hi = bbox_array.max(axis=0)
+        median, MAD, count = estimateMedianDeviation(start_date, end_date, lo[0], hi[0], lo[1], hi[1], area_model)
+        lo = max(median - filter_level*MAD, 0.0)
+        hi = min(max(median + filter_level*MAD, MIN_OUTLIER_LEVEL), MAX_ALLOWED_PM2_5)
+        return lo, hi
+
+    
+@app.route("/api/estimateSummaryStatistics", methods=["GET"])
+def estimateSummaryStatistics():
+    start = request.args.get('startTime')
+    end = request.args.get('endTime')
+    lat_hi = float(request.args.get('latHi'))
+    lat_lo = float(request.args.get('latLo'))
+    lon_hi = float(request.args.get('lonHi'))
+    lon_lo = float(request.args.get('lonLo'))
+    area_model = jsonutils.getAreaModelByLocation(_area_models, lat=lat_hi, lon=lon_lo)
+    if area_model == None:
+        msg = f"The query location, lat={lat_hi}, lon={lon_lo}, and/or area string {area_string} does not have a corresponding area model"
+        return msg, 400
+    start_date = jsonutils.parseDateString(start, area_model['timezone'])
+    end_date = jsonutils.parseDateString(end, area_model['timezone'])
+
+#    print(filterUpperLowerBoundsForArea(start_date, end_date, area_model))
+
+    median, MAD, count = estimateMedianDeviation(start_date, end_date, lat_lo, lat_hi, lon_lo, lon_hi, area_model)
+    
+#    for row in median_data:
 #        print(f"min = {row.min}")
 #        print(f"median = {row.median}")
 #        print(f"max = {row.max}")
 #        print(f"num sensors = {row.num_sensors}")
-        summary = {"median":row.median, "count":row.num_sensors}
+    summary = {"median":median, "count":count, "MAD":MAD}
     
     return(jsonify(summary))
 
@@ -781,7 +822,7 @@ def getTimeAggregatedData():
 # submit a query for a range of values
 # Ross Nov 2020
 # this has been consolidate and generalized so that multiple api calls can use the same query code
-def submit_sensor_query(lat_lo, lat_hi, lon_lo, lon_hi, start_date, end_date, area_id_strings):
+def submit_sensor_query(lat_lo, lat_hi, lon_lo, lon_hi, start_date, end_date, area_id_strings, min_value, max_value):
 #    print("aread_id_string: " + area_id_string)
 #    db_id_string = "tetrad-296715.telemetry.slc_ut"
     with open('db_table_headings.json') as json_file:
@@ -857,7 +898,7 @@ def submit_sensor_query(lat_lo, lat_hi, lon_lo, lon_hi, start_date, end_date, ar
 # this has been modified so that it now takes an array of lats/lons
 # the radius parameter is not implemented in a precise manner -- rather it is converted to a lat-lon bounding box and all within that box are returned
 # there could be an additional culling of sensors outside the radius done here after the query - if the radius parameter needs to be precise. 
-def request_model_data_local(lats, lons, radius, start_date, end_date, area_id_string):
+def request_model_data_local(lats, lons, radius, start_date, end_date, area_model, outlier_filtering = True):
     model_data = []
     # get the latest sensor data from each sensor
     # Modified by Ross for
@@ -879,7 +920,12 @@ def request_model_data_local(lats, lons, radius, start_date, end_date, area_id_s
         return "lats,lons data structure misalignment in request sensor data", 400
     app.logger.info("Query bounding box is %f %f %f %f" %(lat_lo, lat_hi, lon_lo, lon_hi))
 
-    rows = submit_sensor_query(lat_lo, lat_hi, lon_lo, lon_hi, start_date, end_date, area_id_string)
+    if outlier_filtering:
+        min_value, max_value = filterUpperLowerBounds(lat_lo, lat_hi, lon_lo, lon_hi, start_date, end_date, area_model)
+    else:
+        min_value = 0.0
+        max_value = MAX_ALLOWED_PM2_5
+    rows = submit_sensor_query(lat_lo, lat_hi, lon_lo, lon_hi, start_date, end_date, area_model["idstring"], min_value, max_value)
 
     for row in rows:
         new_row = {
@@ -937,7 +983,9 @@ def getLocalSensorData():
         msg = f"The query ({start_date}, {end_date}) is not a recognized date/time format; see also https://www.cl.cam.ac.uk/~mgk25/iso-time.html.  Default time zone is {area_model['timezone']}"
         return msg, 400
 
-    model_data = request_model_data_local(lat, lon, radius, start_datetime, end_datetime)
+
+    area_model = jsonutils.getAreaModelByLocation(_area_models, lat, lon)
+    model_data = request_model_data_local(lat, lon, radius, start_datetime, end_datetime, area_model, outlier_filtering = False)
     return jsonify(model_data)
 
 # get estimates within a time frame for a single location
@@ -1076,7 +1124,7 @@ def getEstimatesForLocations():
 
 
 # this is a generic helper function that sets everything up and runs the model
-def computeEstimatesForLocations(query_dates, query_locations, query_elevations, area_model):
+def computeEstimatesForLocations(query_dates, query_locations, query_elevations, area_model, outlier_filtering = True):
     num_locations = query_locations.shape[0]
     query_lats = query_locations[:,0]
     query_lons = query_locations[:,1]
@@ -1116,11 +1164,10 @@ def computeEstimatesForLocations(query_dates, query_locations, query_elevations,
     sensor_data = request_model_data_local(
             query_lats,
             query_lons,
-            radius=radius,
-            start_date=query_start_datetime - timedelta(hours=TIME_KERNEL_FACTOR_PADDING*time_length_scale),
-            end_date=query_end_datetime + timedelta(hours=TIME_KERNEL_FACTOR_PADDING*time_length_scale),
-            area_id_string=area_model['idstring']
-        )
+            radius,
+            query_start_datetime - timedelta(hours=TIME_KERNEL_FACTOR_PADDING*time_length_scale),
+            query_end_datetime + timedelta(hours=TIME_KERNEL_FACTOR_PADDING*time_length_scale),
+            area_model, outlier_filtering)
 
     unique_sensors = {datum['ID'] for datum in sensor_data}
     app.logger.info(f'Loaded {len(sensor_data)} data points for {len(unique_sensors)} unique devices from bgquery.')
