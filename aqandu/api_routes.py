@@ -132,6 +132,7 @@ def filterUpperLowerBoundsForArea(start_date, end_date, area_model, filter_level
         median, MAD, count = estimateMedianDeviation(start_date, end_date, lo[0], hi[0], lo[1], hi[1], area_model)
         lo = max(median - filter_level*MAD, 0.0)
         hi = min(max(median + filter_level*MAD, MIN_OUTLIER_LEVEL), MAX_ALLOWED_PM2_5)
+        print(f"high bounds {hi} and low bounds {lo}")
         return lo, hi
 
     
@@ -309,10 +310,10 @@ def getSensorData():
 
 @app.route("/api/getLiveSensors", methods=["GET"])
 @cache.cached(timeout=59, query_string=True)
-def liveSensors():
+def getLiveSensors():
     # Get the arguments from the query string
     sensor_source = request.args.get('sensorSource')
-    if "areamodel" in request.args:
+    if "areaModel" in request.args:
         area_string = request.args.get('areaModel')
     else:
         area_string = "all"
@@ -320,6 +321,10 @@ def liveSensors():
         apply_correction = False
     else:
         apply_correction = True
+    if "flagOutliers" in request.args:
+        flag_outliers = True
+    else:
+        flag_outliers = False
 
 
     # check if sensor_source is specified
@@ -329,14 +334,19 @@ def liveSensors():
         sensor_source = "all"
 
     # Define the BigQuery query
-    one_hour_ago = datetime.utcnow() - timedelta(hours=1)  # AirU + PurpleAir sensors have reported in the last hour
-    three_hours_ago = datetime.utcnow() - timedelta(hours=3)  # DAQ sensors have reported in the 3 hours
+    now = datetime.utcnow()
+    one_hour_ago = now - timedelta(hours=1)  # AirU + PurpleAir sensors have reported in the last hour
+    three_hours_ago = now - timedelta(hours=3)  # DAQ sensors have reported in the 3 hours
     query_list = []
 
     if area_string == "all":
         areas = _area_models.keys()
     else:
-        areas = [area_string]
+        if area_string in _area_models:
+            areas = [area_string]
+        else:
+            msg = f"The area string {area_string} does not have a corresponding area model"
+            return msg, 400
 
     with open('db_table_headings.json') as json_file:
         db_table_headings = json.load(json_file)
@@ -386,10 +396,10 @@ def liveSensors():
                 # if you are looking for a particular sensor source, but that's not part of the tables info, then the query is not going to return anything
                 empty_query = True
         
-            this_query = f"""WITH a AS (SELECT {column_string} FROM `{table_string}`),  b AS (SELECT {id_string} AS ID, max({time_string}) AS LATEST_MEASUREMENT FROM `{table_string}` WHERE {time_string} >= '{str(one_hour_ago)}' AND {source_query} GROUP BY {id_string}) SELECT * FROM a INNER JOIN b ON a.time = b.LATEST_MEASUREMENT and b.ID = a.ID"""
+            this_query = f"""(WITH a AS (SELECT {column_string} FROM `{table_string}`),  b AS (SELECT {id_string} AS ID, max({time_string}) AS LATEST_MEASUREMENT FROM `{table_string}` WHERE {time_string} >= '{str(one_hour_ago)}' AND {source_query} GROUP BY {id_string}) SELECT * FROM a INNER JOIN b ON a.time = b.LATEST_MEASUREMENT and b.ID = a.ID)"""
 #            this_query = f"""(SELECT * FROM (SELECT {column_string}, max({time_string}) AS LATEST_MEASUREMENT FROM `{table_string}` WHERE {time_string} >= '{str(one_hour_ago)}' GROUP BY {group_string}) WHERE LATEST_MEASUREMENT > '{str(one_hour_ago)}')"""
             
-            print(this_query)
+#            print(this_query)
 
             if not empty_query:
                 query_list.append(this_query)
@@ -446,12 +456,31 @@ def liveSensors():
     query_job = bq_client.query(query)
 #    rows = query_job.result()
     df = query_job.to_dataframe()
-    status_data = ["No correction"]*df.shape[0]
+    status_data = [[]]*df.shape[0]
     df["status"] = status_data
+    
+    if flag_outliers:
+        filters = {}
+        for this_area in areas:
+            area_model = _area_models[this_area]
+            lo_filter, hi_filter = filterUpperLowerBoundsForArea(str(one_hour_ago), str(now), area_model)
+            filters[this_area] = (lo_filter,hi_filter)
+        for idx, datum in df.iterrows():
+            this_lo, this_hi = filters[datum["area_model"]]
+            this_data = datum['pm2_5']
+            if  this_data < 0.0:
+                df.at[idx, 'status'] = df.at[idx, 'status'] + ["No data"]
+            elif (this_data < this_lo) or (this_data > this_hi):
+                df.at[idx, 'status'] = df.at[idx, 'status'] + ["Outlier"]
+                
 
     if apply_correction:
         for idx, datum in df.iterrows():
-            df.at[idx, 'pm2_5'], df.at[idx, 'status'] = jsonutils.applyCorrectionFactor(_area_models[datum["area_model"]]['correctionfactors'], datum['time'], datum['pm2_5'], datum['sensormodel'], status=True)
+            df.at[idx, 'pm2_5'], this_status= jsonutils.applyCorrectionFactor(_area_models[datum["area_model"]]['correctionfactors'], datum['time'], datum['pm2_5'], datum['sensormodel'], status=True)
+            df.at[idx, 'status'] = df.at[idx, 'status'] + [this_status]
+    else:
+        for idx, datum in df.iterrows():
+            df.at[idx, 'status'] += ["No correction"]
 
     sensor_list = []
     for idx, row in df.iterrows():
@@ -464,9 +493,9 @@ def liveSensors():
                 "PM2_5": row["pm2_5"],
                 "SensorModel": row["sensormodel"],
                 "SensorSource": row["sensorsource"],
+                "Status":row["status"]
             }
         )
-
     return jsonify(sensor_list)
 
 
