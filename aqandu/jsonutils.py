@@ -113,6 +113,7 @@ def buildAreaModelsFromJson(json_data):
     area_models = {}
     for key in json_data:
         this_model = {}
+        this_model['name'] = json_data[key]['Name']
         this_model['timezone'] = json_data[key]['Timezone']
         this_model['idstring'] = json_data[key]['ID String']
         this_model['elevationfile'] = json_data[key]['Elevation File']
@@ -128,6 +129,7 @@ def buildAreaModelsFromJson(json_data):
         area_models[key] = this_model
     return area_models
 
+# note this can be very slow -- need 
 def applyCorrectionFactor(factors, data_timestamp, data, sensor_type, status=False):
     for factor_type in factors:
         if sensor_type == factor_type:
