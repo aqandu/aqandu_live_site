@@ -474,6 +474,7 @@ def getLiveSensors():
     # Build the actual query from the list of options
     query = " UNION ALL ".join(query_list)
 
+    print(f"query is: {query}")
     # Run the query and collect the result
     query_job = bq_client.query(query)
 #    rows = query_job.result()
@@ -506,6 +507,7 @@ def getLiveSensors():
 
     sensor_list = []
     for idx, row in df.iterrows():
+        print(f"{idx} {row}")
         sensor_list.append(
             {
                 "ID": str(row["ID"]),

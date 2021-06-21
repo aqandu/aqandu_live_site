@@ -131,26 +131,39 @@ def buildAreaModelsFromJson(json_data):
 
 # note this can be very slow -- need 
 def applyCorrectionFactor(factors, data_timestamp, data, sensor_type, status=False):
-    for factor_type in factors:
-        if sensor_type == factor_type:
-            for i in range(len(factors[factor_type])):
-                if factors[factor_type][i]['starttime'] <= data_timestamp and factors[factor_type][i]['endtime'] > data_timestamp:
-                    if not status:
-                        return np.maximum(data * factors[factor_type][i]['slope'] + factors[factor_type][i]['intercept'], 0.0)
-                    else:
-                        # print(f"factor type is {factor_type} and case {i}")
-                        # print(factors[factor_type][i])
-                        return np.maximum(data * factors[factor_type][i]['slope'] + factors[factor_type][i]['intercept'], 0.0), factors[factor_type][i]['note']
-#  no correction factor will be considered identity
+    if sensor_type in factors:
+        this_type = sensor_type
+    elif "default" in factors:
+        this_type = "default"
+    default_idx = -1
+    for i in range(len(factors[this_type])):
+            if factors[this_type][i]['starttime'] <= data_timestamp and factors[this_type][i]['endtime'] > data_timestamp:
+                if not status:
+                    return np.maximum(data * factors[this_type][i]['slope'] + factors[this_type][i]['intercept'], 0.0)
+                else:
+                    # print(f"factor type is {factor_type} and case {i}")
+                    # print(factors[factor_type][i])
+                    return np.maximum(data * factors[this_type][i]['slope'] + factors[this_type][i]['intercept'], 0.0), factors[this_type][i]['note']
+
+            if factors[this_type][i]['starttime'] == "default":
+                default_idx = i
+    if default_idx >= 0:
+        return np.maximum(data * factors[this_type][default_idx]['slope'] + factors[this_type][default_idx]['intercept'], 0.0), factors[this_type][i]['note']
+        
     if not status:
         return data
     else:
         return data, "no correction"
 
 def getLengthScalesForTime(length_scales_array, datetime):
+    default_idx = -1
     for i in range(len(length_scales_array)):
-        if length_scales_array[i]['starttime'] <= datetime and length_scales_array[i]['endtime'] > datetime:
+        if length_scales_array[i]['starttime'] == "default":
+            default_idx = i
+        elif length_scales_array[i]['starttime'] <= datetime and length_scales_array[i]['endtime'] > datetime:
             return length_scales_array[i]['Space'], length_scales_array[i]['Time'], length_scales_array[i]['Elevation']
+    if default_idx >= 0:
+        return length_scales_array[default_idx]['Space'], length_scales_array[default_idx]['Time'], length_scales_array[default_idx]['Elevation']
     logging.warn("failure to find length scale in area model: " + str(area_model["Note"]))
     return None, None, None
     
