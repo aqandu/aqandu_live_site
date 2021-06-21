@@ -47,7 +47,6 @@ MIN_OUTLIER_LEVEL = 10.0
 
 
 def estimateMedianDeviation(start_date, end_date, lat_lo, lat_hi, lon_lo, lon_hi, area_model):
-    print("got estimate median")
     with open('db_table_headings.json') as json_file:
         db_table_headings = json.load(json_file)
 
@@ -88,7 +87,7 @@ def estimateMedianDeviation(start_date, end_date, lat_lo, lat_hi, lon_lo, lon_hi
 
 #        query_string = f"""SELECT pm2_5 FROM (SELECT {column_string} FROM `{db_id_string}` WHERE (({time_string} > {start_date}) AND ({time_string} < {end_date}))) WHERE ((lat <= {lat_hi}) AND (lat >= {lat_lo}) AND (lon <= {lon_hi}) AND (lon >= {lon_lo})) ORDER BY time ASC"""
 
-    print("query is: " + full_query)
+#    print("query is: " + full_query)
 
     job_config = bigquery.QueryJobConfig(
         query_parameters=[
@@ -111,19 +110,16 @@ def estimateMedianDeviation(start_date, end_date, lat_lo, lat_hi, lon_lo, lon_hi
 
     median_data = query_job.result()
     for row in median_data:
-        print(f"MAD is {row}")
         median = row.median
         count = row.num_sensors
 
     full_query = f"WITH all_data as {query} SELECT PERCENTILE_DISC(ABS(pm2_5 - {median}), 0.5) OVER() AS median FROM all_data LIMIT 1"
-    print(full_query)
     query_job = bq_client.query(full_query, job_config=job_config)
     if query_job.error_result:
         app.logger.error(query_job.error_result)
         return "Invalid API call - check documentation.", 400
     MAD_data = query_job.result()
     for row in MAD_data:
-        print(f"MAD is {row}")
         MAD = row.median
 
     return median, MAD, count
@@ -142,7 +138,6 @@ def filterUpperLowerBoundsForArea(start_date, end_date, area_model, filter_level
         median, MAD, count = estimateMedianDeviation(start_date, end_date, lo[0], hi[0], lo[1], hi[1], area_model)
         lo = max(median - filter_level*MAD, 0.0)
         hi = min(max(median + filter_level*MAD, MIN_OUTLIER_LEVEL), MAX_ALLOWED_PM2_5)
-        print(f"high bounds {hi} and low bounds {lo}")
         return lo, hi
 
     
@@ -170,7 +165,7 @@ def estimateSummaryStatistics():
 #        print(f"median = {row.median}")
 #        print(f"max = {row.max}")
 #        print(f"num sensors = {row.num_sensors}")
-    summary = {"median":median, "count":count, "MAD":MAD}
+    summary = {"Median":median, "Count":count, "MAD":MAD}
     
     return(jsonify(summary))
 
@@ -275,7 +270,6 @@ def getSensorData():
             where_string += source_query
 
             this_query = f"""(SELECT * FROM (SELECT {column_string} FROM `{table_string}`) WHERE ({where_string}))"""
-            print(this_query)
 
             if not empty_query:
                 query_list.append(this_query)
@@ -308,7 +302,7 @@ def getSensorData():
 #        datum['status'] = "No correction"
         
     for idx, row in df.iterrows():
-        measurements.append({"SensorSource": row["sensorsource"], "SensorID": row["ID"], "PM2_5": row["pm2_5"], "time": row["time"].strftime(utils.DATETIME_FORMAT), "Latitude": row["lat"], "Longitude": row["lon"], "Status": row["status"]})
+        measurements.append({"Sensor source": row["sensorsource"], "Sensor ID": row["ID"], "PM2_5": row["pm2_5"], "Time": row["time"].strftime(utils.DATETIME_FORMAT), "Latitude": row["lat"], "Longitude": row["lon"], "Status": row["status"]})
     # tags = [{
     #     "ID": id,
     #     "SensorSource": sensor_source,
@@ -364,6 +358,7 @@ def getLiveSensors():
     query_list = []
 
     for this_area in areas:
+        need_source_query = False
         area_model = _area_models[this_area]
 #        print(area_model)
         # this logic adjusts for the two cases, where you have different tables for each source or one table for all sources
@@ -381,7 +376,8 @@ def getLiveSensors():
         else:
             # sources are not organized by table.  Get all the tables and add a boolean to check for the source
             sources = area_model["idstring"]
-            source_query = f" AND sensorsource = @sensor_source"
+#            source_query = f"{sensor_string} = @sensor_source"
+            need_source_query = True
 
         for area_id_string in sources:
             where_string = " WHERE TRUE"
@@ -402,8 +398,10 @@ def getLiveSensors():
             if "sensorsource" in db_table_headings[area_id_string]:
                 sensor_string = db_table_headings[area_id_string]['sensorsource']
                 column_string += ", " + sensor_string + " AS sensorsource"
-                group_string += ", sensorsource" 
-            elif (not source_query==""):
+                group_string += ", sensorsource"
+                if need_source_query:
+                    source_query = f"{sensor_string} = '{sensor_source}'"
+            elif need_source_query:
                 # if you are looking for a particular sensor source, but that's not part of the tables info, then the query is not going to return anything
                 empty_query = True
 
@@ -417,8 +415,9 @@ def getLiveSensors():
             else:
                 column_string += ", " + this_area + "'" + " AS area_model"
 
+            where_string += " AND " + source_query
 
-            this_query = f"""(WITH a AS (SELECT {column_string} FROM `{table_string}` {where_string}),  b AS (SELECT {id_string} AS ID, max({time_string})  AS LATEST_MEASUREMENT FROM `{table_string}` WHERE {time_string} >= '{str(one_hour_ago)}' AND {source_query} GROUP BY {id_string}) SELECT * FROM a INNER JOIN b ON a.time = b.LATEST_MEASUREMENT and b.ID = a.ID)"""
+            this_query = f"""(WITH a AS (SELECT {column_string} FROM `{table_string}` {where_string}),  b AS (SELECT {id_string} AS ID, max({time_string})  AS LATEST_MEASUREMENT FROM `{table_string}` WHERE {time_string} >= '{str(one_hour_ago)}' GROUP BY {id_string}) SELECT * FROM a INNER JOIN b ON a.time = b.LATEST_MEASUREMENT and b.ID = a.ID)"""
 #            this_query = f"""(SELECT * FROM (SELECT {column_string}, max({time_string}) AS LATEST_MEASUREMENT FROM `{table_string}` WHERE {time_string} >= '{str(one_hour_ago)}' GROUP BY {group_string}) WHERE LATEST_MEASUREMENT > '{str(one_hour_ago)}')"""
             
 #            print(this_query)
@@ -474,7 +473,7 @@ def getLiveSensors():
     # Build the actual query from the list of options
     query = " UNION ALL ".join(query_list)
 
-    print(f"query is: {query}")
+    print(query)
     # Run the query and collect the result
     query_job = bq_client.query(query)
 #    rows = query_job.result()
@@ -507,16 +506,15 @@ def getLiveSensors():
 
     sensor_list = []
     for idx, row in df.iterrows():
-        print(f"{idx} {row}")
         sensor_list.append(
             {
-                "ID": str(row["ID"]),
+                "Sensor ID": str(row["ID"]),
                 "Latitude": row["lat"],
                 "Longitude": row["lon"],
-                "time": row["time"],
+                "Time": row["time"],
                 "PM2_5": row["pm2_5"],
-                "SensorModel": row["sensormodel"],
-                "SensorSource": row["sensorsource"],
+                "Sensor model": row["sensormodel"],
+                "Sensor source": row["sensorsource"],
                 "Status":row["status"]
             }
         )
@@ -597,7 +595,6 @@ def getEstimateMap():
 
     elevations = area_model['elevationinterpolator'](lon_vector, lat_vector)
     locations_lon, locations_lat = np.meshgrid(lon_vector, lat_vector)
-    print(f"locations shape: {locations_lon.shape}, {locations_lat.shape}")
     query_lats = locations_lat.flatten()
     query_lons= locations_lon.flatten()
     query_elevations = elevations.flatten()
@@ -656,7 +653,7 @@ def getEstimateMap():
     estimates = []
     for i in range(num_times):
         estimates.append(
-            {'PM2_5': (yPred[:,:,i]).tolist(), 'variance': (yVar[:,:,i]).tolist(), 'datetime': query_dates[i].strftime('%Y-%m-%d %H:%M:%S%z'), 'Status': status[i]}
+            {'PM2_5': (yPred[:,:,i]).tolist(), 'Variance': (yVar[:,:,i]).tolist(), 'Time': query_dates[i].strftime('%Y-%m-%d %H:%M:%S%z'), 'Status': status[i]}
             )
 
     return_object['estimates'] = estimates
@@ -695,7 +692,6 @@ def getTimeAggregatedData():
 
 # if you are going to apply correction, you need to have data grouped by area and sensortype
     if apply_correction:
-        print(f"group by is {group_by}")
         if group_by == "id" or group_by == None:
             group_string = ", " + ", ".join(list(group_tags.values())[0:3])
         elif group_by == "sensorModel":
@@ -738,7 +734,6 @@ def getTimeAggregatedData():
         msg = f"function is not in {SQL_FUNCTIONS.keys()}"
         return msg, 400
 
-    print(f"start and end times are {start}, {end}")
     # Check that the data is formatted correctly
     if not utils.validateDate(start) or not utils.validateDate(end):
         msg = "Incorrect date format, should be {utils.DATETIME_FORMAT}, e.g.: 2018-01-03T20:00:00Z"
@@ -761,9 +756,9 @@ def getTimeAggregatedData():
 
     tables_list = []
 
-    print(areas)
     
     for this_area in areas:
+        need_source_query = False
         area_model = _area_models[this_area]
 #        print(area_model)
         # this logic adjusts for the two cases, where you have different tables for each source or one table for all sources
@@ -781,9 +776,9 @@ def getTimeAggregatedData():
         else:
             # sources are not organized by table.  Get all the tables and add a boolean to check for the source
             sources = area_model["idstring"]
-            source_query = f" AND sensorsource = @sensor_source"
+            need_source_query = True
+#            source_
 
-        print(sources)
         for area_id_string in sources:
             empty_query = False
             time_string = db_table_headings[area_id_string]['time']
@@ -804,7 +799,9 @@ def getTimeAggregatedData():
             if "sensorsource" in db_table_headings[area_id_string]:
                 sensor_string = db_table_headings[area_id_string]['sensorsource']
                 column_string += ", " + sensor_string + " AS sensorsource"
-            elif (not source_query==""):
+                if need_source_query:
+                    query = f" AND sensor_string = {sensor_source}"
+            elif need_source_query:
                 # if you are looking for a particular sensor source, but that's not part of the tables info, then the query is not going to return anything
                 empty_query = True
 
@@ -826,7 +823,6 @@ def getTimeAggregatedData():
 
             this_query = f"""(SELECT * FROM (SELECT {column_string} FROM `{table_string}`) WHERE ({where_string}))"""
         
-            print(this_query)
 
             if not empty_query:
                 tables_list.append(this_query)
@@ -883,7 +879,7 @@ def getTimeAggregatedData():
             else:
                 new_pm2_5 = row.PM2_5
                 status = "Not corrected"
-            measurements.append({"PM2_5": new_pm2_5, "time": (row.upper + timedelta(seconds=1)).strftime(utils.DATETIME_FORMAT), group_by: row[group_tags[group_by]], "Area model":row.areamodel, "Status":status})
+            measurements.append({"PM2_5": new_pm2_5, "Time": (row.upper + timedelta(seconds=1)).strftime(utils.DATETIME_FORMAT), group_by: row[group_tags[group_by]], "Area model":row.areamodel, "Status":status})
 
     return jsonify({"data": measurements})
 
@@ -933,7 +929,6 @@ def submit_sensor_query(lat_lo, lat_hi, lon_lo, lon_hi, start_date, end_date, ar
 
 #        query_string = f"""SELECT * FROM (SELECT {column_string} FROM `{db_id_string}` WHERE (({time_string} > {start_date}) AND ({time_string} < {end_date}))) WHERE ((lat <= {lat_hi}) AND (lat >= {lat_lo}) AND (lon <= {lon_hi}) AND (lon >= {lon_lo})) ORDER BY time ASC"""
 
-    print("query is: " + query)
     
 # Old code that does not compute distance correctly
 #    WHERE SQRT(POW(Latitude - @lat, 2) + POW(Longitude - @lon, 2)) <= @radius
@@ -1120,7 +1115,7 @@ def getEstimatesForLocation():
     estimates = []
     for i in range(num_times):
         estimates.append(
-            {'PM2_5': (yPred[0, i]), 'variance': (yVar[0, i]), 'datetime': query_dates[i].strftime('%Y-%m-%d %H:%M:%S%z'), 'Latitude': query_lat, 'Longitude': query_lon, 'Elevation': query_elevations[0], 'Status': status[i]}
+            {'PM2_5': (yPred[0, i]), 'Variance': (yVar[0, i]), 'Time': query_dates[i].strftime('%Y-%m-%d %H:%M:%S%z'), 'Latitude': query_lat, 'Longitude': query_lon, 'Elevation': query_elevations[0], 'Status': status[i]}
             )
 
     # estimates = [
@@ -1196,7 +1191,7 @@ def getEstimatesForLocations():
 
     for i in range(num_times):
         estimates.append(
-            {'PM2_5': (yPred[:,i]).tolist(), 'variance': (yVar[:,i]).tolist(), 'datetime': query_dates[i].strftime('%Y-%m-%d %H:%M:%S%z'), 'Status': status[i]}
+            {'PM2_5': (yPred[:,i]).tolist(), 'Variance': (yVar[:,i]).tolist(), 'Time': query_dates[i].strftime('%Y-%m-%d %H:%M:%S%z'), 'Status': status[i]}
             )
     data_out["Estimates"] = estimates
     return jsonify(data_out)
