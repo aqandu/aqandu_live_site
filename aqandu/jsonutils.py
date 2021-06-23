@@ -118,7 +118,9 @@ def buildAreaModelsFromJson(json_data):
         this_model['idstring'] = json_data[key]['ID String']
         this_model['elevationfile'] = json_data[key]['Elevation File']
         this_model['note'] = json_data[key]['Note']
-        this_model['elevationinterpolator'] = buildAreaElevationInterpolator(json_data[key]['Elevation File'])
+#delay loading elev maps to save memory
+#        this_model['elevationinterpolator'] = buildAreaElevationInterpolator(json_data[key]['Elevation File'])
+        this_model['elevationfile'] = json_data[key]['Elevation File']
         this_model['boundingbox'] = loadBoundingBox(json_data[key]['Boundingbox'])
         this_model['correctionfactors'] = loadCorrectionFactors(json_data[key]['Correction Factors'],json_data[key]['Timezone'])
         this_model['lengthscales'] = loadLengthScales(json_data[key]['Length Scales'], json_data[key]['Timezone'])

@@ -593,11 +593,12 @@ def getEstimateMap():
 #        query_locations_
         return 'UTM not yet supported', 400
 
-    elevations = area_model['elevationinterpolator'](lon_vector, lat_vector)
+#    elevation_interpolator = jsonutils.buildAreaElevationInterpolator(area_model['elevationfile'])
+#   elevations = elevation_interpolator(lon_vector, lat_vector)
     locations_lon, locations_lat = np.meshgrid(lon_vector, lat_vector)
     query_lats = locations_lat.flatten()
     query_lons= locations_lon.flatten()
-    query_elevations = elevations.flatten()
+#    query_elevations = elevations.flatten()
     query_locations = np.column_stack((query_lats, query_lons))
 
 # deal with single or time sequences.
@@ -635,18 +636,21 @@ def getEstimateMap():
 #     if not ((zone_num_lo == zone_num_hi) and (zone_let_lo == zone_let_hi)):
 #         return 'Requested region spans UTM zones', 400        
 
-    yPred, yVar, status = computeEstimatesForLocations(query_dates, query_locations, query_elevations, area_model)
+    yPred, yVar, query_elevations, status = computeEstimatesForLocations(query_dates, query_locations, area_model)
     
     # yPred, yVar = gaussian_model_utils.estimateUsingModel(
     #     model, locations_lat, locations_lon, elevations, [query_datetime], time_offset)
 
     num_times = len(query_dates)
 
-    elevations = (elevations).tolist()
+    query_elevations = query_elevations.reshape((lat_vector.shape[0], lon_vector.shape[0], num_times))
     yPred = yPred.reshape((lat_vector.shape[0], lon_vector.shape[0], num_times))
     yVar = yVar.reshape((lat_vector.shape[0], lon_vector.shape[0], num_times))
+
     estimates = yPred.tolist()
     variances = yVar.tolist()
+    elevations = query_elevations.tolist()
+
     return_object = {"Area model": area_model["note"],"Elevations":elevations,"Latitudes":lat_vector.tolist(), "Longitudes":lon_vector.tolist()
                          }
 
@@ -662,11 +666,18 @@ def getEstimateMap():
 
 @app.route("/api/getTimeAggregatedData", methods=["GET"])
 def getTimeAggregatedData():
+    print("call to aggregate")
     # this is used to convert the parameter terms to those used in the database
     group_tags = {"id":"ID", "sensorModel":"sensormodel", "area":"areamodel"}
     # Get the arguments from the query string
-    id = request.args.get('id')
-    sensor_source = request.args.get('sensorSource')
+    if "id" in request.args:
+        id = request.args.get('id')
+    else:
+        id = "all"
+    if "sensorSource" in request.args:
+        sensor_source = request.args.get('sensorSource')
+    else:
+        sensor_source = "all"
     start = request.args.get('startTime')
     end = request.args.get('endTime')
     function = request.args.get('function')
@@ -705,9 +716,6 @@ def getTimeAggregatedData():
 
 
 
-    # Check ID is valid
-    if id == "" or id == "undefined":
-        id = None
 #        msg = "id is invalid. It must be a string that is not '' or 'undefined'."
 #        return msg, 400
 
@@ -807,7 +815,7 @@ def getTimeAggregatedData():
 
                 
             where_string = f"pm2_5 < {MAX_ALLOWED_PM2_5} AND time >= @start AND time <= '{end_interval}'"
-            if id != None:
+            if id != "all":
                 where_string  += " AND ID = @id"
             where_string += source_query
 
@@ -871,7 +879,12 @@ def getTimeAggregatedData():
             else:
                 new_pm2_5 = row.PM2_5
                 status = "Not corrected"
-            measurements.append({"PM2_5": new_pm2_5, "time":  (row.upper + timedelta(seconds=1)).strftime(utils.DATETIME_FORMAT), "Status": status})
+            new_row = {"PM2_5": new_pm2_5, "time":  (row.upper + timedelta(seconds=1)).strftime(utils.DATETIME_FORMAT), "Status": status}
+            if id != "all":
+                new_row["id"] = id
+            if sensor_source != "all":
+                new_row["Sensor source"] = sensor_source
+            measurements.append(new_row)
     else:
         for row in rows:
             if apply_correction:
@@ -879,9 +892,14 @@ def getTimeAggregatedData():
             else:
                 new_pm2_5 = row.PM2_5
                 status = "Not corrected"
-            measurements.append({"PM2_5": new_pm2_5, "Time": (row.upper + timedelta(seconds=1)).strftime(utils.DATETIME_FORMAT), group_by: row[group_tags[group_by]], "Area model":row.areamodel, "Status":status})
+            new_row = {"PM2_5": new_pm2_5, "Time": (row.upper + timedelta(seconds=1)).strftime(utils.DATETIME_FORMAT), group_by: row[group_tags[group_by]], "Area model":row.areamodel, "Status":status}
+            if id != "all":
+                new_row["id"] = id
+            if sensor_source != "all":
+                new_row["Sensor source"] = sensor_source
+            measurements.append(new_row)
 
-    return jsonify({"data": measurements})
+    return jsonify(measurements)
 
 
 # submit a query for a range of values
@@ -1098,13 +1116,14 @@ def getEstimatesForLocation():
         return msg, 400
 
     query_dates = utils.interpolateQueryDates(query_start_datetime, query_end_datetime, query_rate)
-    query_elevations = area_model['elevationinterpolator'](query_lon, query_lat)
+    # elevation_interpolator = jsonutils.buildAreaElevationInterpolator(area_model['elevationfile'])
+    # query_elevations = elevation_interpolator(query_lon, query_lat)
     query_locations = np.column_stack((np.array((query_lat)), np.array((query_lon))))
 
     app.logger.info(
         "Query parameters: lat= %f lon= %f start_date= %s end_date=%s estimatesrate=%f hours/estimate" %(query_lat, query_lon, query_start_datetime, query_end_datetime, query_rate))
 
-    yPred, yVar, status = computeEstimatesForLocations(query_dates, query_locations, query_elevations, area_model)
+    yPred, yVar, query_elevations, status = computeEstimatesForLocations(query_dates, query_locations, area_model)
     
 # convert the arrays to lists of floats
 
@@ -1177,13 +1196,15 @@ def getEstimatesForLocations():
 
 ################  start of generic code
 ### we know:     query locations, query start date, query end data
+
     query_dates = utils.interpolateQueryDates(query_start_datetime, query_end_datetime, query_rate)
     query_locations = np.column_stack((query_lats, query_lons))
 # note - the elevation grid is the wrong way around, so you need to put in lons first
+
+#    elevation_interpolator = jsonutils.buildAreaElevationInterpolator(area_model['elevationfile'])    
+#    query_elevations = np.array([elevation_interpolator(this_lon, this_lat)[0] for this_lat, this_lon in zip(query_lats, query_lons)])
     
-    query_elevations = np.array([area_model['elevationinterpolator'](this_lon, this_lat)[0] for this_lat, this_lon in zip(query_lats, query_lons)])
-    
-    yPred, yVar, status = computeEstimatesForLocations(query_dates, query_locations, query_elevations, area_model)
+    yPred, yVar, query_elevations, status = computeEstimatesForLocations(query_dates, query_locations, area_model)
 
     num_times = len(query_dates)
     data_out = {'Latitude': query_lats.tolist(), 'Longitude': query_lons.tolist(), 'Elevation': query_elevations.tolist()}
@@ -1198,13 +1219,16 @@ def getEstimatesForLocations():
 
 
 # this is a generic helper function that sets everything up and runs the model
-def computeEstimatesForLocations(query_dates, query_locations, query_elevations, area_model, outlier_filtering = True):
+def computeEstimatesForLocations(query_dates, query_locations, area_model, outlier_filtering = True):
     num_locations = query_locations.shape[0]
     query_lats = query_locations[:,0]
     query_lons = query_locations[:,1]
     query_start_datetime = query_dates[0]
     query_end_datetime = query_dates[-1]
 
+    elevation_interpolator = jsonutils.buildAreaElevationInterpolator(area_model['elevationfile'])    
+    query_elevations = np.array([elevation_interpolator(this_row[1], this_row[0])[0] for this_row in query_locations])
+    
     # step 0, load up the bounding box from file and check that request is within it
 
     # for i in range(num_locations):
@@ -1285,9 +1309,10 @@ def computeEstimatesForLocations(query_dates, query_locations, query_elevations,
     # step 6, add elevation values to the data
     # NOTICE - the elevation object takes locations in the form "lon-lat"
     # this seems redundant since elevations are passed in...
+    # elevation_interpolator = jsonutils.buildAreaElevationInterpolator(area_model['elevationfile'])
     for datum in sensor_data:
         if 'Altitude' not in datum:
-            datum['Altitude'] = area_model['elevationinterpolator']([datum['Longitude']],[datum['Latitude']])[0]
+            datum['Altitude'] = elevation_interpolator([datum['Longitude']],[datum['Latitude']])[0]
 
     # This does the calculation in one step --- old method --- less efficient.  Below we break it into pieces.  Remove this once the code below (step 7) is fully tested.
     # step 7, get estimates from model
@@ -1332,7 +1357,7 @@ def computeEstimatesForLocations(query_dates, query_locations, query_elevations,
 # Here we clamp values to ensure that small negative values to do not appear
     yPred = np.clip(yPred, a_min = 0., a_max = None)
 
-    return yPred, yVar, status
+    return yPred, yVar, query_elevations, status
 
 
 
