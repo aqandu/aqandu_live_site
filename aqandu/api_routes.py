@@ -138,6 +138,7 @@ def filterUpperLowerBoundsForArea(start_date, end_date, area_model, filter_level
         median, MAD, count = estimateMedianDeviation(start_date, end_date, lo[0], hi[0], lo[1], hi[1], area_model)
         lo = max(median - filter_level*MAD, 0.0)
         hi = min(max(median + filter_level*MAD, MIN_OUTLIER_LEVEL), MAX_ALLOWED_PM2_5)
+        print(f"Hi and low bounds are {hi} and {lo}")
         return lo, hi
 
     
@@ -198,7 +199,6 @@ def getSensorData():
     if sensor_source == "" or sensor_source == "undefined" or sensor_source==None:
         # Check that the arguments we want exist
         sensor_source = "all"
-
 
     # Check that the data is formatted correctly
     if not utils.validateDate(start) or not utils.validateDate(end):
@@ -311,6 +311,74 @@ def getSensorData():
     # return jsonify({"data": measurements, "tags": tags})
     return jsonify(measurements)
 
+@app.route("/api/getSensorLocations", methods=["GET"])
+@cache.cached(timeout=59, query_string=True)
+def getSensorLocations():
+    if "areaModel" in request.args:
+        area_string = request.args.get('areaModel')
+    else:
+        area_string = "all"
+
+    if area_string == "all":
+        areas = _area_models.keys()
+    else:
+        if area_string in _area_models:
+            areas = [area_string]
+        else:
+            msg = f"The area string {area_string} does not have a corresponding area model"
+            return msg, 400
+
+    with open('db_table_headings.json') as json_file:
+        db_table_headings = json.load(json_file)
+        
+    query_list = []
+    for this_area in areas:
+        area_model = _area_models[this_area]
+#        print(area_model)
+        # this logic adjusts for the two cases, where you have different tables for each source or one table for all sources
+        # get all of the sources if you need to
+        sources = area_model["idstring"]
+
+        for area_id_string in sources:
+            where_string = " WHERE TRUE"
+            time_string = db_table_headings[area_id_string]['time']
+            lon_string = db_table_headings[area_id_string]['longitude']
+            lat_string = db_table_headings[area_id_string]['latitude']
+            id_string = db_table_headings[area_id_string]['id']
+            table_string = os.getenv(area_id_string)
+
+            column_string = ", ".join([id_string + " AS ID", time_string + " AS time", lat_string + " AS lat", lon_string+" AS lon"])
+            # put together a separate query for all of the specified sources
+            table_string = os.getenv(area_id_string)
+
+                # This is to cover the case where the different regions are in the same database/table and distinguised by different labels
+            if "label" in db_table_headings[area_id_string]:
+                label_string = db_table_headings[area_id_string]['label']
+                column_string += ", " + label_string + " AS area_model"
+                if area_model != "all":
+                    where_string += " AND " + label_string + " = " + "'" + this_area + "'"
+#                    where_string += " AND area_model = " + this_area
+            else:
+                column_string += ", " + this_area + "'" + " AS area_model"
+
+            this_query = f"""(WITH a AS (SELECT {column_string} FROM `{table_string}` {where_string}),  b AS (SELECT {id_string} AS ID, max({time_string})  AS LATEST_MEASUREMENT FROM `{table_string}` GROUP BY {id_string}) SELECT * FROM a INNER JOIN b ON a.time = b.LATEST_MEASUREMENT and b.ID = a.ID)"""
+#            this_query = f"""(SELECT * FROM (SELECT {column_string}, max({time_string}) AS LATEST_MEASUREMENT FROM `{table_string}` WHERE {time_string} >= '{str(one_hour_ago)}' GROUP BY {group_string}) WHERE LATEST_MEASUREMENT > '{str(one_hour_ago)}')"""
+#            print(this_query)
+
+            query_list.append(this_query)
+
+
+    # Build the actual query from the list of options
+    query = " UNION ALL ".join(query_list)
+
+    print(query)
+    # Run the query and collect the result
+    query_job = bq_client.query(query)
+    df = query_job.to_dataframe()
+    sensor_list = {}
+    for idx, row in df.iterrows():
+        sensor_list[row["ID"]] = {"Latitude": row["lat"], "Longitude": row["lon"], "Time": row["time"]}
+    return jsonify(sensor_list)
 
 @app.route("/api/getLiveSensors", methods=["GET"])
 @cache.cached(timeout=59, query_string=True)
@@ -492,7 +560,7 @@ def getLiveSensors():
             this_data = datum['pm2_5']
             if  this_data < 0.0:
                 df.at[idx, 'status'] = df.at[idx, 'status'] + ["No data"]
-            elif (this_data < this_lo) or (this_data > this_hi):
+            elif (this_data < this_lo) or (this_data > this_hi) or mat.isnan(this_data):
                 df.at[idx, 'status'] = df.at[idx, 'status'] + ["Outlier"]
                 
 
@@ -643,8 +711,11 @@ def getEstimateMap():
 
     num_times = len(query_dates)
 
-    query_elevations = query_elevations.reshape((lat_vector.shape[0], lon_vector.shape[0], num_times))
+    print(f"elevations shape {query_elevations.shape}")
+    query_elevations = query_elevations.reshape((lat_vector.shape[0], lon_vector.shape[0]))
+    print(f"elevations shape {query_elevations.shape}")
     yPred = yPred.reshape((lat_vector.shape[0], lon_vector.shape[0], num_times))
+    print(f"yPred shape {yPred.shape}")
     yVar = yVar.reshape((lat_vector.shape[0], lon_vector.shape[0], num_times))
 
     estimates = yPred.tolist()
@@ -893,8 +964,15 @@ def getTimeAggregatedData():
                 new_pm2_5 = row.PM2_5
                 status = "Not corrected"
             new_row = {"PM2_5": new_pm2_5, "Time": (row.upper + timedelta(seconds=1)).strftime(utils.DATETIME_FORMAT), group_by: row[group_tags[group_by]], "Area model":row.areamodel, "Status":status}
+# if each ID is presented, also present their locations
+            # if group_by == "id":
+            #     new_row["Latitude"] = row.lat
+            #     new_row["Longitude"] = row.lon
+# if a specific ID is presented, present it's location as well
             if id != "all":
                 new_row["id"] = id
+                # new_row["Latitude"] = row.lat
+                # new_row["Longitude"] = row.lon
             if sensor_source != "all":
                 new_row["Sensor source"] = sensor_source
             measurements.append(new_row)
