@@ -137,6 +137,9 @@ def applyCorrectionFactor(factors, data_timestamp, data, sensor_type, status=Fal
         this_type = sensor_type
     elif "default" in factors:
         this_type = "default"
+    else:
+        print(f"Got bad type in correction factors {sensor_type}")
+        print(factors)
     default_idx = -1
     for i in range(len(factors[this_type])):
             if factors[this_type][i]['starttime'] <= data_timestamp and factors[this_type][i]['endtime'] > data_timestamp:

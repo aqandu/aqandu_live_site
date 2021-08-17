@@ -63,13 +63,13 @@ def estimateMedianDeviation(start_date, end_date, lat_lo, lat_hi, lon_lo, lon_hi
 
         column_string = " ".join([id_string, "AS id,", time_string, "AS time,", pm2_5_string, "AS pm2_5,", lat_string, "AS lat,", lon_string, "AS lon"])
 
-        if 'sensormodel' in db_table_headings[area_id_string]:
-            sensormodel_string = db_table_headings[area_id_string]['sensormodel']
-            column_string += ", " + sensormodel_string + " AS sensormodel"
+        # if 'sensormodel' in db_table_headings[area_id_string]:
+        #     sensormodel_string = db_table_headings[area_id_string]['sensormodel']
+        #     column_string += ", " + sensormodel_string + " AS sensormodel"
 
-        if 'sensortype' in db_table_headings[area_id_string]:
-            sensortype_string = db_table_headings[area_id_string]['sensortype']
-            column_string += ", " + sensortype_string + " AS sensortype"
+        if 'sensormodel' in db_table_headings[area_id_string]:
+            sensortype_string = db_table_headings[area_id_string]['sensormodel']
+            column_string += ", " + sensortype_string + " AS sensormodel"
 
         where_string = ""
         if "label" in db_table_headings[area_id_string]:
@@ -359,7 +359,7 @@ def getSensorLocations():
                     where_string += " AND " + label_string + " = " + "'" + this_area + "'"
 #                    where_string += " AND area_model = " + this_area
             else:
-                column_string += ", " + this_area + "'" + " AS area_model"
+                column_string += ", " + "'" + this_area + "'" + " AS area_model"
 
             this_query = f"""(WITH a AS (SELECT {column_string} FROM `{table_string}` {where_string}),  b AS (SELECT {id_string} AS ID, max({time_string})  AS LATEST_MEASUREMENT FROM `{table_string}` GROUP BY {id_string}) SELECT * FROM a INNER JOIN b ON a.time = b.LATEST_MEASUREMENT and b.ID = a.ID)"""
 #            this_query = f"""(SELECT * FROM (SELECT {column_string}, max({time_string}) AS LATEST_MEASUREMENT FROM `{table_string}` WHERE {time_string} >= '{str(one_hour_ago)}' GROUP BY {group_string}) WHERE LATEST_MEASUREMENT > '{str(one_hour_ago)}')"""
@@ -481,14 +481,13 @@ def getLiveSensors():
                     where_string += " AND " + label_string + " = " + "'" + this_area + "'"
 #                    where_string += " AND area_model = " + this_area
             else:
-                column_string += ", " + this_area + "'" + " AS area_model"
+                column_string += ", " + "'" + this_area + "'" + " AS area_model"
 
-            where_string += " AND " + source_query
+            where_string += f" AND {source_query} AND {time_string} >= '{str(one_hour_ago)}'"
 
             this_query = f"""(WITH a AS (SELECT {column_string} FROM `{table_string}` {where_string}),  b AS (SELECT {id_string} AS ID, max({time_string})  AS LATEST_MEASUREMENT FROM `{table_string}` WHERE {time_string} >= '{str(one_hour_ago)}' GROUP BY {id_string}) SELECT * FROM a INNER JOIN b ON a.time = b.LATEST_MEASUREMENT and b.ID = a.ID)"""
 #            this_query = f"""(SELECT * FROM (SELECT {column_string}, max({time_string}) AS LATEST_MEASUREMENT FROM `{table_string}` WHERE {time_string} >= '{str(one_hour_ago)}' GROUP BY {group_string}) WHERE LATEST_MEASUREMENT > '{str(one_hour_ago)}')"""
             
-#            print(this_query)
 
             if not empty_query:
                 query_list.append(this_query)
@@ -540,6 +539,8 @@ def getLiveSensors():
 
     # Build the actual query from the list of options
     query = " UNION ALL ".join(query_list)
+    print(f"liveSensors query {query}")
+
 
     print(query)
     # Run the query and collect the result
@@ -560,7 +561,7 @@ def getLiveSensors():
             this_data = datum['pm2_5']
             if  this_data < 0.0:
                 df.at[idx, 'status'] = df.at[idx, 'status'] + ["No data"]
-            elif (this_data < this_lo) or (this_data > this_hi) or mat.isnan(this_data):
+            elif (this_data < this_lo) or (this_data > this_hi) or np.isnan(this_data):
                 df.at[idx, 'status'] = df.at[idx, 'status'] + ["Outlier"]
                 
 
@@ -770,7 +771,7 @@ def getTimeAggregatedData():
             return msg, 400
     else:
         group_string = ""
-        group_by == None
+        group_by = None
 
 # if you are going to apply correction, you need to have data grouped by area and sensortype
     if apply_correction:
@@ -1008,9 +1009,9 @@ def submit_sensor_query(lat_lo, lat_hi, lon_lo, lon_hi, start_date, end_date, ar
             sensormodel_string = db_table_headings[area_id_string]['sensormodel']
             column_string += ", " + sensormodel_string + " AS sensormodel"
 
-        if 'sensortype' in db_table_headings[area_id_string]:
-            sensortype_string = db_table_headings[area_id_string]['sensortype']
-            column_string += ", " + sensortype_string + " AS sensortype"
+        if 'sensorsource' in db_table_headings[area_id_string]:
+            sensorsource_string = db_table_headings[area_id_string]['sensorsource']
+            column_string += ", " + sensorsource_string + " AS sensorsource"
 
         where_string = ""
         if "label" in db_table_headings[area_id_string]:
@@ -1022,6 +1023,7 @@ def submit_sensor_query(lat_lo, lat_hi, lon_lo, lon_hi, start_date, end_date, ar
 
 
     query = " UNION ALL ".join(query_list) + " ORDER BY time ASC "
+    print(f"submit sensor query is {query}")
 
 #        query_string = f"""SELECT * FROM (SELECT {column_string} FROM `{db_id_string}` WHERE (({time_string} > {start_date}) AND ({time_string} < {end_date}))) WHERE ((lat <= {lat_hi}) AND (lat >= {lat_lo}) AND (lon <= {lon_hi}) AND (lon >= {lon_lo})) ORDER BY time ASC"""
 
@@ -1104,17 +1106,16 @@ def request_model_data_local(lats, lons, radius, start_date, end_date, area_mode
             "Longitude": row.lon,
             "time": row.time,
             "PM2_5": row.pm2_5,
+            "SensorModel":row.sensormodel,
+            "SensorSource":row.sensorsource
             }
-        if 'sensormodel' in row:
-            new_row["SensorModel"] = row.sensormodel
-        else:
-            new_row["SensorModel"] = "Default"
 
-        if 'sensorsource' in row:
-            new_row["SensorModel"] = row.sensorsource
-        else:
-            new_row["SensorSource"] = "Default"
-
+        #this is taken care of in the query now
+        # if 'sensormodel' in row:
+        #     new_row["SensorModel"] = row.sensormodel
+        # else:
+        #     print(f"missed sensor model for row {row}")
+        #     new_row["SensorModel"] = "default"
         # try:
         #     new_row["SensorModel"] = row.sensormodel
         # except:

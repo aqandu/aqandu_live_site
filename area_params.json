@@ -1,6 +1,7 @@
 {
     "Salt_Lake_City":
     {
+	"Name": "Salt Lake City",
 	"Note": "Salt Lake City",
 	"Timezone": "America/Denver",
 	"ID String":["AIRU_TABLE_ID", "PURPLEAIR_TABLE_ID", "DAQ_TABLE_ID"],
@@ -19,6 +20,10 @@
 	],
 	"Correction Factors":
 	{
+	    "0000":
+	    [
+		{"starttime":"default","endtime":"default","slope":1.0,"intercept":0.0,"note":"DAQ - no correction"}
+	    ],
 	    "1003":
 	    [
 		{"starttime":"2021-02-05T12:00:00Z","endtime":"2021-02-06T23:00:00Z","slope":1.51,"intercept":2.589,"note":"Dust storm"},
