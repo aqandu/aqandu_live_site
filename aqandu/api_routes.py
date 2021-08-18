@@ -487,7 +487,8 @@ def getLiveSensors():
 
             this_query = f"""(WITH a AS (SELECT {column_string} FROM `{table_string}` {where_string}),  b AS (SELECT {id_string} AS ID, max({time_string})  AS LATEST_MEASUREMENT FROM `{table_string}` WHERE {time_string} >= '{str(one_hour_ago)}' GROUP BY {id_string}) SELECT * FROM a INNER JOIN b ON a.time = b.LATEST_MEASUREMENT and b.ID = a.ID)"""
 #            this_query = f"""(SELECT * FROM (SELECT {column_string}, max({time_string}) AS LATEST_MEASUREMENT FROM `{table_string}` WHERE {time_string} >= '{str(one_hour_ago)}' GROUP BY {group_string}) WHERE LATEST_MEASUREMENT > '{str(one_hour_ago)}')"""
-            
+
+
 
             if not empty_query:
                 query_list.append(this_query)
@@ -738,7 +739,6 @@ def getEstimateMap():
 
 @app.route("/api/getTimeAggregatedData", methods=["GET"])
 def getTimeAggregatedData():
-    print("call to aggregate")
     # this is used to convert the parameter terms to those used in the database
     group_tags = {"id":"ID", "sensorModel":"sensormodel", "area":"areamodel"}
     # Get the arguments from the query string
@@ -757,10 +757,10 @@ def getTimeAggregatedData():
         timeInterval = int(request.args.get('timeInterval'))  # Time interval in minutes
     else:
         timeInterval = 60
-    if "applyCorrection" in request.args:
-        apply_correction = True
-    else:
+    if "noCorrection" in request.args:
         apply_correction = False
+    else:
+        apply_correction = True
 
     if "groupBy" in request.args:
         group_by = request.args.get("groupBy")
@@ -793,6 +793,9 @@ def getTimeAggregatedData():
 
     if "areaModel" in request.args:
         area_string = request.args.get('areaModel')
+        if not area_string in _area_models:
+            msg = f"Invalid area model {area_string} - options are: {_area_models.keys()}"
+            return msg, 400
     else:
         area_string = "all"
 
@@ -930,6 +933,8 @@ def getTimeAggregatedData():
         GROUP BY upper {group_string}
         ORDER BY upper"""
 
+    print(f"aggregate query is {query}")
+    
     job_config = bigquery.QueryJobConfig(
         query_parameters=[
             bigquery.ScalarQueryParameter("id", "STRING", id),
@@ -964,7 +969,9 @@ def getTimeAggregatedData():
             else:
                 new_pm2_5 = row.PM2_5
                 status = "Not corrected"
-            new_row = {"PM2_5": new_pm2_5, "Time": (row.upper + timedelta(seconds=1)).strftime(utils.DATETIME_FORMAT), group_by: row[group_tags[group_by]], "Area model":row.areamodel, "Status":status}
+            new_row = {"PM2_5": new_pm2_5, "Time": (row.upper + timedelta(seconds=1)).strftime(utils.DATETIME_FORMAT), "Status":status}
+            if group_by != None:
+                new_row[group_by] = row[group_tags[group_by]]
 # if each ID is presented, also present their locations
             # if group_by == "id":
             #     new_row["Latitude"] = row.lat
