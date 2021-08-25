@@ -171,6 +171,37 @@ def estimateSummaryStatistics():
     return(jsonify(summary))
 
 
+@app.route("/api/getCorrectionFactors", methods=["GET"])
+def getCorrectionFactors():
+# Get the arguments from the query string
+    area_string = request.args.get('areaModel', default=None)
+    time = request.args.get('time', default=None)
+
+    if area_string == "all" or area_string==None:
+        areas = _area_models.keys()
+    elif area_string in _area_models.keys():
+        areas = [area_string]
+    else:
+        msg = f"Specific areaModel {area_string} not available, options are {_area_models.keys()}"
+        return msg, 400
+    all_factors = {}
+    for area in areas:
+        area_model = _area_models[area]
+        factors = area_model['correctionfactors']
+        if time != None:
+            area_factors = {}
+            this_time = jsonutils.parseDateString(time, area_model['timezone'])
+            for this_type in factors:
+                for i in range(len(factors[this_type])):
+                    if (factors[this_type][i]['starttime'] <= this_time and factors[this_type][i]['endtime'] > this_time) or (factors[this_type][i]['starttime'] == "default"):
+                        area_factors[this_type] = factors[this_type][i]
+                        break
+            all_factors[area] = area_factors
+        else:
+            all_factors[area] = factors
+    return(jsonify(all_factors))
+
+
 @app.route("/api/getSensorData", methods=["GET"])
 def getSensorData():
     # Get the arguments from the query string

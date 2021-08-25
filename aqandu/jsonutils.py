@@ -44,10 +44,10 @@ def loadCorrectionFactors(cfactor_info, dflt_tz_string=None):
             if (row['starttime'] != 'default'):
                 new_row['starttime'] = parseDateString(row['starttime'], dflt_tz_string)
                 new_row['endtime'] = parseDateString(row['endtime'], dflt_tz_string)
-            new_row['slope'] = float(row['slope'])
-            new_row['intercept'] = float(row['intercept'])
-            new_row['note'] = row['note']
-            sensorDict.append(new_row)
+                new_row['slope'] = float(row['slope'])
+                new_row['intercept'] = float(row['intercept'])
+                new_row['note'] = row['note']
+                sensorDict.append(new_row)
 # put the default at the end of the list -- the system will use whichever one hits first
         for row in cfactor_info[sensor_type]:
             if (row['starttime'] == 'default'):
