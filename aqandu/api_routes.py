@@ -189,7 +189,7 @@ def getSensorData():
 #        msg = "id is invalid. It must be a string that is not '' or 'undefined'."
 #        return msg, 400
 
-    if "areamodel" in request.args:
+    if "areaModel" in request.args:
         area_string = request.args.get('areaModel')
     else:
         area_string = "all"
@@ -213,6 +213,8 @@ def getSensorData():
         areas = _area_models.keys()
     else:
         areas = [area_string]
+
+    print(f"Areas are {areas} and areaModel is {area_string}")
 
     with open('db_table_headings.json') as json_file:
         db_table_headings = json.load(json_file)
@@ -250,7 +252,7 @@ def getSensorData():
             model_string = db_table_headings[area_id_string]['sensormodel']
             table_string = os.getenv(area_id_string)
 
-            column_string = " ".join([id_string, "AS ID,", time_string, "AS time,", pm2_5_string, "AS pm2_5,", lat_string, "AS lat,", lon_string, "AS lon,", "'" + this_area + "'", "AS area_model,", model_string, "AS sensormodel"])
+            column_string = " ".join([id_string, "AS ID,", time_string, "AS time,", pm2_5_string, "AS pm2_5,", lat_string, "AS lat,", lon_string, "AS lon,", model_string, "AS sensormodel"])
             # put together a separate query for all of the specified sources
             table_string = os.getenv(area_id_string)
 
@@ -261,20 +263,32 @@ def getSensorData():
             # if you are looking for a particular sensor source, but that's not part of the tables info, then the query is not going to return anything
                 empty_query = True
 
-
-                # for efficiency, don't do the query if the sensorsource is needed by not available
-
             where_string = "time >= @start AND time <= @end"
             if id != None:
                 where_string  += " AND ID = @id"
             where_string += source_query
+
+
+                # This is to cover the case where the different regions are in the same database/table and distinguised by different labels
+            if "label" in db_table_headings[area_id_string]:
+                label_string = db_table_headings[area_id_string]['label']
+                column_string += ", " + label_string + " AS area_model"
+                if area_model != "all":
+                    where_string += " AND " + "area_model" + " = " + "'" + this_area + "'"
+            else:
+                column_string += ", " + "'" + this_area + "'" + " AS area_model"
+
+                
+                # for efficiency, don't do the query if the sensorsource is needed by not available
+
 
             this_query = f"""(SELECT * FROM (SELECT {column_string} FROM `{table_string}`) WHERE ({where_string}))"""
 
             if not empty_query:
                 query_list.append(this_query)
 
-        query = " UNION ALL ".join(query_list) + " ORDER BY time ASC "
+    query = " UNION ALL ".join(query_list) + " ORDER BY time ASC "
+    print(f"getSensorData query is {query}")
 
     job_config = bigquery.QueryJobConfig(query_parameters=[
             bigquery.ScalarQueryParameter("id", "STRING", id),
