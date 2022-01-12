@@ -45,7 +45,7 @@ ordered-set==4.0.2
 packaging==20.9
 paramiko==2.7.2
 pep517==0.10.0
-pipenv==2020.11.15
+pipenv==2022.1.8
 ply==3.11
 progress==1.5
 pyasn1==0.4.8
