@@ -71,7 +71,7 @@ team==1.0
 texttable==1.6.3
 toml==0.10.2
 tqdm==4.59.0
-Twisted==20.3.0
+Twisted==22.1.0
 txaio==21.2.1
 txtorcon==20.0.0
 urllib3==1.26.3
