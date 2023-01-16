@@ -9,20 +9,28 @@ import csv
 import logging
 
 
-DATETIME_FORMAT = "%Y-%m-%dT%H:%M:%SZ"
+DATETIME_FORMAT = ["%Y-%m-%dT%H:%M:%SZ", "%Y-%m-%dT%H:%M:%S%z"]
 
 
 def validateDate(dateString):
     """Check if date string is valid"""
-    try:
-        return dateString == datetime.strptime(dateString, DATETIME_FORMAT).strftime(DATETIME_FORMAT)
-    except ValueError:
-        return False
+    for this_format in DATETIME_FORMAT:
+        try:
+            if dateString == datetime.strptime(dateString, this_format).strftime(this_format):
+                return(True)
+        except ValueError:
+            pass
+    return False
 
 
 def parseDateString(datetime_string):
     """Parse date string into a datetime object"""
-    return datetime.strptime(datetime_string, DATETIME_FORMAT).replace(tzinfo=timezone.utc)
+    for this_format in DATETIME_FORMAT:
+        try:
+            return datetime.strptime(datetime_string, this_format)
+        except ValueError:
+            pass
+    return None
 
 #  this breaks the time part of the  eatimation/data into pieces to speed up computation
 # sequence_size_mins
@@ -59,6 +67,22 @@ def chunkTimeQueryData(query_dates, time_sequence_size, time_padding):
         sensor_time_sequence.append([query_time_sequence[i][0] - time_padding, query_time_sequence[i][-1] + time_padding])
 
     return sensor_time_sequence, query_time_sequence
+
+#  this mimics the behavior of chunkTimeQueryData but accounts for aggregation, and puts each aggregate in its own chunk
+# sequence_size_mins
+# assumes query_dates are sorted
+def chunkTimeQueryDataAggregate(query_dates, aggregation_interval):
+    start_date = query_dates[0]
+    end_date = query_dates[-1]
+    num_queries = len(query_dates)
+    query_time_sequence = []
+    sensor_time_sequence = []
+    for i in range(num_queries):
+        query_time_sequence.append([query_dates[i]])
+        sensor_time_sequence.append([query_dates[i], query_dates[i] + timedelta(hours=aggregation_interval)])
+    return sensor_time_sequence, query_time_sequence
+
+
 
 # Load up elevation grid
 # BE CAREFUL - this object, given the way the data is saved, seems to talk "lon-lat" order

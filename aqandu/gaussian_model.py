@@ -25,19 +25,20 @@ JITTER = 1e-2
 
 # efficient matrix multiply with diagonal matrix -- I cannot believe torch doesn't have this.
 def diagMultTorchLeft(diag_vector, matrix):
-    rows = diag_vector.shape[0]
-    cols = matrix.shape[1]
-#    print(diag_vector.shape)
-#    print(matrix.shape)
-    if (rows != matrix.shape[0]):
-        print("RunTimeError: bad entries for diagonal matrix multiply")
-        return torch.zeros([0])
+    return(diag_vector*matrix)
+#     rows = diag_vector.shape[0]
+#     cols = matrix.shape[1]
+# #    print(diag_vector.shape)
+# #    print(matrix.shape)
+#     if (rows != matrix.shape[0]):
+#         print("RunTimeError: bad entries for diagonal matrix multiply")
+#         return torch.zeros([0])
 
-    result = torch.zeros([rows,cols],dtype=torch.float64)
-    for i in range(rows):
-        result[i, :] = diag_vector[i]*matrix[i, :]
-#    print(result.shape)
-    return result
+#     result = torch.zeros([rows,cols],dtype=torch.float64)
+#     for i in range(rows):
+#         result[i, :] = diag_vector[i]*matrix[i, :]
+# #    print(result.shape)
+#     return result
 
 # used for plugging kernels into other operations associated with circulant kernel matrices
 def gaussKernel(x):
@@ -58,14 +59,13 @@ def buildKernelArray(size, kernel, bandwidth=1.0):
             array[size-(i+1)] = kernel(float((i+1))/bandwidth)
     return(array)
 
-
 # convenience function for getting a circulant matrix
 def buildKernelCirculantMatrix(size, kernel, bandwidth=1.0):
     return(scipy.linalg.circulant(buildKernelArray(size, kernel, bandwidth)))
 
 #uses the fft to compute the inverse of a circulant matrix, specified by the first column as input
 def circulantMatrixInverse(vector):
-    v_fft = scipy.fft(vector)
+    v_fft = np.fft.fft(vector)
     size = vector.shape[0]
     array = np.zeros([size, size], dtype=np.complex_)
     for i in range(size):
@@ -73,10 +73,9 @@ def circulantMatrixInverse(vector):
     array *= 1./np.sqrt(size)
     return(np.matmul(np.matmul(array, np.diagflat(1.0/v_fft)), (array.conjugate()).transpose()))
 
-
 #uses the fft to compute the complex eigen values/vectors of a circulant matrix, specified by the first column as input
 def circulantMatrixEigen(vector):
-    v_fft = scipy.fft.fft(vector)
+    v_fft = np.fft.fft(vector)
     size = vector.shape[0]
     array = np.zeros([size, size], dtype=np.complex_)
     for i in range(size):
@@ -98,24 +97,33 @@ def circulantMatrixEigen(vector):
 
 # This works and has been tested
 def symCirculantMatrixEigen(vector):
-    v_fft = np.real(scipy.fft.fft(vector))
+    v_fft = np.real(np.fft.fft(vector, norm="ortho"))
 #    print("fft")
 #    print(v_fft)
     size = vector.shape[0]
+    locations = np.arange(size)
+    freqs = np.fft.fftfreq(size)
     array = np.zeros([size, size])
-    for i in range(size):
-        this_vector = np.exp(-2j * np.pi * i * np.arange(size)/(size))
-        if i <= size//2:
-            array[:,i] = np.real(this_vector)
-        else:
-            array[:,i] = np.imag(this_vector)
-#crazy normalization of the high-freq vector for special, even case
-    if (size % 2) == 0:
-        array[:,size//2] *= np.sqrt(0.5)
-##  This is an adjustment , like with the DCT, for only taking real values
-##     array *= math.sqrt(2.)/np.sqrt(size)
-    array *= np.sqrt(2.)/np.sqrt(size)
-    array[:, 0] *= 1.0/np.sqrt(2.)
+    for i in range(size//2 + 1):
+        array[:, i] = np.cos(2.0*np.pi*freqs[i]*locations)
+    for i in range(size//2 + 1, size):
+        array[:, i] = np.sin(2.0*np.pi*freqs[i]*locations)
+    v_fft /= np.sqrt(0.5)
+    v_fft[0] *= np.sqrt(0.5)
+    
+#     for i in range(size):
+#         this_vector = np.exp(-2j * np.pi * i * np.arange(size)/(size))
+#         if i <= size//2:
+#             array[:,i] = np.real(this_vector)
+#         else:
+#             array[:,i] = np.imag(this_vector)
+# #crazy normalization of the high-freq vector for special, even case
+#     if (size % 2) == 0:
+#         array[:,size//2] *= np.sqrt(0.5)
+# ##  This is an adjustment , like with the DCT, for only taking real values
+# ##     array *= math.sqrt(2.)/np.sqrt(size)
+    array *= 2.0*np.sqrt(0.5)/np.sqrt(size)
+    array[:, 0] *= 1.0/(2.0*np.sqrt(0.5))
 # return an complex valued eigen and vectors... 
     return(v_fft, array)
 
@@ -163,7 +171,7 @@ def combinations(A, B):
 class gaussian_model(nn.Module):
     def __init__(self, space_coordinates, time_coordinates, stData,
                  latlon_length_scale=4300., elevation_length_scale=30., time_length_scale=0.25,
-                 noise_variance=0.1, signal_variance=1., time_structured=True):
+                 noise_variance=0.1, signal_variance=1., time_structured=False):
         # space_coordinates musth a matrix of [number of space_coordinates x (lat,long,elevation)]
         # in UTM or any meter coordinate.
         # time_coordinates musth a matrix of [number of time_coordinates x 1] in hour formate
@@ -240,23 +248,34 @@ class gaussian_model(nn.Module):
             temporal_kernel_vector = buildKernelArray(self.time_coordinates.shape[0], gaussKernel,
                                                              # express the length in terms of bins
                                                              torch.exp(self.log_time_length_scale)/delta_time)
+            temporal_kernel_vector[0] += JITTER
 #            print("about to do circ eigen")
             eigen_value_t_np, eigen_vector_t_np = symCirculantMatrixEigen(temporal_kernel_vector)
 #            print("done circ eigen")
 
             eigen_value_t = torch.from_numpy(eigen_value_t_np)
             eigen_vector_t = torch.from_numpy(eigen_vector_t_np)
-#            print("temp inversion")
-# this is a test to make sure they are eigen vectors            
-#            print(eigen_vector_t_np.transpose()@temporal_kernel@eigen_vector_t_np)                
+            temporal_kernel = scipy.linalg.circulant(temporal_kernel_vector)
+            print("another test")
+            print(eigen_vector_t_np.transpose()@eigen_vector_t_np)
+            print(eigen_value_t)
+            print("notheranother test")
+            # this is a test to make sure they are eigen vectors            
+            print(eigen_vector_t_np@temporal_kernel@eigen_vector_t_np.transpose(-2, -1))
 
-
-            self.eigen_vector_st = kronecker(eigen_vector_t, eigen_vector_s)
-#            eigen_value_st = kronecker(eigen_value_t.view(-1, 1), eigen_value_s.view(-1, 1)).view(-1)
+            print("testing temp inverse")
+#            print(eigen_vector_t.transpose(-2,-1)@eigen_vector_t)
+            print((eigen_vector_t.transpose(-2,-1)@(1.0/(eigen_value_t + JITTER))*eigen_vector_t)@temporal_kernel)
+            
+            eigen_vector_st = self.eigen_vector_st = kronecker(eigen_vector_t, eigen_vector_s)
+            #            eigen_value_st = kronecker(eigen_value_t.view(-1, 1), eigen_value_s.view(-1, 1)).view(-1)
             self.eigen_value_st = kronecker(eigen_value_t.view(-1, 1), eigen_value_s.view(-1, 1)).view(-1)
-#            print("done kronecker products")
-            self.eigen_value_st_plus_noise_inverse = 1. / (self.log_signal_variance.exp()*self.eigen_value_st + torch.exp(self.log_noise_variance))
-#            sigma_inverse = eigen_vector_st @ eigen_value_st_plus_noise_inverse.diag_embed() @ (eigen_vector_st.transpose(-2, -1))
+            eigen_value_st_plus_noise_inverse = self.eigen_value_st_plus_noise_inverse = 1. / (self.log_signal_variance.exp()*self.eigen_value_st + torch.exp(self.log_noise_variance))
+            sigma_inverse = eigen_vector_st @ eigen_value_st_plus_noise_inverse.diag_embed() @ (eigen_vector_st.transpose(-2, -1))
+            self.alpha = sigma_inverse @ self.stData.transpose(-2, -1).reshape(-1, 1)
+            self.sigma_inverse = sigma_inverse
+            print("testing sigma inverse")
+            print(sigma_inverse@(self.log_signal_variance.exp()*kronecker(torch.from_numpy(temporal_kernel), spatial_kernel)+ self.log_noise_variance*torch.eye(eigen_vector_st.size(0))))
 #            self.K = eigen_vector_st @ eigen_value_st.diag_embed() @ eigen_vector_st.transpose(-2, -1)
 #            print("done computing vectors")
 
@@ -270,48 +289,66 @@ class gaussian_model(nn.Module):
 #        self.alpha = sigma_inverse @ self.stData.transpose(-2, -1).reshape(-1, 1)
 #        self.eigen_value_st = eigen_value_st
 
-    def forward(self, test_space_coordinates, test_time_coordinates):
+    def forward(self, test_space_coordinates, test_time_coordinates, full_variance = False):
         with torch.no_grad():
             test_latlon_kernel = self.SE_kernel(test_space_coordinates[:, 0:2], self.space_coordinates[:, 0:2],
                                                  torch.exp(self.log_latlon_length_scale))
             test_elevation_kernel = self.SE_kernel(test_space_coordinates[:, 2:3], self.space_coordinates[:, 2:3],
                                                    torch.exp(self.log_elevation_length_scale))
             test_spatial_kernel = test_latlon_kernel * test_elevation_kernel
-
+            print(f"test kernel {test_spatial_kernel}")
             test_temporal_kernel = self.SE_kernel(test_time_coordinates, self.time_coordinates,
                                                   torch.exp(self.log_time_length_scale))
+            
 
             test_st_kernel = self.log_signal_variance.exp()*kronecker(test_temporal_kernel, test_spatial_kernel)
+
+            # build the matrices for full covariance
+            if full_variance:
+                test_test_latlon_kernel = self.SE_kernel(test_space_coordinates[:, 0:2], test_space_coordinates[:, 0:2], torch.exp(self.log_latlon_length_scale))
+                test_test_elevation_kernel = self.SE_kernel(test_space_coordinates[:, 2:3], test_space_coordinates[:, 2:3], torch.exp(self.log_elevation_length_scale))
+                test_test_spatial_kernel = test_test_latlon_kernel * test_test_elevation_kernel
+                test_test_temporal_kernel = self.SE_kernel(test_time_coordinates, test_time_coordinates, torch.exp(self.log_time_length_scale))
+                test_test_st_kernel = self.log_signal_variance.exp()*kronecker(test_test_temporal_kernel, test_test_spatial_kernel)
+
             # alpha is the kernel inverse times the measurements that were taken already
             #        self.alpha = sigma_inverse @ self.stData.transpose(-2, -1).reshape(-1, 1)
-            if self.time_structured==True:
-                sigma_diag = diagMultTorchLeft(self.eigen_value_st_plus_noise_inverse, ((self.eigen_vector_st).transpose(-2, -1)@self.stData.transpose(-2, -1).reshape(-1, 1)))
-#                print("done with sigma_diag")
-                yPred = (test_st_kernel@self.eigen_vector_st)@sigma_diag
-#                print("done with yPred")
-                yVar = torch.zeros(test_st_kernel.size(0))
-                test_times_eigen = test_st_kernel@ self.eigen_vector_st
-                # for i in range(test_st_kernel.size(0)):
-                #     yVar[i] = self.log_signal_variance.exp() - test_times_eigen[i:i+1, :] @diagMultTorchLeft(self.eigen_value_st_plus_noise_inverse, test_times_eigen[i:i+1, :] .t())
-#                yVar = torch.diagonal(self.log_signal_variance.exp()*torch.eye(test_st_kernel.size(0)) - test_times_eigen@diagMultTorchLeft(self.eigen_value_st_plus_noise_inverse, test_times_eigen.t()))
-                yVar = self.log_signal_variance.exp()*torch.ones(test_st_kernel.size(0)) - torch.einsum("ij,ji->i", test_times_eigen, diagMultTorchLeft(self.eigen_value_st_plus_noise_inverse, test_times_eigen.t()))
-#                print(test_times_eigen.shape)
-#                print(diagMultTorchLeft(self.eigen_value_st_plus_noise_inverse, test_times_eigen.t()))
+            #             if self.time_structured==True:
+            #                 print(f"s_t eigenvecotor shape {(self.eigen_vector_st).size()}")
+            #                 sigma_diag = diagMultTorchLeft(self.eigen_value_st_plus_noise_inverse, ((self.eigen_vector_st).transpose(-2, -1)@self.stData.transpose(-2, -1).reshape(-1, 1)))
+            # #                print("done with sigma_diag")
+            #                 yPred = (test_st_kernel@self.eigen_vector_st)@sigma_diag
+            # #                print("done with yPred")
+            #                 yVar = torch.zeros(test_st_kernel.size(0))
+            #                 test_times_eigen = test_st_kernel@ self.eigen_vector_st
+            #                 # for i in range(test_st_kernel.size(0)):
+            #                 #     yVar[i] = self.log_signal_variance.exp() - test_times_eigen[i:i+1, :] @diagMultTorchLeft(self.eigen_value_st_plus_noise_inverse, test_times_eigen[i:i+1, :] .t())
+            #                 #                yVar = torch.diagonal(self.log_signal_variance.exp()*torch.eye(test_st_kernel.size(0)) - test_times_eigen@diagMultTorchLeft(self.eigen_value_st_plus_noise_inverse, test_times_eigen.t()))
 
-#                print("done with yVar")
+            #                 yVar = self.log_signal_variance.exp()*torch.ones(test_st_kernel.size(0)) - torch.einsum("ij,ji->i", test_times_eigen, diagMultTorchLeft(self.eigen_value_st_plus_noise_inverse, test_times_eigen.transpose(-2, -1)))
+            # #                print(test_times_eigen.shape)
+            # #                print(diagMultTorchLeft(self.eigen_value_st_plus_noise_inverse, test_times_eigen.t()))
+            
+            # #                print("done with yVar")
 
-                yPred = yPred.view(test_time_coordinates.size(0), test_space_coordinates.size(0)).transpose(-2, -1)
-                yVar = yVar.view(test_time_coordinates.size(0), test_space_coordinates.size(0)).transpose(-2, -1)
+            #                 yPred = yPred.view(test_time_coordinates.size(0), test_space_coordinates.size(0)).transpose(-2, -1)
+            #                 yVar = yVar.view(test_time_coordinates.size(0), test_space_coordinates.size(0)).transpose(-2, -1)
 
-            else:
-                yPred = test_st_kernel @ self.alpha
+            #             else:
+            yPred = test_st_kernel @ self.alpha
 
+            if not full_variance:
                 yVar = torch.zeros(test_st_kernel.size(0))
                 for i in range(test_st_kernel.size(0)):
                     yVar[i] = self.log_signal_variance.exp() - test_st_kernel[i:i + 1, :] @ self.sigma_inverse @ test_st_kernel[i:i + 1, :].t()
-
-                yPred = yPred.view(test_time_coordinates.size(0), test_space_coordinates.size(0)).transpose(-2, -1)
                 yVar = yVar.view(test_time_coordinates.size(0), test_space_coordinates.size(0)).transpose(-2, -1)
+            else:
+                tmp = test_st_kernel@self.sigma_inverse@test_st_kernel.t()
+                print(f"sizes are {test_st_kernel.size()} and {self.sigma_inverse.size()} and {tmp.size()}")
+                yVar = test_test_st_kernel -  tmp
+
+            yPred = yPred.view(test_time_coordinates.size(0), test_space_coordinates.size(0)).transpose(-2, -1)
+
 
 #            status_string = str(self.measurements) + " binned measurements"
             status_string = str(self.stData.shape[0]) + " sensors"

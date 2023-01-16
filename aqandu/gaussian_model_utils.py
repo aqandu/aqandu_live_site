@@ -8,6 +8,9 @@ import statistics
 import logging
 
 
+DEFAULT_NOISE_VARIANCE = 16.0
+DEFAULT_SIGNAL_VARIANCE = 400.0
+
 JANUARY1ST = datetime(2000, 1, 1, 0, 0, 0, 0, pytz.timezone('UTC'))
 TIME_COORDINATE_BIN_NUMBER_KEY = 'time_coordinate_bin_number'
 
@@ -26,14 +29,14 @@ TIME_ARRAY_INDEX = 5
 
 # some variables in binning and correcting data
 SENSOR_INTERPOLATE_DISTANCE = 6
-NUM_MINUTES_PER_BIN = 8
+NUM_MINUTES_PER_BIN = 6
 # this is the percentage of sensors recording measurements within a time slice/bin before a warning is reported
 TIME_SLICE_MIN_SENSOR_RATE = 0.65
 # a general number for reporting warnings about sensors that fail to report, interpolate, etc.
 FRACTION_SIGNIFICANT_FAILS = 0.30
 
 # maximum valid that we would expect -- anything bigger may be a bad reading
-MAX_VALID_PM2_5 = 200.0
+MAX_VALID_PM2_5 = 1000.0
 
 
 def getTimeCoordinateBin(datetime, time_offset=0):
@@ -65,7 +68,7 @@ def createTimeVector(sensor_data, time_lo_bound = -1.0, time_hi_bound = -1.0):
 
     for datum in sensor_data:
         this_time = datum['time']
-#  you only fill in the bin stuff for the dates that are in range
+        #  you only fill in the bin stuff for the dates that are in range
         if (not time_bounds) or ((this_time >= time_lo_bound) and (this_time <= time_hi_bound)):
             bin_number = getTimeCoordinateBin(this_time)
             time_coordinates.add(bin_number)
@@ -74,6 +77,7 @@ def createTimeVector(sensor_data, time_lo_bound = -1.0, time_hi_bound = -1.0):
             if lowest_bin_number is None or bin_number < lowest_bin_number:
                 lowest_bin_number = bin_number
 
+    print(f"time coordinates {time_coordinates}")
 #  you only fill in the bin stuff for the dates that are in range
     for datum in sensor_data:
         this_time = datum['time']
@@ -318,9 +322,11 @@ def setupDataMatrix2(sensor_data, space_coordinates, time_coordinates, device_lo
 #        for i in range(time_coordinates.shape[0]):
 #            data_matrix[space_index,i] = time_data_array[i,0]
         data_matrix[space_index,:] = time_data_array
+#        print(f"sensor id {key} is location {space_index}")
+    
 
 # check to make sure we have data        
-    if (data_matrix.size > 0):
+    if (data_matrix.shape[0] > 0):
         # saveMatrixToFile(data_matrix, '1matrix.txt')
         # numpy.savetxt('1matrix.csv', data_matrix, delimiter=',')
         interpolateBadElements(data_matrix, -1)
@@ -355,6 +361,8 @@ def setupDataMatrix2(sensor_data, space_coordinates, time_coordinates, device_lo
 #####  fill in missing values with time averages.
 # keep an eye out for time slices with too few good values and fill those in (print warning)
 def fillInMissingReadings(data_matrix, bad_value = 0.):
+    if data_matrix.shape[0] == 0:
+        return data_matrix
     data_mask = (data_matrix != bad_value)
     data_counts = numpy.sum(data_mask, 0)
     if (float(numpy.min(data_counts))/float(data_matrix.shape[0]) < TIME_SLICE_MIN_SENSOR_RATE):
@@ -392,9 +400,10 @@ def computeTimeArrays(sensor_data, device_location_map, time_coordinates):
 
 # creates the gaussian_model object and loads it with the sensor data
 # Nov 2020 : This has been modified so that it takes bounds on the times considered.  This is for use in breaking up long time sequences into smaller chunks for efficiency
-def createModel(sensor_data, latlon_length_scale, elevation_length_scale, time_length_scale, time_lo_bound = -1.0, time_hi_bound = -1.0, save_matrices=False):
+def createModel(sensor_data, latlon_length_scale, elevation_length_scale, time_length_scale, time_lo_bound = -1.0, time_hi_bound = -1.0, save_matrices=False, sensor_noise = DEFAULT_NOISE_VARIANCE):
 
     time_coordinates, time_offset = createTimeVector(sensor_data, time_lo_bound, time_hi_bound)
+
 ##    space_coordinates, device_location_map = createSpaceVector(sensor_data)
 # this builds up the first instance of the device_location_map
 # sucessive calls will process and fill in the time data
@@ -404,37 +413,39 @@ def createModel(sensor_data, latlon_length_scale, elevation_length_scale, time_l
 #    data_matrix, space_coordinates, time_coordinates = setupDataMatrix(sensor_data, space_coordinates, time_coordinates, device_location_map)
     data_matrix, space_coordinates, time_coordinates = setupDataMatrix2(sensor_data, space_coordinates, time_coordinates, device_location_map)
 
-    if (data_matrix.size > 0):
+    if (data_matrix.shape[0] > 0):
         space_coordinates = torch.tensor(space_coordinates)     # convert data to pytorch tensor
         time_coordinates = torch.tensor(time_coordinates)   # convert data to pytorch tensor
         data_matrix = torch.tensor(data_matrix)   # convert data to pytorch tensor
+
+        if save_matrices:
+            print(f"time offset is {time_offset}")
+            print("about to save matrix - shape " + str(data_matrix.shape))
+            print("about to save matrix - max " + str(torch.max(data_matrix)))
+            numpy.savetxt('space_coords.csv', space_coordinates, delimiter=',')
+            numpy.savetxt('time_coords.csv', time_coordinates, delimiter=',')
+            numpy.savetxt('PM_data.csv', data_matrix, delimiter=',')
+            # numpy.savetxt('latlon_scale.csv', numpy.full([1], latlon_length_scale), delimiter=',')
+            # numpy.savetxt('time_scale.csv', numpy.full([1], time_length_scale), delimiter=',')
+            # numpy.savetxt('elevation_scale.csv', numpy.full([1], elevation_length_scale), delimiter=',')
 
         model = gaussian_model.gaussian_model(space_coordinates, time_coordinates, data_matrix,
                                                   latlon_length_scale=float(latlon_length_scale),
                                                   elevation_length_scale=float(elevation_length_scale),
                                                   time_length_scale=float(time_length_scale),
-                                                  noise_variance=36.0, signal_variance=400.0, time_structured=True)
+                                                  noise_variance=sensor_noise, signal_variance=DEFAULT_SIGNAL_VARIANCE, time_structured=False)
         status = ""
     else:
+        print(f"warning zero measurements for time lo bound {time_lo_bound} and h bound {time_hi_bound}")
         model = None
         status = "0 measurements"
         
-    if save_matrices:
-        # numpy.savetxt('space_coords.csv', space_coordinates, delimiter=',')
-        # numpy.savetxt('time_coords.csv', time_coordinates, delimiter=',')
-        print("about to save matrix - shape " + str(data_matrix.shape))
-        print("about to save matrix - max " + str(torch.max(data_matrix)))
-        
-        numpy.savetxt('PM_data.csv', data_matrix, delimiter=',')
-        # numpy.savetxt('latlon_scale.csv', numpy.full([1], latlon_length_scale), delimiter=',')
-        # numpy.savetxt('time_scale.csv', numpy.full([1], time_length_scale), delimiter=',')
-        # numpy.savetxt('elevation_scale.csv', numpy.full([1], elevation_length_scale), delimiter=',')
 
     return model, time_offset, status
 
 
 # Ross changed this to do the formatting in the api_routes call instead of here
-def estimateUsingModel(model, lats, lons, elevations, query_dates, time_offset, save_matrices=False):
+def estimateUsingModel(model, lats, lons, elevations, query_dates, time_offset, save_matrices=False, full_variance = False):
 
     # converts from absolute dates to the local time coordinate system (in hours).  time_offset is the date of the first bin in the sensor data
     time_coordinates = convertToTimeCoordinatesVector(query_dates, time_offset)
@@ -473,7 +484,7 @@ def estimateUsingModel(model, lats, lons, elevations, query_dates, time_offset, 
         # numpy.savetxt('query_space_coords.csv', space_coordinates, delimiter=',')
         # numpy.savetxt('query_time_coords.csv', query_time, delimiter=',')
     
-    yPred, yVar, status = model(query_space, query_time)
+    yPred, yVar, status = model(query_space, query_time, full_variance = full_variance)
     yPred = numpy.maximum(yPred.numpy(), 0.0)
     yVar = yVar.numpy()
     if numpy.amin(yVar) < 0.0:
