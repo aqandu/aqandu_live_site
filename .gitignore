@@ -20,3 +20,4 @@ env/
 
 # Model Generated Files
 *.txt
+.python-version

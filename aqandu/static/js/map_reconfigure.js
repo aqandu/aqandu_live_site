@@ -340,19 +340,28 @@ function addControlPlaceholders(map) {
  * @return {[type]} [description]
  */
 function setupMap() {
-  //beginning of Peter's code (how to use StamenTileLayer)
-  var bottomLayer = new L.StamenTileLayer('toner');
+  //Create a bottom layer of tiles using the carto tiles
+  var bottomLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}.png', {
+   attribution:'&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>, &copy; <a href="https://carto.com/attributions">CARTO</a>',
+   subdomains: 'abcd',
+   maxZoom: 18,
+   minZoom: 0
+  });
+
   slcMap.addLayer(bottomLayer);
 
   var topPane = slcMap.createPane('leaflet-top-pane', slcMap.getPanes().mapPane);
-  var topLayerLines = new L.StamenTileLayer('toner-lines');
-  var topLayerLabels = new L.StamenTileLayer('toner-labels');
-  slcMap.addLayer(topLayerLines);
-  slcMap.addLayer(topLayerLabels);
-  topPane.appendChild(topLayerLines.getContainer());
-  topPane.appendChild(topLayerLabels.getContainer());
-  topLayerLabels.setZIndex(9);
-  topLayerLines.setZIndex(9);
+
+  // lines below have been removed since transitioning to new tiles
+  // leaving in case functionality is useful at some point
+  // var topLayerLines = new L.StamenTileLayer('toner-lines');
+  // var topLayerLabels = new L.StamenTileLayer('toner-labels');
+  // slcMap.addLayer(topLayerLines);
+  // slcMap.addLayer(topLayerLabels);
+  // topPane.appendChild(topLayerLines.getContainer());
+  // topPane.appendChild(topLayerLabels.getContainer());
+  // topLayerLabels.setZIndex(9);
+  // topLayerLines.setZIndex(9);
 
   imageBounds = [[40.598850, -112.001349], [40.810476, -111.713403]];
 
